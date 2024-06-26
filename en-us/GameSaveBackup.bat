@@ -8,6 +8,12 @@ chcp 65001
 
 
 
+if /i "%cd%"=="%SystemRoot%\System32" (
+    echo Current directory is the system directory, no action should be done here
+    pause
+    exit
+)
+
 if not exist ".git" (
     git init
     git config --local core.autocrlf false

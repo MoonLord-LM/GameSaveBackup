@@ -8,6 +8,12 @@ chcp 65001
 
 
 
+if /i "%cd%"=="%SystemRoot%\System32" (
+    echo 当前目录为系统目录，不应该在这里执行
+    pause
+    exit
+)
+
 if not exist ".git" (
     git init
     git config --local core.autocrlf false
