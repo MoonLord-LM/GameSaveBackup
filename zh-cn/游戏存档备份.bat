@@ -46,6 +46,7 @@ for /l %%i in (1, 1, %length%) do (
 
 git add .
 git commit -m "Update"
+git clean -df
 
 endlocal
 pause
