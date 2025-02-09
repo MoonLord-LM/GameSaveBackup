@@ -2,5 +2,9 @@
   {
     "game": "Elden Ring",
     "save": "%USERPROFILE%\\AppData\\Roaming\\EldenRing"
+  },
+  {
+    "game": "Settlement Survival",
+    "save": "%USERPROFILE%\\AppData\\LocalLow\\SZSS INTERACTIVE\\Settlement Survival"
   }
 ]

@@ -2,5 +2,9 @@
   {
     "game": "艾尔登法环",
     "save": "%USERPROFILE%\\AppData\\Roaming\\EldenRing"
+  },
+  {
+    "game": "部落幸存者",
+    "save": "%USERPROFILE%\\AppData\\LocalLow\\SZSS INTERACTIVE\\Settlement Survival"
   }
 ]
