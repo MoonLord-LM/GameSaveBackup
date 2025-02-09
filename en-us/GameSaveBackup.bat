@@ -35,7 +35,8 @@ for /l %%i in (1, 1, %length%) do (
     if not exist "!game!" ( mkdir "!game!" )
     cd "!game!"
     xcopy "!save!" . /E /I /Y
-    echo "explorer.exe" "!save!" > "OpenSave.bat"
+    echo if not exist "!save!" mkdir "!save!" > "OpenSave.bat"
+    echo "explorer.exe" "!save!" >> "OpenSave.bat"
 
     git add .
     git commit -m "Update - !game!"
