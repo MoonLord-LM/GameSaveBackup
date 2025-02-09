@@ -23,6 +23,7 @@ if not exist ".git" (
 
 for /f "tokens=*" %%a in ('hostname') do set "machine_name=%%a"
 for /f "tokens=3 delims=\" %%b in ('echo %USERPROFILE%') do set "user_name=%%b"
+echo Machine Name: !machine_name! User Name: !user_name!
 
 set "config=config.json"
 for /f %%i in ('jq length "%config%"') do set "length=%%i"
@@ -37,12 +38,24 @@ for /l %%i in (1, 1, %length%) do (
 
     if not exist "!game!" ( mkdir "!game!" )
     cd "!game!"
-    xcopy "!save!" . /E /I /Y
-    echo if not exist "!save!" mkdir "!save!" > "OpenSave.bat"
-    echo "explorer.exe" "!save!" >> "OpenSave.bat"
 
-    git add .
-    git commit -m "Update - !game! on !machine_name! by !user_name!"
+    for /f %%a in ('powershell -NoProfile -Command "((Get-ChildItem -Recurse -Path '!save!' | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.Ticks)"') do set "max_local_time=%%a"
+    for /f %%a in ('powershell -NoProfile -Command "((Get-ChildItem -Recurse -Path '%cd%\!game!' | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.Ticks)"') do set "max_backup_time=%%a"
+    for /f "delims=" %%a in ('powershell -NoProfile -Command "[datetime]::new(!max_local_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss (zzz)')"') do set "max_local_time=%%a"
+    for /f "delims=" %%a in ('powershell -NoProfile -Command "[datetime]::new(!max_backup_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss (zzz)')"') do set "max_backup_time=%%a"
+    echo Max Local Time: !max_local_time! Max Backup Time: !max_backup_time!
+
+    if !max_local_time! gtr !max_backup_time! (
+        echo Local file is newer, begin to backup
+        xcopy "!save!" . /E /I /Y
+        echo if not exist "!save!" mkdir "!save!" > "OpenSave.bat"
+        echo "explorer.exe" "!save!" >> "OpenSave.bat"
+        git add .
+        git commit -m "Update - !game! on !machine_name! by !user_name!"
+    ) else (
+        echo Local file is older, no need to backup
+    )
+
     cd ..
     echo.
 )
