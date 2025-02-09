@@ -21,6 +21,9 @@ if not exist ".git" (
     git config --local core.ignorecase false
 )
 
+for /f "tokens=*" %%a in ('hostname') do set "machine_name=%%a"
+for /f "tokens=3 delims=\" %%b in ('echo %USERPROFILE%') do set "user_name=%%b"
+
 set "config=config.json"
 for /f %%i in ('jq length "%config%"') do set "length=%%i"
 echo.
@@ -39,13 +42,13 @@ for /l %%i in (1, 1, %length%) do (
     echo "explorer.exe" "!save!" >> "存档位置.bat"
 
     git add .
-    git commit -m "Update - !game!"
+    git commit -m "Update - !game! on !machine_name! by !user_name!"
     cd ..
     echo.
 )
 
 git add .
-git commit -m "Update"
+git commit -m "Update - on !machine_name! by !user_name!"
 git clean -df
 
 endlocal
