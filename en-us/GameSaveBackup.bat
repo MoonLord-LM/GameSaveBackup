@@ -45,21 +45,21 @@ for /l %%i in (1, 1, %length%) do (
     for /f "delims=" %%a in ('powershell -NoProfile -Command "[datetime]::new(!max_backup_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss (zzz)')"') do set "max_backup_time=%%a"
     echo Max Local Time: !max_local_time! Max Backup Time: !max_backup_time!
 
-    if not exist "OpenSave.bat" (
-        echo if not exist "!save!" mkdir "!save!" > "OpenSave.bat"
-        echo "explorer.exe" "!save!" >> "OpenSave.bat"
-        powershell -NoProfile -Command "(Get-Item 'OpenSave.bat').LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).DateTime"
+    if not exist "SaveLocation.bat" (
+        echo if not exist "!save!" mkdir "!save!" > "SaveLocation.bat"
+        echo "explorer.exe" "!save!" >> "SaveLocation.bat"
+        powershell -NoProfile -Command "(Get-Item 'SaveLocation.bat').LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).DateTime"
     )
 
     if !max_local_time! gtr !max_backup_time! (
         echo Local file is newer, begin to backup
-        robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "OpenSave.bat"
+        robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "SaveLocation.bat"
         git add .
         git commit -m "Update - !game! on !machine_name! by !user_name!"
     ) else if !max_local_time! lss !max_backup_time! (
         echo Local file is older, begin to restore
         powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere('!save!')"
-        robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "OpenSave.bat"
+        robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "SaveLocation.bat"
     ) else (
         echo Local file is modified at same time, skip with no operation
     )
