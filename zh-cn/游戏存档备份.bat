@@ -48,7 +48,7 @@ for /l %%i in (1, 1, %length%) do (
     if not exist "存档位置.bat" (
         echo if not exist "!save!" mkdir "!save!" > "存档位置.bat"
         echo "explorer.exe" "!save!" >> "存档位置.bat"
-        powershell -NoProfile -Command "(Get-Item '存档位置.bat').LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).DateTime"
+        powershell -NoProfile -Command "(Get-Item '存档位置.bat').LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime"
     )
 
     if !max_local_time! gtr !max_backup_time! (

@@ -48,7 +48,7 @@ for /l %%i in (1, 1, %length%) do (
     if not exist "SaveLocation.bat" (
         echo if not exist "!save!" mkdir "!save!" > "SaveLocation.bat"
         echo "explorer.exe" "!save!" >> "SaveLocation.bat"
-        powershell -NoProfile -Command "(Get-Item 'SaveLocation.bat').LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).DateTime"
+        powershell -NoProfile -Command "(Get-Item 'SaveLocation.bat').LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime"
     )
 
     if !max_local_time! gtr !max_backup_time! (
