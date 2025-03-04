@@ -4,6 +4,10 @@
     "save": "%USERPROFILE%\\AppData\\Roaming\\EldenRing"
   },
   {
+    "game": "Palworld",
+    "save": "%USERPROFILE%\\AppData\\Local\\Pal\\Saved\\SaveGames"
+  },
+  {
     "game": "Settlement Survival",
     "save": "%USERPROFILE%\\AppData\\LocalLow\\SZSS INTERACTIVE\\Settlement Survival"
   }
