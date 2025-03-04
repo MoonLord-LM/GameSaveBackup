@@ -12,6 +12,10 @@
     "save": "%USERPROFILE%\\AppData\\LocalLow\\SZSS INTERACTIVE\\Settlement Survival"
   },
   {
+    "game": "Last Epoch",
+    "save": "%USERPROFILE%\\AppData\\LocalLow\\Eleventh Hour Games\\Last Epoch"
+  },
+  {
     "game": "Prototype",
     "save": "%USERPROFILE%\\Documents\\Prototype"
   }

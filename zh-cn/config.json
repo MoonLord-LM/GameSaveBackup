@@ -12,6 +12,10 @@
     "save": "%USERPROFILE%\\AppData\\LocalLow\\SZSS INTERACTIVE\\Settlement Survival"
   },
   {
+    "game": "最后纪元",
+    "save": "%USERPROFILE%\\AppData\\LocalLow\\Eleventh Hour Games\\Last Epoch"
+  },
+  {
     "game": "虐杀原形",
     "save": "%USERPROFILE%\\Documents\\Prototype"
   }
