@@ -10,5 +10,9 @@
   {
     "game": "Settlement Survival",
     "save": "%USERPROFILE%\\AppData\\LocalLow\\SZSS INTERACTIVE\\Settlement Survival"
+  },
+  {
+    "game": "Prototype",
+    "save": "%USERPROFILE%\\Documents\\Prototype"
   }
 ]

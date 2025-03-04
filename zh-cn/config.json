@@ -10,5 +10,9 @@
   {
     "game": "部落幸存者",
     "save": "%USERPROFILE%\\AppData\\LocalLow\\SZSS INTERACTIVE\\Settlement Survival"
+  },
+  {
+    "game": "虐杀原形",
+    "save": "%USERPROFILE%\\Documents\\Prototype"
   }
 ]
