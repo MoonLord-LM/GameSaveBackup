@@ -19,4 +19,8 @@
     "game": "Prototype",
     "save": "%USERPROFILE%\\Documents\\Prototype"
   }
+  {
+    "game": "Dynasty Warriors 9 Empires",
+    "save": "%USERPROFILE%\\Documents\\\KoeiTecmo\\Dynasty Warriors 9 Empires"
+  }
 ]
