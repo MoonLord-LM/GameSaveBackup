@@ -22,5 +22,9 @@
   {
     "game": "Dynasty Warriors 9 Empires",
     "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\Dynasty Warriors 9 Empires"
+  },
+  {
+    "game": "Shin Sangokumusou 5",
+    "save": "%USERPROFILE%\\Documents\\KOEI\\Shin Sangokumusou 5"
   }
 ]

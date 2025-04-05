@@ -22,5 +22,9 @@
   {
     "game": "真三国无双8：帝国",
     "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\Dynasty Warriors 9 Empires"
+  },
+  {
+    "game": "真三国无双5",
+    "save": "%USERPROFILE%\\Documents\\KOEI\\Shin Sangokumusou 5"
   }
 ]
