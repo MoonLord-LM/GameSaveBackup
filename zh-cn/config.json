@@ -30,5 +30,9 @@
   {
     "game": "真三国无双5",
     "save": "%USERPROFILE%\\Documents\\KOEI\\Shin Sangokumusou 5"
+  },
+  {
+    "game": "亿万僵尸",
+    "save": "%USERPROFILE%\\Documents\\My Games\\They Are Billions"
   }
 ]

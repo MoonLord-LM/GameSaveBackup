@@ -30,5 +30,9 @@
   {
     "game": "Shin Sangokumusou 5",
     "save": "%USERPROFILE%\\Documents\\KOEI\\Shin Sangokumusou 5"
+  },
+  {
+    "game": "They Are Billions",
+    "save": "%USERPROFILE%\\Documents\\My Games\\They Are Billions"
   }
 ]
