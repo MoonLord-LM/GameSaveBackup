@@ -36,6 +36,14 @@ for /l %%i in (1, 1, %length%) do (
     set "save=!save:%%USERPROFILE%%=%USERPROFILE%!"
     echo "progress %%i / !length!"  :  "!game!" in "!save!"
 
+    set "ignore_args="
+    for /f "delims=" %%k in ('jq -r ".[%%i - 1].ignore // empty | .[]" "%config%"') do (
+        set "item=%%k"
+        set "item=!item:%%USERPROFILE%%=%USERPROFILE%!"
+        echo "ignore item: !item!"
+        set "ignore_args=!ignore_args! /XF "!item!" /XD "!item!""
+    )
+
     if not exist "!game!" ( mkdir "!game!" )
     cd "!game!"
 
@@ -53,13 +61,13 @@ for /l %%i in (1, 1, %length%) do (
 
     if !max_local_time! gtr !max_backup_time! (
         echo Local file is newer, begin to backup
-        robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "SaveLocation.bat"
+        robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "SaveLocation.bat" !ignore_args!
         git add .
         git commit -m "Update - !game! on !machine_name! by !user_name!"
     ) else if !max_local_time! lss !max_backup_time! (
         echo Local file is older, begin to restore
         powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere('!save!')"
-        robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "SaveLocation.bat"
+        robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "SaveLocation.bat" !ignore_args!
     ) else (
         echo Local file is modified at same time, skip with no operation
     )

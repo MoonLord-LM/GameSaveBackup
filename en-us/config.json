@@ -34,5 +34,12 @@
   {
     "game": "They Are Billions",
     "save": "%USERPROFILE%\\Documents\\My Games\\They Are Billions"
+  },
+  {
+    "game": "Oxygen Not Included",
+    "save": "%USERPROFILE%\\Documents\\Klei\\OxygenNotIncluded",
+    "ignore": [
+        "%USERPROFILE%\\Documents\\Klei\\OxygenNotIncluded\\RetiredColonies"
+    ]
   }
 ]
