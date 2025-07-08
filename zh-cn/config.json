@@ -41,5 +41,9 @@
     "ignore": [
         "%USERPROFILE%\\Documents\\Klei\\OxygenNotIncluded\\RetiredColonies"
     ]
+  },
+  {
+    "game": "博德之门3",
+    "save": "%USERPROFILE%\\AppData\\Local\\Larian Studios\\Baldur's Gate 3"
   }
 ]
