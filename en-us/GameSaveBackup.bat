@@ -47,10 +47,12 @@ for /l %%i in (1, 1, %length%) do (
     if not exist "!game!" ( mkdir "!game!" )
     cd "!game!"
 
-    for /f %%a in ('powershell -NoProfile -Command "((Get-ChildItem -Recurse -Path '!save!' | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.Ticks)"') do set "max_local_time=%%a"
-    for /f %%a in ('powershell -NoProfile -Command "((Get-ChildItem -Recurse -Path '%cd%\!game!' | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.Ticks)"') do set "max_backup_time=%%a"
-    for /f "delims=" %%a in ('powershell -NoProfile -Command "[datetime]::new(!max_local_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss (zzz)')"') do set "max_local_time=%%a"
-    for /f "delims=" %%a in ('powershell -NoProfile -Command "[datetime]::new(!max_backup_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss (zzz)')"') do set "max_backup_time=%%a"
+    set "max_local_time="
+    set "max_backup_time="
+    for /f %%a in ('powershell -NoProfile -Command "((Get-ChildItem -Recurse -Path \""!save!\"" | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.Ticks)"') do set "max_local_time=%%a"
+    for /f %%a in ('powershell -NoProfile -Command "((Get-ChildItem -Recurse -Path \""%cd%\!game!\"" | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.Ticks)"') do set "max_backup_time=%%a"
+    if not "!max_local_time!"==" " for /f "delims=" %%a in ('powershell -NoProfile -Command "[datetime]::new(!max_local_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss (zzz)')"') do set "max_local_time=%%a"
+    if not "!max_backup_time!"==" " for /f "delims=" %%a in ('powershell -NoProfile -Command "[datetime]::new(!max_backup_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss (zzz)')"') do set "max_backup_time=%%a"
     echo Max Local Time: !max_local_time! Max Backup Time: !max_backup_time!
 
     if not exist "SaveLocation.bat" (
@@ -59,17 +61,28 @@ for /l %%i in (1, 1, %length%) do (
         powershell -NoProfile -Command "(Get-Item 'SaveLocation.bat').LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime"
     )
 
-    if !max_local_time! gtr !max_backup_time! (
-        echo Local file is newer, begin to backup
+    if "!max_local_time!"==" " if "!max_backup_time!"==" " (
+        echo Both local save files and backup files do not exist, skip with no operation
+    ) else if "!max_backup_time!"==" " (
+        echo Backup files are missing, begin to backup
+        robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "SaveLocation.bat" !ignore_args!
+        git add .
+        git commit -m "Update - !game! on !machine_name! by !user_name!"
+    ) else if "!max_local_time!"==" " (
+        echo Local save files are missing, begin to restore from backup files
+        powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
+        robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "SaveLocation.bat" !ignore_args!
+    ) else if !max_local_time! gtr !max_backup_time! (
+        echo Local files are newer, begin to backup
         robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "SaveLocation.bat" !ignore_args!
         git add .
         git commit -m "Update - !game! on !machine_name! by !user_name!"
     ) else if !max_local_time! lss !max_backup_time! (
-        echo Local file is older, begin to restore
-        powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere('!save!')"
+        echo Local files are older, begin to update with backup files
+        powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
         robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "SaveLocation.bat" !ignore_args!
     ) else (
-        echo Local file is modified at same time, skip with no operation
+        echo Local save files and backup files are modified at same time, skip with no operation
     )
 
     cd ..
