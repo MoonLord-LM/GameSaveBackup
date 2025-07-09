@@ -47,8 +47,10 @@ for /l %%i in (1, 1, %length%) do (
     if not exist "!game!" ( mkdir "!game!" )
     cd "!game!"
 
-    for /f %%a in ('powershell -NoProfile -Command "((Get-ChildItem -Recurse -Path '!save!' | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.Ticks)"') do set "max_local_time=%%a"
-    for /f %%a in ('powershell -NoProfile -Command "((Get-ChildItem -Recurse -Path '%cd%\!game!' | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.Ticks)"') do set "max_backup_time=%%a"
+    set "max_local_time="
+    set "max_backup_time="
+    for /f %%a in ('powershell -NoProfile -Command "((Get-ChildItem -Recurse -Path \""!save!\"" | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.Ticks)"') do set "max_local_time=%%a"
+    for /f %%a in ('powershell -NoProfile -Command "((Get-ChildItem -Recurse -Path \""%cd%\!game!\"" | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.Ticks)"') do set "max_backup_time=%%a"
     for /f "delims=" %%a in ('powershell -NoProfile -Command "[datetime]::new(!max_local_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss (zzz)')"') do set "max_local_time=%%a"
     for /f "delims=" %%a in ('powershell -NoProfile -Command "[datetime]::new(!max_backup_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss (zzz)')"') do set "max_backup_time=%%a"
     echo 本地文件修改时间: !max_local_time! 备份文件修改时间: !max_backup_time!
@@ -59,17 +61,28 @@ for /l %%i in (1, 1, %length%) do (
         powershell -NoProfile -Command "(Get-Item '存档位置.bat').LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime"
     )
 
-    if !max_local_time! gtr !max_backup_time! (
-        echo 本地文件修改时间较新，进行备份
+    if "!max_local_time!"==" " if "!max_backup_time!"==" " (
+        echo 本地存档文件与备份文件都不存在，跳过操作
+    ) else if "!max_backup_time!"==" " (
+        echo 备份文件缺失，进行备份
+        robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "存档位置.bat" !ignore_args!
+        git add .
+        git commit -m "Update - !game! on !machine_name! by !user_name!"
+    ) else if "!max_local_time!"==" " (
+        echo 本地存档文件缺失，使用备份文件恢复
+        powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
+        robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "存档位置.bat" !ignore_args!
+    ) else if !max_local_time! gtr !max_backup_time! (
+        echo 本地存档文件修改时间较新，进行备份
         robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "存档位置.bat" !ignore_args!
         git add .
         git commit -m "Update - !game! on !machine_name! by !user_name!"
     ) else if !max_local_time! lss !max_backup_time! (
-        echo 本地文件修改时间较老，恢复备份
-        powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere('!save!')"
+        echo 本地存档文件修改时间较老，使用备份文件更新
+        powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
         robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "存档位置.bat" !ignore_args!
     ) else (
-        echo 本地文件与备份文件修改时间相同，跳过操作
+        echo 本地存档文件与备份文件修改时间相同，跳过操作
     )
 
     cd ..
