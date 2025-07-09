@@ -53,7 +53,7 @@ for /l %%i in (1, 1, %length%) do (
     for /f %%a in ('powershell -NoProfile -Command "((Get-ChildItem -Recurse -Path \""%cd%\!game!\"" | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.Ticks)"') do set "max_backup_time=%%a"
     if not "!max_local_time!"==" " for /f "delims=" %%a in ('powershell -NoProfile -Command "[datetime]::new(!max_local_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss (zzz)')"') do set "max_local_time=%%a"
     if not "!max_backup_time!"==" " for /f "delims=" %%a in ('powershell -NoProfile -Command "[datetime]::new(!max_backup_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss (zzz)')"') do set "max_backup_time=%%a"
-    echo 本地文件修改时间: !max_local_time! 备份文件修改时间: !max_backup_time!
+    echo 本地文件修改时间: [!max_local_time!] 备份文件修改时间: [!max_backup_time!]
 
     if not exist "存档位置.bat" (
         echo if not exist "!save!" mkdir "!save!" > "存档位置.bat"
