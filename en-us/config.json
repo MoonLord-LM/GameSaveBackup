@@ -45,5 +45,9 @@
   {
     "game": "Baldur's Gate 3",
     "save": "%USERPROFILE%\\AppData\\Local\\Larian Studios\\Baldur's Gate 3"
+  },
+  {
+    "game": "Romance Of The Three Kingdoms 8 Remake",
+    "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\SAN8R"
   }
 ]

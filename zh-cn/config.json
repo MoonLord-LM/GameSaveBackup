@@ -45,5 +45,9 @@
   {
     "game": "博德之门3",
     "save": "%USERPROFILE%\\AppData\\Local\\Larian Studios\\Baldur's Gate 3"
+  },
+  {
+    "game": "三国志8：重制版",
+    "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\SAN8R"
   }
 ]
