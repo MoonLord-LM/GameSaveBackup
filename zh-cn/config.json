@@ -43,6 +43,10 @@
     ]
   },
   {
+    "game": "饥荒联机版",
+    "save": "%USERPROFILE%\\Documents\\Klei\\DoNotStarveTogether"
+  },
+  {
     "game": "博德之门3",
     "save": "%USERPROFILE%\\AppData\\Local\\Larian Studios\\Baldur's Gate 3"
   },

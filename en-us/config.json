@@ -43,6 +43,10 @@
     ]
   },
   {
+    "game": "Don't Starve Together",
+    "save": "%USERPROFILE%\\Documents\\Klei\\DoNotStarveTogether"
+  },
+  {
     "game": "Baldur's Gate 3",
     "save": "%USERPROFILE%\\AppData\\Local\\Larian Studios\\Baldur's Gate 3"
   },
