@@ -53,5 +53,9 @@
   {
     "game": "Romance Of The Three Kingdoms 8 Remake",
     "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\SAN8R"
+  },
+  {
+    "game": "Clair Obscur Expedition 33",
+    "save": "%USERPROFILE%\\AppData\\Local\\Sandfall\\Saved"
   }
 ]

@@ -53,5 +53,9 @@
   {
     "game": "三国志8：重制版",
     "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\SAN8R"
+  },
+  {
+    "game": "光与影：33号远征队",
+    "save": "%USERPROFILE%\\AppData\\Local\\Sandfall\\Saved"
   }
 ]
