@@ -57,5 +57,9 @@
   {
     "game": "光与影：33号远征队",
     "save": "%USERPROFILE%\\AppData\\Local\\Sandfall\\Saved"
+  },
+  {
+    "game": "对马岛之魂",
+    "save": "%USERPROFILE%\\Documents\\Ghost of Tsushima DIRECTOR'S CUT"
   }
 ]

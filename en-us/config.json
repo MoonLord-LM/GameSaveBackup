@@ -57,5 +57,9 @@
   {
     "game": "Clair Obscur Expedition 33",
     "save": "%USERPROFILE%\\AppData\\Local\\Sandfall\\Saved"
+  },
+  {
+    "game": "Ghost Of Tsushima",
+    "save": "%USERPROFILE%\\Documents\\Ghost of Tsushima DIRECTOR'S CUT"
   }
 ]
