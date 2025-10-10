@@ -36,6 +36,10 @@
     "save": "%USERPROFILE%\\Documents\\My Games\\They Are Billions"
   },
   {
+    "game": "星球基地",
+    "save": "%USERPROFILE%\\Documents\\Planetbase"
+  },
+  {
     "game": "缺氧",
     "save": "%USERPROFILE%\\Documents\\Klei\\OxygenNotIncluded",
     "ignore": [
