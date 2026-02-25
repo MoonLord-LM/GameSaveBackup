@@ -65,5 +65,9 @@
   {
     "game": "Ghost Of Tsushima",
     "save": "%USERPROFILE%\\Documents\\Ghost of Tsushima DIRECTOR'S CUT"
+  },
+  {
+    "game": "BugBits",
+    "save": "%ProgramData%\AlderGames\BugBits"
   }
 ]

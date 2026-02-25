@@ -65,5 +65,9 @@
   {
     "game": "对马岛之魂",
     "save": "%USERPROFILE%\\Documents\\Ghost of Tsushima DIRECTOR'S CUT"
+  },
+  {
+    "game": "虫虫大作战",
+    "save": "%ProgramData%\AlderGames\BugBits"
   }
 ]
