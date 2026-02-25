@@ -34,6 +34,7 @@ for /l %%i in (1, 1, %length%) do (
     for /f "tokens=*" %%j in ('jq -r ".[%%i - 1].save" "%config%"') do set "save=%%j"
 
     set "save=!save:%%USERPROFILE%%=%USERPROFILE%!"
+    set "save=!save:%%ProgramData%%=%ProgramData%!"
     echo "progress %%i / !length!"  :  "!game!" in "!save!"
 
     set "ignore_args="
