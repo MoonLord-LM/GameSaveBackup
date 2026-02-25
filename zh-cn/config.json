@@ -68,6 +68,6 @@
   },
   {
     "game": "虫虫大作战",
-    "save": "%ProgramData%\AlderGames\BugBits"
+    "save": "%ProgramData%\\AlderGames\\BugBits"
   }
 ]

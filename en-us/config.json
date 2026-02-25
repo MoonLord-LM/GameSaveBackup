@@ -68,6 +68,6 @@
   },
   {
     "game": "BugBits",
-    "save": "%ProgramData%\AlderGames\BugBits"
+    "save": "%ProgramData%\\AlderGames\\BugBits"
   }
 ]
