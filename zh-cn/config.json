@@ -67,6 +67,10 @@
     "save": "%USERPROFILE%\\Documents\\Ghost of Tsushima DIRECTOR'S CUT"
   },
   {
+    "game": "纪念碑谷",
+    "save": "%USERPROFILE%\\AppData\\LocalLow\\ustwo games\\Monument Valley"
+  },
+  {
     "game": "虫虫大作战",
     "save": "%ProgramData%\\AlderGames\\BugBits"
   }
