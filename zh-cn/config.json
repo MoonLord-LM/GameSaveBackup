@@ -20,6 +20,10 @@
     "save": "%USERPROFILE%\\Documents\\Prototype"
   },
   {
+    "game": "尼尔：机械纪元",
+    "save": "%USERPROFILE%\\Documents\\My Games\\NieR_Automata"
+  },
+  {
     "game": "真三国无双8：帝国",
     "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\Dynasty Warriors 9 Empires"
   },

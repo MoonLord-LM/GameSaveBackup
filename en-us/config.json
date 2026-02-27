@@ -20,6 +20,10 @@
     "save": "%USERPROFILE%\\Documents\\Prototype"
   },
   {
+    "game": "NieR Automata",
+    "save": "%USERPROFILE%\\Documents\\My Games\\NieR_Automata"
+  },
+  {
     "game": "Dynasty Warriors 9 Empires",
     "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\Dynasty Warriors 9 Empires"
   },
