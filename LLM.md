@@ -40,9 +40,9 @@ To maintain compatibility between Chinese and English versions without interfere
 本文档是给 LLM 使用的提示信息。  
 在做任何操作前，需要先加载本文档作为基础指令，避免对工程做局部修改。  
 在做任何操作前，需要先查看 README.md 文件，理解整个工程。  
+在做任何操作前，需要先查看本文档约定的编码规范，严格按规范执行。  
 在调用 PowerShell 的 Get-Content、Set-Content、Add-Content 等命令时，必须显式添加 -Encoding utf8 参数，防止乱码。  
 做完操作之后，检查批处理常见编码问题，例如特殊符号处理。  
-做完操作之后，检查是否符合本文档约定的编码规范，并执行修正。  
 做完操作之后，注意检查中英文版本的 .json 配置文件是否内容准确，且顺序一致。  
 做完操作之后，注意检查中英文版本的 .bat 脚本逻辑是否正确，且翻译一致。  
 做完操作之后，注意检查中英文版本的 .md 说明文件是否内容准确，且翻译一致。  
