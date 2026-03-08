@@ -3,10 +3,26 @@ setlocal enabledelayedexpansion
 chcp 65001
 
 :: jq-windows-amd64.exe
-:: 1.7.1
-:: https://jqlang.github.io/jq/download/
+:: 1.8.1
+:: https://jqlang.org/download/
 
 
+
+"jq.exe" --version >nul 2>&1
+if %errorlevel% neq 0 (
+    echo 错误: 缺少 jq.exe 组件，请从 https://jqlang.org/download/ 下载
+    "explorer.exe" "https://jqlang.org/download/"
+    pause
+    exit
+)
+
+"git.exe" --version >nul 2>&1
+if %errorlevel% neq 0 (
+    echo 错误: 缺少 git.exe 组件，请从 https://git-scm.com/install/windows 下载
+    "explorer.exe" "https://git-scm.com/install/windows"
+    pause
+    exit
+)
 
 if /i "%cd%"=="%SystemRoot%\System32" (
     echo 当前目录为系统目录，不应该在这里执行

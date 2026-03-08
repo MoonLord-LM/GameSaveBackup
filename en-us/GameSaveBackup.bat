@@ -3,10 +3,26 @@ setlocal enabledelayedexpansion
 chcp 65001
 
 :: jq-windows-amd64.exe
-:: 1.7.1
-:: https://jqlang.github.io/jq/download/
+:: 1.8.1
+:: https://jqlang.org/download/
 
 
+
+"jq.exe" --version >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Error: Missing jq.exe component, please download from https://jqlang.org/download/
+    "explorer.exe" "https://jqlang.org/download/"
+    pause
+    exit
+)
+
+"git.exe" --version >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Error: Missing git.exe component, please download from https://git-scm.com/install/windows
+    "explorer.exe" "https://git-scm.com/install/windows"
+    pause
+    exit
+)
 
 if /i "%cd%"=="%SystemRoot%\System32" (
     echo Current directory is the system directory, no action should be done here
