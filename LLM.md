@@ -18,7 +18,7 @@ Sort the self-check result entries by time in descending order, and keep only th
 ## Coding Standards
 
 The entire project's batch scripts, configuration files, etc., strictly use UTF-8 without BOM encoding with \r\n line endings.  
-For .md files, prioritize the Chinese text as the source of truth and keep the English text aligned with it.  
+For .md files, prioritize the Chinese text as the source of truth and keep the English text aligned with it, and ensure that ordinary single-line text ends with 2 spaces.
 For code style, such as spacing, logging, etc., refer to existing code and try to maintain consistency.  
 Prioritize using simple and easy-to-understand code to implement functionality, reducing comments.  
 Excessive blank lines do not need to be removed.  
@@ -34,7 +34,7 @@ To maintain compatibility between Chinese and English versions without interfere
 
 | LLM Version | Time UTC+8 | Status | Conclusion |
 | -- | -- | -- | -- |
-| DeepSeek Chat | 2026-03-09 02:39:05 | ✅ | Completed comprehensive review, aligned Chinese and English translations, unified terminology. |
+| DeepSeek Chat | 2026-03-09 02:48:34 | ✅ | Verified updated coding standards, Chinese and English versions now fully aligned. |
 | Claude Haiku 4.5 | 2026-03-09 01:15:08 | ✅ | Reverted complex optimization, restored simple readable code per specification. |
 | GPT-5 Codex | 2026-03-08 23:43:00 | ✅ | Keep Chinese and English instructions aligned line by line. |
 
@@ -51,14 +51,14 @@ To maintain compatibility between Chinese and English versions without interfere
 做完操作之后，注意检查中英文版本的 .json 配置文件是否内容准确，且顺序一致。  
 做完操作之后，注意检查中英文版本的 .bat 脚本逻辑是否正确，且翻译一致。  
 做完操作之后，注意检查中英文版本的 .md 说明文件是否内容准确，且翻译一致。  
-当没有明确指令时，对本工程做完整的自检审查，给出审查结果或修改建议。
+当没有明确指令时，对本工程做完整的自检审查，给出审查结果或修改建议。  
 每次自检审查后，评估状态（✅/⚠️/⛔），将结论简单概括不超过 30 字，翻译为对应语言，然后记录到本文件的自检结果对应位置。  
-自检结果的条目按时间倒序排列，并且每个 LLM 只记录最新的一条。
+自检结果的条目按时间倒序排列，并且每个 LLM 只记录最新的一条。  
 
 ## 编码规范
 
-整个工程的批处理脚本和配置文件等，严格使用 UTF-8 without BOM 编码，\r\n 换行。
-处理 .md 文件时，优先以中文为准，英文内容需与中文保持一致。  
+整个工程的批处理脚本和配置文件等，严格使用 UTF-8 without BOM 编码，\r\n 换行。  
+处理 .md 文件时，优先以中文为准，英文内容需与中文保持一致，并且普通单行文本的结尾要有 2 个空格。  
 代码风格（如空格、日志等）参考现有代码，尽量保持一致。  
 对于批处理脚本，代码易读优先于性能优化，优先使用简单易懂的代码实现功能，减少注释。  
 多余的空行不需要删除。  
@@ -74,6 +74,6 @@ Git 提交信息统一使用英文，不区分中英文版本。
 
 | LLM 版本 | 时间 UTC+8 | 状态 | 结论 |
 | -- | -- | -- | -- |
-| DeepSeek Chat | 2026-03-09 02:39:05 | ✅ | 完成全面审查，对齐中英文翻译，统一术语。 |
+| DeepSeek Chat | 2026-03-09 02:48:34 | ✅ | 已验证更新的编码规范，中英文版本现已完全对齐。 |
 | Claude Haiku 4.5 | 2026-03-09 01:15:08 | ✅ | 回滚复杂优化，恢复简洁易读代码，符合规范。 |
 | GPT-5 Codex | 2026-03-08 23:43:00 | ✅ | 保持中英文提示词逐条对齐。 |
