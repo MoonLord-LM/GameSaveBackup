@@ -5,7 +5,7 @@ setlocal enabledelayedexpansion
 
 
 if /i "%cd%"=="%SystemRoot%\System32" (
-    echo 检测到使用右键的 "以管理员权限运行"，切换到脚本所在目录
+    echo 检测到使用右键的"以管理员权限运行"，切换到脚本所在目录
     cd /d "%~dp0"
 )
 
@@ -117,11 +117,11 @@ for /l %%i in (1, 1, !length!) do (
         git add .
         git diff --cached --quiet || git commit -m "Update - !name! on !machine_name! by !user_name!"
     ) else if !max_local_time! lss !max_backup_time! (
-        echo 本地存档文件的修改时间较老，删除到回收站，并使用备份文件更新
+        echo 本地存档文件修改时间较旧，删除到回收站，并使用备份文件更新
         powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
         robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "存档位置.bat" /XF "SaveLocation.bat" !ignore_args!
     ) else if !max_local_time! gtr !max_backup_time! (
-        echo 本地存档文件的修改时间较新，进行备份
+        echo 本地存档文件修改时间较新，进行备份
         robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "存档位置.bat" /XF "SaveLocation.bat" !ignore_args!
         git add .
         git diff --cached --quiet || git commit -m "Update - !name! on !machine_name! by !user_name!"
