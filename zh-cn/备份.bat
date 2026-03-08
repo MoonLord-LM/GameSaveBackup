@@ -10,7 +10,7 @@ chcp 65001
 
 "jq.exe" --version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo Error: Missing jq.exe component, please download from https://jqlang.org/download/
+    echo 错误: 缺少 jq.exe 组件，请从 https://jqlang.org/download/ 下载
     "explorer.exe" "https://jqlang.org/download/"
     pause
     exit
@@ -18,14 +18,14 @@ if %errorlevel% neq 0 (
 
 "git.exe" --version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo Error: Missing git.exe component, please download from https://git-scm.com/install/windows
+    echo 错误: 缺少 git.exe 组件，请从 https://git-scm.com/install/windows 下载
     "explorer.exe" "https://git-scm.com/install/windows"
     pause
     exit
 )
 
 if /i "%cd%"=="%SystemRoot%\System32" (
-    echo Current directory is the system directory, no action should be done here
+    echo 当前目录为系统目录，不应该在这里执行
     pause
     exit
 )
@@ -39,10 +39,30 @@ if not exist ".git" (
 
 for /f "tokens=*" %%a in ('hostname') do set "machine_name=%%a"
 for /f "tokens=3 delims=\" %%b in ('echo %USERPROFILE%') do set "user_name=%%b"
-echo Machine Name: !machine_name! User Name: !user_name!
+echo 机器名: !machine_name! 用户名: !user_name!
 
-set "config=config.json"
-for /f %%i in ('jq length "%config%"') do set "length=%%i"
+set "json_count=0"
+for %%f in (*.json) do (
+    set /a json_count+=1
+    set "config=%%f"
+)
+
+if !json_count! equ 0 (
+    echo 错误: 当前目录下没有找到 .json 配置文件
+    echo 请确保有一个 .json 配置文件在此目录中
+    pause
+    exit
+)
+
+if !json_count! gtr 1 (
+    echo 错误: 当前目录下找到多个 .json 配置文件（共 !json_count! 个）
+    echo 请只保留一个 .json 配置文件
+    pause
+    exit
+)
+
+echo 使用配置文件: !config!
+for /f %%i in ('jq length "!config!"') do set "length=%%i"
 echo.
 
 for /l %%i in (1, 1, %length%) do (
@@ -77,38 +97,38 @@ for /l %%i in (1, 1, %length%) do (
     if "!max_local_time!"==" " ( set "max_local_time=" )
     if "!max_backup_time!"==" " ( set "max_backup_time=" )
 
-    echo Max Local Time: [!max_local_time!] Max Backup Time: [!max_backup_time!]
+    echo 本地文件修改时间: [!max_local_time!] 备份文件修改时间: [!max_backup_time!]
 
-    if not exist "SaveLocation.bat" (
-        echo if not exist "!save!" mkdir "!save!" > "SaveLocation.bat"
-        echo "explorer.exe" "!save!" >> "SaveLocation.bat"
-        powershell -NoProfile -Command "(Get-Item 'SaveLocation.bat').LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime"
+    if not exist "存档位置.bat" (
+        echo if not exist "!save!" mkdir "!save!" > "存档位置.bat"
+        echo "explorer.exe" "!save!" >> "存档位置.bat"
+        powershell -NoProfile -Command "(Get-Item '存档位置.bat').LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime"
     )
 
     if "!max_local_time!"=="" (
         if "!max_backup_time!"=="" (
-            echo Both local save files and backup files do not exist, skip with no operation
+            echo 本地存档文件与备份文件都不存在，跳过操作
         ) else (
-            echo Local save files are missing, begin to restore from backup files
+            echo 本地存档文件缺失，使用备份文件恢复
             powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
-            robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "SaveLocation.bat" !ignore_args!
+            robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "存档位置.bat" !ignore_args!
         )
     ) else if "!max_backup_time!"=="" (
-        echo Backup files are missing, begin to backup
-        robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "SaveLocation.bat" !ignore_args!
+        echo 备份文件缺失，进行备份
+        robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "存档位置.bat" !ignore_args!
         git add .
         git commit -m "Update - !game! on !machine_name! by !user_name!"
     ) else if !max_local_time! lss !max_backup_time! (
-        echo Local files are older, begin to update with backup files
+        echo 本地存档文件修改时间较老，使用备份文件更新
         powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
-        robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "SaveLocation.bat" !ignore_args!
+        robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "存档位置.bat" !ignore_args!
     ) else if !max_local_time! gtr !max_backup_time! (
-        echo Local files are newer, begin to backup
-        robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "SaveLocation.bat" !ignore_args!
+        echo 本地存档文件修改时间较新，进行备份
+        robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "存档位置.bat" !ignore_args!
         git add .
         git commit -m "Update - !game! on !machine_name! by !user_name!"
     ) else (
-        echo Local save files and backup files are modified at same time, skip with no operation
+        echo 本地存档文件与备份文件修改时间相同，跳过操作
     )
 
     cd ..
