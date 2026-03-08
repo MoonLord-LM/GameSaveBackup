@@ -19,7 +19,7 @@ Excessive blank lines do not need to be removed.
 
 ## Issues That Can Be Ignored
 
-Some games have different names in Chinese and English regions, which is a normal phenomenon and does not need correction.  
+Some games have different names or version numbers in Chinese and English regions, which is a normal phenomenon and does not need correction.  
 Due to the enabledelayedexpansion mechanism, game names and backup paths cannot contain the special symbols ^ or !, which is a known issue.  
 Git commit messages should be unified in English, no need to differentiate between Chinese and English versions.  
 To maintain compatibility between Chinese and English versions without interference, both Chinese and English versions of "SaveLocation.bat" should be treated as files to be ignored.  
@@ -29,8 +29,8 @@ To maintain compatibility between Chinese and English versions without interfere
 本文件是给 LLM 使用的提示信息。  
 在做任何操作前，需要先载入本文件作为基础的指令，避免对工程做局部修改。  
 在做任何操作前，需要先查看 README.md 文件，理解整个工程。  
-做完操作之后，检查批处理的常见编码错误，例如特殊符号的处理。  
-做完操作之后，检查编码规范问题，并执行修改。  
+做完操作之后，检查批处理的常见编码错误问题，例如特殊符号的处理。  
+做完操作之后，检查本文件设定的编码规范问题，并执行修改。  
 做完操作之后，注意检查中英文版本的 .json 配置文件是否内容、顺序准确且一致。  
 做完操作之后，注意检查中英文版本的 .bat 脚本代码是否逻辑、翻译准确且一致。  
 做完操作之后，注意检查中英文版本的 .md 说明文件是否内容、翻译准确且一致。  

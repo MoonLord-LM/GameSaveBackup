@@ -23,6 +23,10 @@ if not exist ".git" (
     git config --local core.autocrlf false
     git config --local core.safecrlf false
     git config --local core.ignorecase false
+
+    git config --local core.quotepath false
+    git config --local i18n.logoutputencoding utf-8
+    git config --local i18n.commitencoding utf-8
 )
 
 for /f "tokens=*" %%a in ('hostname') do set "machine_name=%%a"
