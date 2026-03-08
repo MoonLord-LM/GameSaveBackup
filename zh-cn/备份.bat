@@ -73,7 +73,7 @@ for /l %%i in (1, 1, %length%) do (
 
     set "save=!save:%%USERPROFILE%%=%USERPROFILE%!"
     set "save=!save:%%PROGRAMDATA%%=%PROGRAMDATA%!"
-    echo "progress %%i / !length!"  :  "!name!" in "!save!"
+    echo "处理 %%i / !length!"  :  "!name!" in "!save!"
 
     set "ignore_args="
     for /f "delims=" %%k in ('jq -r ".[%%i - 1].ignore // empty | .[]" "%config%"') do (
@@ -123,7 +123,7 @@ for /l %%i in (1, 1, %length%) do (
         )
         robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "存档位置.bat" !ignore_args!
         git add .
-        git commit -m "Update - !name! on !machine_name! by !user_name!"
+        git diff --cached --quiet || git commit -m "Update - !name! on !machine_name! by !user_name!"
     ) else if !max_local_time! lss !max_backup_time! (
         echo 本地存档文件修改时间较老，使用备份文件更新
         powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
@@ -132,7 +132,7 @@ for /l %%i in (1, 1, %length%) do (
         echo 本地存档文件修改时间较新，进行备份
         robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "存档位置.bat" !ignore_args!
         git add .
-        git commit -m "Update - !name! on !machine_name! by !user_name!"
+        git diff --cached --quiet || git commit -m "Update - !name! on !machine_name! by !user_name!"
     ) else (
         echo 本地存档文件与备份文件修改时间相同，跳过操作
     )
@@ -142,10 +142,9 @@ for /l %%i in (1, 1, %length%) do (
 )
 
 git add .
-git commit -m "Update - on !machine_name! by !user_name!"
+git diff --cached --quiet || ( git commit -m "Update - on !machine_name! by !user_name!" && echo. )
 git clean -df >nul
 
-echo.
 echo 备份完成
 echo.
 
