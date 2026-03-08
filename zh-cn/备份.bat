@@ -8,9 +8,17 @@ setlocal enabledelayedexpansion
 
 
 
+if /i "%cd%"=="%SystemRoot%\System32" (
+    echo 错误: 当前目录为系统目录，不应该在这里执行
+    echo 请不要使用右键的 “以管理员权限运行”
+    pause
+    exit
+)
+
 "jq.exe" --version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo 错误: 缺少 jq.exe 组件，请从 https://jqlang.org/download/ 下载
+    echo 错误: 缺少 jq.exe 组件
+    echo 请从 https://jqlang.org/download/ 下载
     "explorer.exe" "https://jqlang.org/download/"
     pause
     exit
@@ -18,14 +26,9 @@ if %errorlevel% neq 0 (
 
 "git.exe" --version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo 错误: 缺少 git.exe 组件，请从 https://git-scm.com/install/windows 下载
+    echo 错误: 缺少 git.exe 组件
+    echo 请从 https://git-scm.com/install/windows 下载
     "explorer.exe" "https://git-scm.com/install/windows"
-    pause
-    exit
-)
-
-if /i "%cd%"=="%SystemRoot%\System32" (
-    echo 当前目录为系统目录，不应该在这里执行
     pause
     exit
 )

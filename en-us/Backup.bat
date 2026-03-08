@@ -8,9 +8,17 @@ setlocal enabledelayedexpansion
 
 
 
+if /i "%cd%"=="%SystemRoot%\System32" (
+    echo Error: Current directory is the system directory, no action should be done here
+    echo Please do not use "Run as administrator" from right-click menu
+    pause
+    exit
+)
+
 "jq.exe" --version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo Error: Missing jq.exe component, please download from https://jqlang.org/download/
+    echo Error: Missing jq.exe component
+    echo Please download from https://jqlang.org/download/
     "explorer.exe" "https://jqlang.org/download/"
     pause
     exit
@@ -18,14 +26,9 @@ if %errorlevel% neq 0 (
 
 "git.exe" --version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo Error: Missing git.exe component, please download from https://git-scm.com/install/windows
+    echo Error: Missing git.exe component
+    echo Please download from https://git-scm.com/install/windows
     "explorer.exe" "https://git-scm.com/install/windows"
-    pause
-    exit
-)
-
-if /i "%cd%"=="%SystemRoot%\System32" (
-    echo Current directory is the system directory, no action should be done here
     pause
     exit
 )
