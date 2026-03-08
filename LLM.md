@@ -18,7 +18,8 @@ Sort the self-check result entries by time in descending order, and keep only th
 ## Coding Standards
 
 The entire project's batch scripts, configuration files, etc., strictly use UTF-8 without BOM encoding with \r\n line endings.  
-For .md files, prioritize the Chinese text as the source of truth and keep the English text aligned with it, and ensure that ordinary single-line text ends with 2 spaces.  
+For .md files, prioritize the Chinese text as the source of truth and keep the English text aligned with it.  
+For .md files, ensure that ordinary single-line text ends with 2 spaces to achieve line break effect.  
 For code style, such as spacing, logging, etc., refer to existing code and try to maintain consistency.  
 Prioritize using simple and easy-to-understand code to implement functionality, reducing comments.  
 Excessive blank lines do not need to be removed.  
