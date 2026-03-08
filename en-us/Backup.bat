@@ -75,6 +75,7 @@ for /l %%i in (1, 1, %length%) do (
     for /f "delims=" %%k in ('jq -r ".[%%i - 1].ignore // empty | .[]" "%config%"') do (
         set "item=%%k"
         set "item=!item:%%USERPROFILE%%=%USERPROFILE%!"
+        set "item=!item:%%ProgramData%%=%ProgramData%!"
         echo "ignore item: !item!"
         set "ignore_args=!ignore_args! /XF "!item!" /XD "!item!""
     )
@@ -85,15 +86,14 @@ for /l %%i in (1, 1, %length%) do (
     set "max_local_time="
     set "max_backup_time="
 
-    for /f %%a in ('powershell -NoProfile -Command "((Get-ChildItem -Recurse -Path \""!save!\"" | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.Ticks)"') do set "max_local_time=%%a"
-    for /f %%a in ('powershell -NoProfile -Command "((Get-ChildItem -Recurse -Path \""%cd%\!name!\"" | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.Ticks)"') do set "max_backup_time=%%a"
-    if "!max_local_time!"=="621356256000000000" ( set "max_local_time=" )
-    if "!max_backup_time!"=="621356256000000000" ( set "max_backup_time=" )
+    for /f %%a in ('powershell -NoProfile -Command "try { $files = Get-ChildItem -Recurse -Path \""!save!\"" -File -ErrorAction SilentlyContinue; if ($files) { ($files | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.Ticks } else { 0 } } catch { 0 }"') do set "max_local_time=%%a"
+    for /f %%a in ('powershell -NoProfile -Command "try { $files = Get-ChildItem -Recurse -Path \".\" -File -ErrorAction SilentlyContinue; if ($files) { ($files | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.Ticks } else { 0 } } catch { 0 }"') do set "max_backup_time=%%a"
 
-    for /f "delims=" %%a in ('powershell -NoProfile -Command "[datetime]::new(!max_local_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss (zzz)')"') do set "max_local_time=%%a"
-    for /f "delims=" %%a in ('powershell -NoProfile -Command "[datetime]::new(!max_backup_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss (zzz)')"') do set "max_backup_time=%%a"
-    if "!max_local_time!"==" " ( set "max_local_time=" )
-    if "!max_backup_time!"==" " ( set "max_backup_time=" )
+    if "!max_local_time!"=="0" ( set "max_local_time=" )
+    if "!max_backup_time!"=="0" ( set "max_backup_time=" )
+
+    for /f "delims=" %%a in ('powershell -NoProfile -Command "if (!max_local_time!) { [DateTime]::new(!max_local_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss UTC') } else { 'None' }"') do set "max_local_time=%%a"
+    for /f "delims=" %%a in ('powershell -NoProfile -Command "if (!max_backup_time!) { [DateTime]::new(!max_backup_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss UTC') } else { 'None' }"') do set "max_backup_time=%%a"
 
     echo Max Local Time: [!max_local_time!] Max Backup Time: [!max_backup_time!]
 
@@ -137,6 +137,5 @@ git add .
 git commit -m "Update - on !machine_name! by !user_name!"
 git clean -df
 
-endlocal
 pause
 exit
