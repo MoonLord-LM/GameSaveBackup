@@ -35,10 +35,11 @@ if %errorlevel% neq 0 (
 
 if not exist ".git" (
     git init
-    git config --local core.autocrlf false
-    git config --local core.safecrlf false
-    git config --local core.ignorecase false
 )
+
+git config --local core.autocrlf false
+git config --local core.safecrlf false
+git config --local core.ignorecase false
 
 for /f "tokens=*" %%a in ('hostname') do set "machine_name=%%a"
 for /f "tokens=3 delims=\" %%b in ('echo %USERPROFILE%') do set "user_name=%%b"
