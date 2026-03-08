@@ -17,6 +17,8 @@ Prioritize using simple and easy-to-understand code to implement functionality, 
 ## Issues That Can Be Ignored
 
 Some games have different names in Chinese and English regions, which is a normal phenomenon and does not need correction.  
+Git commit messages should be unified in English, no need to differentiate between Chinese and English versions.  
+To maintain compatibility between Chinese and English versions without interference, both Chinese and English versions of "SaveLocation.bat" should be treated as files to be ignored.  
 
 # LLM 提示
 
@@ -36,4 +38,6 @@ Some games have different names in Chinese and English regions, which is a norma
 
 ## 可忽略问题
 
-一些游戏在中文区和英文区的名称不同，是正常现象，不需要纠错。  
+一些游戏在中文区和英文区的名称或版本号不同，是正常现象。  
+Git 的提交信息统一使用英文，不需要做中英文区分。  
+为了保持中英文版本兼容，互不干扰，将中英文版本的 "存档位置.bat" 都视为需要忽略的文件。  

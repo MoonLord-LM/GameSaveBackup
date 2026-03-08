@@ -125,7 +125,7 @@ for /l %%i in (1, 1, %length%) do (
         git add .
         git diff --cached --quiet || git commit -m "Update - !name! on !machine_name! by !user_name!"
     ) else if !max_local_time! lss !max_backup_time! (
-        echo Local files are older, begin to update with backup files
+        echo Local files are older, moving to recycle bin and updating with backup files
         powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
         robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "存档位置.bat" /XF "SaveLocation.bat" !ignore_args!
     ) else if !max_local_time! gtr !max_backup_time! (
