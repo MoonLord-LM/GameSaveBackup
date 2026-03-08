@@ -1,4 +1,4 @@
-# GameSaveBackup
+﻿# GameSaveBackup
 
 A simple file backup tool that can be used for game saves and other purposes.  
 Just download the entire [`en-us`](https://github.com/MoonLord-LM/GameSaveBackup/tree/master/en-us) directory and double-click [`Backup.bat`](https://github.com/MoonLord-LM/GameSaveBackup/blob/master/en-us/Backup.bat) to run.  
