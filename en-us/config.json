@@ -77,5 +77,9 @@
   {
     "game": "BugBits",
     "save": "%ProgramData%\\AlderGames\\BugBits"
+  },
+  {
+    "game": "JustGo",
+    "save": "%USERPROFILE%\\AppData\\LocalLow\\Studio Amateur\\JustGo"
   }
 ]
