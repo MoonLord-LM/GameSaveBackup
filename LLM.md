@@ -21,7 +21,7 @@ The entire project's batch scripts, configuration files, etc., strictly use UTF-
 For .md files, prioritize the Chinese text as the source of truth and keep the English text aligned with it.  
 For .md files, ensure that ordinary single-line text ends with 2 spaces to achieve line break effect.  
 For code style, such as spacing, logging, etc., refer to existing code and try to maintain consistency.  
-Prioritize using simple and easy-to-understand code to implement functionality, reducing comments.  
+For batch scripts, prioritize code readability over performance optimization, using simple and easy-to-understand code to implement functionality, reducing comments.  
 Excessive blank lines do not need to be removed.  
 
 ## Issues That Can Be Ignored
