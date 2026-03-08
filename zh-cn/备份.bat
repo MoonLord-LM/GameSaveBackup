@@ -65,7 +65,7 @@ for /l %%i in (1, 1, %length%) do (
         set "item=%%k"
         set "item=!item:%%USERPROFILE%%=%USERPROFILE%!"
         set "item=!item:%%PROGRAMDATA%%=%PROGRAMDATA%!"
-        echo "ignore item: !item!"
+        echo "忽略项: !item!"
         set "ignore_args=!ignore_args! /XF "!item!" /XD "!item!""
     )
 
