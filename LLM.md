@@ -6,6 +6,7 @@ Before making any operations, we must first review the README.md file to underst
 Before making any operations, we must first review the coding standards in this file and follow them strictly.  
 When calling PowerShell commands such as Get-Content, Set-Content, and Add-Content, explicitly add -Encoding utf8 to prevent garbled text.  
 When reading and writing files, always use the latest version as the standard, no need to care about Git version management, the code has GitHub to fall back on, and will not be lost.  
+When recording time, call PowerShell -NoProfile -Command "Get-Date -Format 'yyyy-MM-dd HH:mm:ss'" to get accurate time.  
 After completing operations, check common batch encoding issues, such as handling of special symbols.  
 After completing operations, ensure that the Chinese and English versions of .json configuration files have accurate content and consistent ordering.  
 After completing operations, ensure that the Chinese and English versions of .bat scripts have accurate logic and consistent translation.  
@@ -33,7 +34,7 @@ To maintain compatibility between Chinese and English versions without interfere
 
 | LLM Version | Time UTC+8 | Status | Conclusion |
 | -- | -- | -- | -- |
-| Claude Haiku 4.5 | 2026-03-09 10:45 | ✅ | Fixed missing English instruction, all sections now perfectly aligned. |
+| Claude Haiku 4.5 | 2026-03-09 01:06:56 | ✅ | Replaced Unicode escapes with native Chinese characters in en-us version. |
 | GPT-5 Codex | 2026-03-08 23:43 | ✅ | Keep Chinese and English instructions aligned line by line. |
 
 # LLM 提示
@@ -44,6 +45,7 @@ To maintain compatibility between Chinese and English versions without interfere
 在做任何操作前，需要先查看本文档约定的编码规范，严格按规范执行。  
 在调用 PowerShell 的 Get-Content、Set-Content、Add-Content 等命令时，必须显式添加 -Encoding utf8 参数，防止乱码。  
 在读写文件时，始终以最新版本为准，不需要关心 Git 版本管理，代码有 GitHub 兜底，不会丢失。  
+在记录时间时，调用 PowerShell -NoProfile -Command "Get-Date -Format 'yyyy-MM-dd HH:mm:ss'" 获取准确的时间。  
 做完操作之后，检查批处理常见编码问题，例如特殊符号处理。  
 做完操作之后，注意检查中英文版本的 .json 配置文件是否内容准确，且顺序一致。  
 做完操作之后，注意检查中英文版本的 .bat 脚本逻辑是否正确，且翻译一致。  
@@ -71,5 +73,5 @@ Git 提交信息统一使用英文，不区分中英文版本。
 
 | LLM 版本 | 时间 UTC+8 | 状态 | 结论 |
 | -- | -- | -- | -- |
-| Claude Haiku 4.5 | 2026-03-09 10:45 | ✅ | 补齐缺失指令，所有章节完全对齐。 |
+| Claude Haiku 4.5 | 2026-03-09 01:06:56 | ✅ | 用中文字符替换Unicode转义，en-us版本字符编码规范。 |
 | GPT-5 Codex | 2026-03-08 23:43 | ✅ | 保持中英文提示词逐条对齐。 |
