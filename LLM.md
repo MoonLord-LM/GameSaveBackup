@@ -5,6 +5,7 @@ Before making any operations, we must first load this file as basic instructions
 Before making any operations, we must first review the README.md file to understand the entire project.  
 Before making any operations, we must first review the coding standards in this file and follow them strictly.  
 When calling PowerShell commands such as Get-Content, Set-Content, and Add-Content, explicitly add -Encoding utf8 to prevent garbled text.  
+When reading and writing files, always use the latest version as the standard, no need to care about Git version management, the code has GitHub to fall back on, and will not be lost.  
 After completing operations, check common batch encoding issues, such as handling of special symbols.  
 After completing operations, ensure that the Chinese and English versions of .json configuration files have accurate content and consistent ordering.  
 After completing operations, ensure that the Chinese and English versions of .bat scripts have accurate logic and consistent translation.  
@@ -32,7 +33,7 @@ To maintain compatibility between Chinese and English versions without interfere
 
 | LLM Version | Time UTC+8 | Status | Conclusion |
 | -- | -- | -- | -- |
-| Claude Haiku 4.5 | 2026-03-09 00:15 | ✅ | English and Chinese sections fully aligned, table structures unified. |
+| Claude Haiku 4.5 | 2026-03-09 10:45 | ✅ | Fixed missing English instruction, all sections now perfectly aligned. |
 | GPT-5 Codex | 2026-03-08 23:43 | ✅ | Keep Chinese and English instructions aligned line by line. |
 
 # LLM 提示
@@ -49,7 +50,7 @@ To maintain compatibility between Chinese and English versions without interfere
 做完操作之后，注意检查中英文版本的 .md 说明文件是否内容准确，且翻译一致。  
 当没有明确指令时，对本项目做完整的自检审查，但只需要给出审查结果或修改建议，除本文件外不直接修改其它文件。  
 每次自检审查后，评估状态（✅/⚠️/⛔），将结论简单概括不超过 30 字，翻译为对应语言，然后记录到本文件的自检结果对应位置。  
-自检结果按时间倒序排列，并且每个 LLM 只保留最新的一条。
+自检结果的内容按时间倒序排列，并且每个 LLM 只记录最新的一条。  
 
 ## 编码规范
 
@@ -70,5 +71,5 @@ Git 提交信息统一使用英文，不区分中英文版本。
 
 | LLM 版本 | 时间 UTC+8 | 状态 | 结论 |
 | -- | -- | -- | -- |
-| Claude Haiku 4.5 | 2026-03-09 00:15 | ✅ | 英文和中文内容逐条对齐，表格结构统一。 |
+| Claude Haiku 4.5 | 2026-03-09 10:45 | ✅ | 补齐缺失指令，所有章节完全对齐。 |
 | GPT-5 Codex | 2026-03-08 23:43 | ✅ | 保持中英文提示词逐条对齐。 |
