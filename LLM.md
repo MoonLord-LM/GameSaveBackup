@@ -28,22 +28,23 @@ To maintain compatibility between Chinese and English versions without interfere
 
 ## Check Result
 
-| LLM+Version | Check Time (UTC+8) | Suggestion |
+| LLM+Version | Time (UTC+8) | Conclusion |
 | -- | -- | -- |
-| GPT-5 Codex | 2026-03-08 21:16 | Fixed Chinese mojibake and synchronized bilingual files |
+| GPT-5 Codex | 2026-03-08 22:37 | Cleared stale log timestamps and revalidated bilingual files and UTF-8 CRLF standards |
 
 # LLM 提示
 
-本文件是给 LLM 使用的提示信息。  
-在做任何操作前，需要先加载本文件作为基础指令，避免对工程做局部修改。  
+本文档是给 LLM 使用的提示信息。  
+在做任何操作前，需要先加载本文档作为基础指令，避免对工程做局部修改。  
 在做任何操作前，需要先查看 README.md 文件，理解整个工程。  
+在调用 PowerShell 的 Get-Content、Set-Content、Add-Content 等命令时，必须显式添加 -Encoding utf8，防止乱码。  
 做完操作之后，检查批处理常见编码问题，例如特殊符号处理。  
 做完操作之后，检查是否符合本文档约定的编码规范，并执行修正。  
-做完操作之后，注意检查中英文版本的 .json 配置文件是否内容、顺序准确且一致。  
-做完操作之后，注意检查中英文版本的 .bat 脚本代码是否逻辑、翻译准确且一致。  
-做完操作之后，注意检查中英文版本的 .md 说明文件是否内容、翻译准确且一致。  
-当没有明确指令时，对本项目做完整审查，给出审查结果和修改建议。  
-每次完整审查后，将结果概括为不超过 30 字的修改建议，并记录到 LLM.md 的检查结果部分。  
+做完操作之后，注意检查中英文版本的 .json 配置文件是否内容正确，且顺序一致。  
+做完操作之后，注意检查中英文版本的 .bat 脚本代码是否符合需求，且翻译一致。  
+做完操作之后，注意检查中英文版本的 .md 说明文件是否内容准确，且翻译一致。  
+当没有明确指令时，对本项目做完整审查，给出审查结果和修改建议，但不修改文件。  
+每次完整审查后，将结果概括为不超过 30 字，并记录到 LLM.md 的结论部分。  
 检查结果翻译中英文，按时间倒序排列，对于每个 LLM 只需保留最新的一条即可。
 
 ## 编码规范
@@ -62,6 +63,6 @@ Git 提交信息统一使用英文，不区分中英文版本。
 
 ## 检查结果
 
-| LLM+版本 | 检查时间 (UTC+8) | 修改建议 |
+| LLM+版本 | 时间 (UTC+8) | 结论 |
 | -- | -- | -- |
-| GPT-5 Codex | 2026-03-08 21:16 | 修复中文乱码并统一中英文内容 |
+| GPT-5 Codex | 2026-03-08 22:37 | 清理日志残留时间并复核中英文件及 UTF-8 CRLF 一致性 |

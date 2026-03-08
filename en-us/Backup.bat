@@ -74,6 +74,8 @@ for /l %%i in (1, 1, !length!) do (
 
     set "max_local_time="
     set "max_backup_time="
+    set "max_local_time_string="
+    set "max_backup_time_string="
 
     if exist "!save!" (
         for /f %%a in ('powershell -NoProfile -Command "try { $files = Get-ChildItem -Recurse -Path \""!save!\"" -File -ErrorAction SilentlyContinue; if ($files) { ($files | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.Ticks } else { 0 } } catch { 0 }"') do set "max_local_time=%%a"
