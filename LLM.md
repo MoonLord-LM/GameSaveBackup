@@ -1,7 +1,7 @@
 # Prompt for LLM
 
 This file is the prompt content for the LLM.  
-Before making any operations, we must first load this file as basic instructions to avoid making partial modifications to the project.  
+Before making any operations, we must first load this file as basic instructions.  
 Before making any operations, we must first review the README.md file to understand the entire project.  
 Before making any operations, we must first review the coding standards in this file and follow them strictly.  
 When calling PowerShell commands such as Get-Content, Set-Content, and Add-Content, explicitly add -Encoding utf8 to prevent garbled text.  
@@ -38,7 +38,7 @@ To maintain compatibility between Chinese and English versions without interfere
 # LLM 提示
 
 本文档是给 LLM 使用的提示信息。  
-在做任何操作前，需要先加载本文档作为基础指令，避免对工程做局部修改。  
+在做任何操作前，需要先加载本文档作为基础指令。  
 在做任何操作前，需要先查看 README.md 文件，理解整个工程。  
 在做任何操作前，需要先查看本文档约定的编码规范，严格按规范执行。  
 在调用 PowerShell 的 Get-Content、Set-Content、Add-Content 等命令时，必须显式添加 -Encoding utf8 参数，防止乱码。  
