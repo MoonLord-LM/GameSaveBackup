@@ -2,24 +2,9 @@
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 
-:: jq-windows-amd64.exe
-:: 1.8.1
-:: https://jqlang.org/download/
-
-
-
 if /i "%cd%"=="%SystemRoot%\System32" (
     echo Error: Current directory is the system directory, no action should be done here
     echo Please do not use "Run as administrator" from right-click menu
-    pause
-    exit
-)
-
-"jq.exe" --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Error: Missing jq.exe component
-    echo Please download from https://jqlang.org/download/
-    "explorer.exe" "https://jqlang.org/download/"
     pause
     exit
 )
@@ -64,19 +49,19 @@ if !json_count! gtr 1 (
 )
 
 echo Using configuration file: [!config!]
-for /f %%i in ('jq length "!config!"') do set "length=%%i"
+for /f %%i in ('powershell -NoProfile -Command "(Get-Content -Raw -Path '!config!' | ConvertFrom-Json).Count"') do set "length=%%i"
 echo.
 
 for /l %%i in (1, 1, %length%) do (
-    for /f "tokens=*" %%j in ('jq -r ".[%%i - 1].name" "%config%"') do set "name=%%j"
-    for /f "tokens=*" %%j in ('jq -r ".[%%i - 1].save" "%config%"') do set "save=%%j"
+    for /f "tokens=*" %%j in ('powershell -NoProfile -Command "(Get-Content -Raw -Path '!config!' | ConvertFrom-Json)[%%i - 1].name"') do set "name=%%j"
+    for /f "tokens=*" %%j in ('powershell -NoProfile -Command "(Get-Content -Raw -Path '!config!' | ConvertFrom-Json)[%%i - 1].save"') do set "save=%%j"
 
     set "save=!save:%%USERPROFILE%%=%USERPROFILE%!"
     set "save=!save:%%PROGRAMDATA%%=%PROGRAMDATA%!"
     echo "Processing %%i / !length!"  :  "!name!" in "!save!"
 
     set "ignore_args="
-    for /f "delims=" %%k in ('jq -r ".[%%i - 1].ignore // empty | .[]" "%config%"') do (
+    for /f "delims=" %%k in ('powershell -NoProfile -Command "$item = (Get-Content -Raw -Path '!config!' | ConvertFrom-Json)[%%i - 1].ignore; if ($item) { $item } else { }"') do (
         set "item=%%k"
         set "item=!item:%%USERPROFILE%%=%USERPROFILE%!"
         set "item=!item:%%PROGRAMDATA%%=%PROGRAMDATA%!"
@@ -103,7 +88,7 @@ for /l %%i in (1, 1, %length%) do (
         if "!max_backup_time!"=="0" (
             set "max_backup_time="
         ) else (
-             for /f "delims=" %%a in ('powershell -NoProfile -Command "[DateTime]::new(!max_backup_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss UTC')"') do set "max_backup_time=%%a"
+            for /f "delims=" %%a in ('powershell -NoProfile -Command "[DateTime]::new(!max_backup_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss UTC')"') do set "max_backup_time=%%a"
         )
     )
     cd "!name!"

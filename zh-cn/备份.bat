@@ -2,24 +2,9 @@
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 
-:: jq-windows-amd64.exe
-:: 1.8.1
-:: https://jqlang.org/download/
-
-
-
 if /i "%cd%"=="%SystemRoot%\System32" (
     echo 错误: 当前目录为系统目录，不应该在这里执行
-    echo 请不要使用右键的 “以管理员权限运行”
-    pause
-    exit
-)
-
-"jq.exe" --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo 错误: 缺少 jq.exe 组件
-    echo 请从 https://jqlang.org/download/ 下载
-    "explorer.exe" "https://jqlang.org/download/"
+    echo 请不要使用右键的 "以管理员权限运行"
     pause
     exit
 )
@@ -64,19 +49,19 @@ if !json_count! gtr 1 (
 )
 
 echo 使用配置文件: [!config!]
-for /f %%i in ('jq length "!config!"') do set "length=%%i"
+for /f %%i in ('powershell -NoProfile -Command "(Get-Content -Raw -Path '!config!' | ConvertFrom-Json).Count"') do set "length=%%i"
 echo.
 
 for /l %%i in (1, 1, %length%) do (
-    for /f "tokens=*" %%j in ('jq -r ".[%%i - 1].name" "%config%"') do set "name=%%j"
-    for /f "tokens=*" %%j in ('jq -r ".[%%i - 1].save" "%config%"') do set "save=%%j"
+    for /f "tokens=*" %%j in ('powershell -NoProfile -Command "(Get-Content -Raw -Path '!config!' | ConvertFrom-Json)[%%i - 1].name"') do set "name=%%j"
+    for /f "tokens=*" %%j in ('powershell -NoProfile -Command "(Get-Content -Raw -Path '!config!' | ConvertFrom-Json)[%%i - 1].save"') do set "save=%%j"
 
     set "save=!save:%%USERPROFILE%%=%USERPROFILE%!"
     set "save=!save:%%PROGRAMDATA%%=%PROGRAMDATA%!"
     echo "处理 %%i / !length!"  :  "!name!" in "!save!"
 
     set "ignore_args="
-    for /f "delims=" %%k in ('jq -r ".[%%i - 1].ignore // empty | .[]" "%config%"') do (
+    for /f "delims=" %%k in ('powershell -NoProfile -Command "$item = (Get-Content -Raw -Path '!config!' | ConvertFrom-Json)[%%i - 1].ignore; if ($item) { $item } else { }"') do (
         set "item=%%k"
         set "item=!item:%%USERPROFILE%%=%USERPROFILE%!"
         set "item=!item:%%PROGRAMDATA%%=%PROGRAMDATA%!"

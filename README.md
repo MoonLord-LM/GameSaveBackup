@@ -8,7 +8,6 @@ Features:
 100% pure batch script.  
 Bidirectional synchronization based on the last update time of files in user directory and save directory.  
 Using [`git`](https://github.com/git/git) for file version control.  
-Using [`jq`](https://github.com/jqlang/jq) for JSON configuration file parsing.  
 
 # 游戏存档备份
 
@@ -20,4 +19,3 @@ Using [`jq`](https://github.com/jqlang/jq) for JSON configuration file parsing.
 100% 纯批处理脚本。  
 按用户目录和存档目录中的文件的最后更新时间，进行双向同步。  
 使用 [`git`](https://github.com/git/git) 进行文件版本控制。  
-使用 [`jq`](https://github.com/jqlang/jq) 进行 JSON 配置文件解析。  
