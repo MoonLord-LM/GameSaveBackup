@@ -30,7 +30,7 @@ To maintain compatibility between Chinese and English versions without interfere
 
 ## Check Result
 
-| LLM+Version | Time (UTC+8) | Status | Conclusion |
+| LLM Version | Time UTC+8 | Status | Conclusion |
 | -- | -- | -- | -- |
 | Claude Haiku 4.5 | 2026-03-09 00:15 | ✅ | English and Chinese sections fully aligned, table structures unified. |
 | GPT-5 Codex | 2026-03-08 23:43 | ✅ | Keep Chinese and English instructions aligned line by line. |
@@ -67,7 +67,7 @@ Git 提交信息统一使用英文，不区分中英文版本。
 
 ## 自检结果
 
-| LLM+版本 | 时间 (UTC+8) | 状态 | 结论 |
+| LLM 版本 | 时间 UTC+8 | 状态 | 结论 |
 | -- | -- | -- | -- |
 | Claude Haiku 4.5 | 2026-03-09 00:15 | ✅ | 英文和中文内容逐条对齐，表格结构统一。 |
 | GPT-5 Codex | 2026-03-08 23:43 | ✅ | 保持中英文提示词逐条对齐。 |
