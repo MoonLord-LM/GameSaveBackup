@@ -46,14 +46,12 @@ for %%f in (*.json) do (
     set /a json_count+=1
     set "config=%%f"
 )
-
 if !json_count! equ 0 (
     echo Error: No .json configuration file found in the current directory
     echo Please ensure there is exactly one .json configuration file in this directory
     pause
     exit
 )
-
 if !json_count! gtr 1 (
     echo Error: Multiple .json configuration files found in the current directory (total: !json_count!)
     echo Please keep only one .json configuration file

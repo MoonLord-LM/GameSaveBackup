@@ -46,17 +46,15 @@ for %%f in (*.json) do (
     set /a json_count+=1
     set "config=%%f"
 )
-
 if !json_count! equ 0 (
-    echo 错误: 当前目录下没有找到 .json 配置文件
-    echo 请确保有一个 .json 配置文件在此目录中
+    echo 错误: 当前目录下没有找到 [.json] 配置文件
+    echo 请确保有一个 [.json] 配置文件在此目录中
     pause
     exit
 )
-
 if !json_count! gtr 1 (
-    echo 错误: 当前目录下找到多个 .json 配置文件（共 !json_count! 个）
-    echo 请只保留一个 .json 配置文件
+    echo 错误: 当前目录下找到多个 [.json] 配置文件（共 !json_count! 个）
+    echo 请只保留一个 [.json] 配置文件
     pause
     exit
 )
