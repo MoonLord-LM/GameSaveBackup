@@ -112,7 +112,7 @@ for /l %%i in (1, 1, %length%) do (
         ) else (
             echo Local save files are missing, begin to restore from backup files
             powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
-            robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "SaveLocation.bat" !ignore_args!
+            robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "存档位置.bat" /XF "SaveLocation.bat" !ignore_args!
         )
     ) else if "!max_backup_time!"=="" (
         echo Backup files are missing, begin to backup
@@ -121,16 +121,16 @@ for /l %%i in (1, 1, %length%) do (
             echo "explorer.exe" "!save!" >> "SaveLocation.bat"
             powershell -NoProfile -Command "(Get-Item 'SaveLocation.bat').LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime"
         )
-        robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "SaveLocation.bat" !ignore_args!
+        robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "存档位置.bat" /XF "SaveLocation.bat" !ignore_args!
         git add .
         git diff --cached --quiet || git commit -m "Update - !name! on !machine_name! by !user_name!"
     ) else if !max_local_time! lss !max_backup_time! (
         echo Local files are older, begin to update with backup files
         powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
-        robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "SaveLocation.bat" !ignore_args!
+        robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "存档位置.bat" /XF "SaveLocation.bat" !ignore_args!
     ) else if !max_local_time! gtr !max_backup_time! (
         echo Local files are newer, begin to backup
-        robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "SaveLocation.bat" !ignore_args!
+        robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "存档位置.bat" /XF "SaveLocation.bat" !ignore_args!
         git add .
         git diff --cached --quiet || git commit -m "Update - !name! on !machine_name! by !user_name!"
     ) else (
