@@ -32,8 +32,8 @@ To maintain compatibility between Chinese and English versions without interfere
 
 | LLM+Version | Time (UTC+8) | Conclusion |
 | -- | -- | -- |
-| GPT-5 Codex | 2026-03-08 23:15 | Found Warriors Orochi 4 mistranslation; re-aligned LLM bilingual rules |
-| Claude Haiku 4.5 | 2026-03-08 23:03 | Re-reviewed and fixed Warriors Orochi 4 translation error |
+| GPT-5 Codex | 2026-03-08 23:15 | ?????? |
+| Claude Haiku 4.5 | 2026-03-08 23:03 | ?????? |
 
 # LLM 提示
 
@@ -69,5 +69,5 @@ Git 提交信息统一使用英文，不区分中英文版本。
 
 | LLM+版本 | 时间 (UTC+8) | 结论 |
 | -- | -- | -- |
-| GPT-5 Codex | 2026-03-08 23:15 | 发现无双大蛇4误译；已重新对齐 LLM 双语规则 |
-| Claude Haiku 4.5 | 2026-03-08 23:03 | 重新审查并修复了无双大蛇4翻译错误 |
+| GPT-5 Codex | 2026-03-08 23:15 | ?????? |
+| Claude Haiku 4.5 | 2026-03-08 23:03 | ?????? |
