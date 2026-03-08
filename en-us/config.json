@@ -76,7 +76,7 @@
   },
   {
     "name": "BugBits",
-    "save": "%ProgramData%\\AlderGames\\BugBits"
+    "save": "%PROGRAMDATA%\\AlderGames\\BugBits"
   },
   {
     "name": "JustGo",

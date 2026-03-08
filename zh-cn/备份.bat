@@ -72,14 +72,14 @@ for /l %%i in (1, 1, %length%) do (
     for /f "tokens=*" %%j in ('jq -r ".[%%i - 1].save" "%config%"') do set "save=%%j"
 
     set "save=!save:%%USERPROFILE%%=%USERPROFILE%!"
-    set "save=!save:%%ProgramData%%=%ProgramData%!"
+    set "save=!save:%%PROGRAMDATA%%=%PROGRAMDATA%!"
     echo "progress %%i / !length!"  :  "!name!" in "!save!"
 
     set "ignore_args="
     for /f "delims=" %%k in ('jq -r ".[%%i - 1].ignore // empty | .[]" "%config%"') do (
         set "item=%%k"
         set "item=!item:%%USERPROFILE%%=%USERPROFILE%!"
-        set "item=!item:%%ProgramData%%=%ProgramData%!"
+        set "item=!item:%%PROGRAMDATA%%=%PROGRAMDATA%!"
         echo "ignore item: !item!"
         set "ignore_args=!ignore_args! /XF "!item!" /XD "!item!""
     )
