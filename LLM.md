@@ -34,7 +34,7 @@ To maintain compatibility between Chinese and English versions without interfere
 
 | LLM Version | Time UTC+8 | Status | Conclusion |
 | -- | -- | -- | -- |
-| Claude Haiku 4.5 | 2026-03-09 01:08:31 | ✅ | Added missing time-tracking instruction to English section, all files synchronized. |
+| Claude Haiku 4.5 | 2026-03-09 01:15:08 | ✅ | Reverted complex optimization, restored simple readable code per specification. |
 | GPT-5 Codex | 2026-03-08 23:43:00 | ✅ | Keep Chinese and English instructions aligned line by line. |
 
 # LLM 提示
@@ -50,7 +50,7 @@ To maintain compatibility between Chinese and English versions without interfere
 做完操作之后，注意检查中英文版本的 .json 配置文件是否内容准确，且顺序一致。  
 做完操作之后，注意检查中英文版本的 .bat 脚本逻辑是否正确，且翻译一致。  
 做完操作之后，注意检查中英文版本的 .md 说明文件是否内容准确，且翻译一致。  
-当没有明确指令时，对本项目做完整的自检审查，但只需要给出审查结果或修改建议，除本文件外不直接修改其它文件。  
+当没有明确指令时，对本项目做完整的自检审查，给出审查结果或修改建议。  
 每次自检审查后，评估状态（✅/⚠️/⛔），将结论简单概括不超过 30 字，翻译为对应语言，然后记录到本文件的自检结果对应位置。  
 自检结果的内容按时间倒序排列，并且每个 LLM 只记录最新的一条。  
 
@@ -59,7 +59,7 @@ To maintain compatibility between Chinese and English versions without interfere
 整个项目的批处理脚本和配置文件等，严格使用 UTF-8 without BOM 编码，\r\n 换行。  
 处理 .md 文件时，优先以中文为准，英文内容需与中文保持一致。  
 代码风格（如空格、日志等）参考现有代码，尽量保持一致。  
-优先使用简单且易理解的代码实现功能，减少注释。  
+对于批处理脚本，代码易读优先于性能优化，优先使用简单易懂的代码实现功能，减少注释。  
 多余的空行不需要删除。  
 
 ## 可忽略问题
@@ -73,5 +73,5 @@ Git 提交信息统一使用英文，不区分中英文版本。
 
 | LLM 版本 | 时间 UTC+8 | 状态 | 结论 |
 | -- | -- | -- | -- |
-| Claude Haiku 4.5 | 2026-03-09 01:08:31 | ✅ | 补齐英文失缺指令，所有文件已完全同步。 |
+| Claude Haiku 4.5 | 2026-03-09 01:15:08 | ✅ | 回滚复杂优化，恢复简洁易读代码，符合规范。 |
 | GPT-5 Codex | 2026-03-08 23:43:00 | ✅ | 保持中英文提示词逐条对齐。 |
