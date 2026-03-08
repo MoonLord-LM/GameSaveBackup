@@ -66,12 +66,12 @@ for /f %%i in ('jq length "!config!"') do set "length=%%i"
 echo.
 
 for /l %%i in (1, 1, %length%) do (
-    for /f "tokens=*" %%j in ('jq -r ".[%%i - 1].name" "%config%"') do set "game=%%j"
+    for /f "tokens=*" %%j in ('jq -r ".[%%i - 1].name" "%config%"') do set "name=%%j"
     for /f "tokens=*" %%j in ('jq -r ".[%%i - 1].save" "%config%"') do set "save=%%j"
 
     set "save=!save:%%USERPROFILE%%=%USERPROFILE%!"
     set "save=!save:%%ProgramData%%=%ProgramData%!"
-    echo "progress %%i / !length!"  :  "!game!" in "!save!"
+    echo "progress %%i / !length!"  :  "!name!" in "!save!"
 
     set "ignore_args="
     for /f "delims=" %%k in ('jq -r ".[%%i - 1].ignore // empty | .[]" "%config%"') do (
@@ -81,14 +81,14 @@ for /l %%i in (1, 1, %length%) do (
         set "ignore_args=!ignore_args! /XF "!item!" /XD "!item!""
     )
 
-    if not exist "!game!" ( mkdir "!game!" )
-    cd "!game!"
+    if not exist "!name!" ( mkdir "!name!" )
+    cd "!name!"
 
     set "max_local_time="
     set "max_backup_time="
 
     for /f %%a in ('powershell -NoProfile -Command "((Get-ChildItem -Recurse -Path \""!save!\"" | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.Ticks)"') do set "max_local_time=%%a"
-    for /f %%a in ('powershell -NoProfile -Command "((Get-ChildItem -Recurse -Path \""%cd%\!game!\"" | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.Ticks)"') do set "max_backup_time=%%a"
+    for /f %%a in ('powershell -NoProfile -Command "((Get-ChildItem -Recurse -Path \""%cd%\!name!\"" | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.Ticks)"') do set "max_backup_time=%%a"
     if "!max_local_time!"=="621356256000000000" ( set "max_local_time=" )
     if "!max_backup_time!"=="621356256000000000" ( set "max_backup_time=" )
 
@@ -117,7 +117,7 @@ for /l %%i in (1, 1, %length%) do (
         echo Backup files are missing, begin to backup
         robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "SaveLocation.bat" !ignore_args!
         git add .
-        git commit -m "Update - !game! on !machine_name! by !user_name!"
+        git commit -m "Update - !name! on !machine_name! by !user_name!"
     ) else if !max_local_time! lss !max_backup_time! (
         echo Local files are older, begin to update with backup files
         powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
@@ -126,7 +126,7 @@ for /l %%i in (1, 1, %length%) do (
         echo Local files are newer, begin to backup
         robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "SaveLocation.bat" !ignore_args!
         git add .
-        git commit -m "Update - !game! on !machine_name! by !user_name!"
+        git commit -m "Update - !name! on !machine_name! by !user_name!"
     ) else (
         echo Local save files and backup files are modified at same time, skip with no operation
     )
