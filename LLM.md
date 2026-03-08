@@ -13,7 +13,8 @@ When there are no explicit instructions, perform a complete review of this proje
 
 The entire project's batch scripts, configuration files, etc., strictly use UTF-8 without BOM encoding with \r\n line endings.  
 For code style, such as spacing, logging, etc., refer to existing code and try to maintain consistency.  
-Prioritize using simple and easy-to-understand code to implement functionality, reducing comments.
+Prioritize using simple and easy-to-understand code to implement functionality, reducing comments.  
+Excessive blank lines do not need to be removed.  
 
 ## Issues That Can Be Ignored
 
@@ -37,6 +38,7 @@ To maintain compatibility between Chinese and English versions without interfere
 整个项目的批处理脚本和配置文件等，严格使用 UTF-8 without BOM 编码，\r\n 的换行符。  
 代码风格，例如空格、日志等，参考已有的代码，尽量保持一致。  
 优先使用简单便于理解的代码来实现功能，减少注释。  
+多余的空行不需要删除。  
 
 ## 可忽略问题
 

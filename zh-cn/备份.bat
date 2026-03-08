@@ -20,11 +20,10 @@ if %errorlevel% neq 0 (
 
 if not exist ".git" (
     git init
+    git config --local core.autocrlf false
+    git config --local core.safecrlf false
+    git config --local core.ignorecase false
 )
-
-git config --local core.autocrlf false
-git config --local core.safecrlf false
-git config --local core.ignorecase false
 
 for /f "tokens=*" %%a in ('hostname') do set "machine_name=%%a"
 for /f "tokens=*" %%b in ('powershell -NoProfile -Command "[Environment]::UserName"') do set "user_name=%%b"
@@ -77,7 +76,7 @@ for /l %%i in (1, 1, !length!) do (
         if "!max_local_time!"=="0" (
             set "max_local_time="
         ) else (
-            for /f "delims=" %%a in ('powershell -NoProfile -Command "[DateTime]::new(!max_local_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss UTC')"') do set "max_local_time=%%a"
+            for /f "delims=" %%a in ('powershell -NoProfile -Command "[DateTime]::new(!max_local_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss UTC')"') do set "max_local_time_string=%%a"
         )
     )
 
@@ -88,12 +87,12 @@ for /l %%i in (1, 1, !length!) do (
         if "!max_backup_time!"=="0" (
             set "max_backup_time="
         ) else (
-            for /f "delims=" %%a in ('powershell -NoProfile -Command "[DateTime]::new(!max_backup_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss UTC')"') do set "max_backup_time=%%a"
+            for /f "delims=" %%a in ('powershell -NoProfile -Command "[DateTime]::new(!max_backup_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss UTC')"') do set "max_backup_time_string=%%a"
         )
     )
     cd "!name!"
 
-    echo 本地文件修改时间: [!max_local_time!] 备份文件修改时间: [!max_backup_time!]
+    echo 本地文件修改时间: [!max_local_time_string!] 备份文件修改时间: [!max_backup_time_string!]
 
     if "!max_local_time!"=="" (
         if "!max_backup_time!"=="" (
