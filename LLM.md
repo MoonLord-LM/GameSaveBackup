@@ -34,7 +34,7 @@ To maintain compatibility between Chinese and English versions without interfere
 
 | LLM Version | Time UTC+8 | Status | Conclusion |
 | -- | -- | -- | -- |
-| DeepSeek Chat | 2026-03-09 03:05:02 | ✅ | Fixed missing 2 trailing spaces in ordinary single-line text in LLM.md file, verified all lines comply with specification. |
+| DeepSeek Chat | 2026-03-09 03:05:02 | ✅ | Fixed missing 2 trailing spaces in LLM.md, verified compliance. |
 | Claude Haiku 4.5 | 2026-03-09 01:15:08 | ✅ | Reverted complex optimization, restored simple readable code per specification. |
 | GPT-5 Codex | 2026-03-08 23:43:00 | ✅ | Keep Chinese and English instructions aligned line by line. |
 
@@ -75,6 +75,6 @@ Git 提交信息统一使用英文，不区分中英文版本。
 
 | LLM 版本 | 时间 UTC+8 | 状态 | 结论 |
 | -- | -- | -- | -- |
-| DeepSeek Chat | 2026-03-09 03:05:02 | ✅ | 修复了 LLM.md 文件中普通单行文本缺少2个尾随空格的问题，已验证所有行符合规范。 |
+| DeepSeek Chat | 2026-03-09 03:05:02 | ✅ | 修复LLM.md缺少2尾随空格问题，已验证符合规范。 |
 | Claude Haiku 4.5 | 2026-03-09 01:15:08 | ✅ | 回滚复杂优化，恢复简洁易读代码，符合规范。 |
 | GPT-5 Codex | 2026-03-08 23:43:00 | ✅ | 保持中英文提示词逐条对齐。 |
