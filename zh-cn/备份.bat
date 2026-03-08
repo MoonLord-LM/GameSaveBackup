@@ -27,7 +27,7 @@ git config --local core.safecrlf false
 git config --local core.ignorecase false
 
 for /f "tokens=*" %%a in ('hostname') do set "machine_name=%%a"
-for /f "tokens=3 delims=\" %%b in ('echo %USERPROFILE%') do set "user_name=%%b"
+for /f "tokens=*" %%b in ('powershell -NoProfile -Command "[Environment]::UserName"') do set "user_name=%%b"
 echo 机器名: !machine_name! 用户名: !user_name!
 
 set "json_count=0"
@@ -49,19 +49,19 @@ if !json_count! gtr 1 (
 )
 
 echo 使用配置文件: [!config!]
-for /f %%i in ('powershell -NoProfile -Command "(Get-Content -Raw -Path '!config!' | ConvertFrom-Json).Count"') do set "length=%%i"
+for /f %%i in ('powershell -NoProfile -Command "(Get-Content -Raw -Path \""!config!\"" | ConvertFrom-Json).Count"') do set "length=%%i"
 echo.
 
-for /l %%i in (1, 1, %length%) do (
-    for /f "tokens=*" %%j in ('powershell -NoProfile -Command "(Get-Content -Raw -Path '!config!' | ConvertFrom-Json)[%%i - 1].name"') do set "name=%%j"
-    for /f "tokens=*" %%j in ('powershell -NoProfile -Command "(Get-Content -Raw -Path '!config!' | ConvertFrom-Json)[%%i - 1].save"') do set "save=%%j"
+for /l %%i in (1, 1, !length!) do (
+    for /f "tokens=*" %%j in ('powershell -NoProfile -Command "(Get-Content -Raw -Path \""!config!\"" | ConvertFrom-Json)[%%i - 1].name"') do set "name=%%j"
+    for /f "tokens=*" %%j in ('powershell -NoProfile -Command "(Get-Content -Raw -Path \""!config!\"" | ConvertFrom-Json)[%%i - 1].save"') do set "save=%%j"
 
     set "save=!save:%%USERPROFILE%%=%USERPROFILE%!"
     set "save=!save:%%PROGRAMDATA%%=%PROGRAMDATA%!"
     echo "处理 %%i / !length!"  :  "!name!" in "!save!"
 
     set "ignore_args="
-    for /f "delims=" %%k in ('powershell -NoProfile -Command "$item = (Get-Content -Raw -Path '!config!' | ConvertFrom-Json)[%%i - 1].ignore; if ($item) { $item } else { }"') do (
+    for /f "delims=" %%k in ('powershell -NoProfile -Command "$item = (Get-Content -Raw -Path \""!config!\"" | ConvertFrom-Json)[%%i - 1].ignore; if ($item) { $item } else { }"') do (
         set "item=%%k"
         set "item=!item:%%USERPROFILE%%=%USERPROFILE%!"
         set "item=!item:%%PROGRAMDATA%%=%PROGRAMDATA%!"
