@@ -6,7 +6,7 @@ You can modify the [`config.json`](https://github.com/MoonLord-LM/GameSaveBackup
 Using git for file version control.
 
 # 游戏存档备份
-一个简单的文件备份工具，可以用于游戏存档或其他用途。  
+一个简单的文件备份工具，可以用于游戏存档或者其他用途。  
 100% 纯批处理脚本，下载 [`zh-cn`](https://github.com/MoonLord-LM/GameSaveBackup/tree/master/zh-cn) 目录，然后双击 [`备份.bat`](https://github.com/MoonLord-LM/GameSaveBackup/blob/master/zh-cn/备份.bat) 即可运行。  
 可以修改 [`配置.json`](https://github.com/MoonLord-LM/GameSaveBackup/blob/master/zh-cn/配置.json) 文件，适配更多的游戏。  
 
