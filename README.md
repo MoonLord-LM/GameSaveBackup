@@ -1,5 +1,5 @@
 # GameSaveBackup
-A simple game save file backup tool.  
+A simple file backup tool for game saves and other purposes.  
 It is 100% pure batch script, just download the [`en-us`](https://github.com/MoonLord-LM/GameSaveBackup/tree/master/en-us) directory and double-click [`Backup.bat`](https://github.com/MoonLord-LM/GameSaveBackup/blob/master/en-us/Backup.bat) to run.  
 You can modify the [`config.json`](https://github.com/MoonLord-LM/GameSaveBackup/blob/master/en-us/config.json) file to support more games.  
 
