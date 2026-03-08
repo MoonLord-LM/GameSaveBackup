@@ -1,6 +1,6 @@
 @echo off
+chcp 65001 >nul
 setlocal enabledelayedexpansion
-chcp 65001
 
 :: jq-windows-amd64.exe
 :: 1.8.1
