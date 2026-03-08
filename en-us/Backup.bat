@@ -52,7 +52,7 @@ for %%f in (*.json) do (
 )
 if !json_count! equ 0 (
     echo Error: No [.json] configuration file found in the current directory
-    echo Please ensure there is exactly one [.json] configuration file in this directory
+    echo Please ensure there is [.json] configuration file in this directory
     pause
     exit
 )
