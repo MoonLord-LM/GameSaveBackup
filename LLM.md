@@ -37,3 +37,4 @@ Some games have different names in Chinese and English regions, which is a norma
 ## 可忽略问题
 
 一些游戏在中文区和英文区的名称不同，是正常现象，不需要纠错。  
+使用 git commit 时，如果没有实际修改，git 会给出提示 “nothing to commit, working tree clean”。  

@@ -93,19 +93,18 @@ for /l %%i in (1, 1, %length%) do (
     for /f %%a in ('powershell -NoProfile -Command "try { $files = Get-ChildItem -Recurse -Path \""!save!\"" -File -ErrorAction SilentlyContinue; if ($files) { ($files | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.Ticks } else { 0 } } catch { 0 }"') do set "max_local_time=%%a"
     for /f %%a in ('powershell -NoProfile -Command "try { $files = Get-ChildItem -Recurse -Path \".\" -File -ErrorAction SilentlyContinue; if ($files) { ($files | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.Ticks } else { 0 } } catch { 0 }"') do set "max_backup_time=%%a"
 
-    if "!max_local_time!"=="0" ( set "max_local_time=" )
-    if "!max_backup_time!"=="0" ( set "max_backup_time=" )
-
-    for /f "delims=" %%a in ('powershell -NoProfile -Command "if (!max_local_time!) { [DateTime]::new(!max_local_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss UTC') } else { 'None' }"') do set "max_local_time=%%a"
-    for /f "delims=" %%a in ('powershell -NoProfile -Command "if (!max_backup_time!) { [DateTime]::new(!max_backup_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss UTC') } else { 'None' }"') do set "max_backup_time=%%a"
+    if "!max_local_time!"=="0" (
+        set "max_local_time="
+    ) else (
+        for /f "delims=" %%a in ('powershell -NoProfile -Command "[DateTime]::new(!max_local_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss UTC')"') do set "max_local_time=%%a"
+    )
+    if "!max_backup_time!"=="0" (
+        set "max_backup_time="
+    ) else (
+         for /f "delims=" %%a in ('powershell -NoProfile -Command "[DateTime]::new(!max_backup_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss UTC')"') do set "max_backup_time=%%a"
+    )
 
     echo Max Local Time: [!max_local_time!] Max Backup Time: [!max_backup_time!]
-
-    if not exist "SaveLocation.bat" (
-        echo if not exist "!save!" mkdir "!save!" > "SaveLocation.bat"
-        echo "explorer.exe" "!save!" >> "SaveLocation.bat"
-        powershell -NoProfile -Command "(Get-Item 'SaveLocation.bat').LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime"
-    )
 
     if "!max_local_time!"=="" (
         if "!max_backup_time!"=="" (
@@ -117,6 +116,11 @@ for /l %%i in (1, 1, %length%) do (
         )
     ) else if "!max_backup_time!"=="" (
         echo Backup files are missing, begin to backup
+        if not exist "SaveLocation.bat" (
+            echo if not exist "!save!" mkdir "!save!" > "SaveLocation.bat"
+            echo "explorer.exe" "!save!" >> "SaveLocation.bat"
+            powershell -NoProfile -Command "(Get-Item 'SaveLocation.bat').LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime"
+        )
         robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH /XF "SaveLocation.bat" !ignore_args!
         git add .
         git commit -m "Update - !name! on !machine_name! by !user_name!"
@@ -140,6 +144,10 @@ for /l %%i in (1, 1, %length%) do (
 git add .
 git commit -m "Update - on !machine_name! by !user_name!"
 git clean -df
+
+echo.
+echo Backup completed
+echo.
 
 pause
 exit
