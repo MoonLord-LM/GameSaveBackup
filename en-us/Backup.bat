@@ -2,11 +2,11 @@
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 
+
+
 if /i "%cd%"=="%SystemRoot%\System32" (
-    echo Error: Current directory is the system directory, no action should be done here
-    echo Please do not use "Run as administrator" from right-click menu
-    pause
-    exit
+    echo Use "Run as administrator" from right-click menu, switching to script directory
+    cd /d "%~dp0"
 )
 
 "git.exe" --version >nul 2>&1
@@ -49,23 +49,23 @@ if !json_count! gtr 1 (
 )
 
 echo Using configuration file: [!config!]
-for /f %%i in ('powershell -NoProfile -Command "(Get-Content -Raw -Path \""!config!\"" | ConvertFrom-Json).Count"') do set "length=%%i"
+for /f %%i in ('powershell -NoProfile -Command "$arr = (Get-Content -Raw -Encoding UTF8 -Path \""!config!\"" | ConvertFrom-Json); [string]$arr.Count"') do set "length=%%i"
 echo.
 
 for /l %%i in (1, 1, !length!) do (
-    for /f "tokens=*" %%j in ('powershell -NoProfile -Command "(Get-Content -Raw -Path \""!config!\"" | ConvertFrom-Json)[%%i - 1].name"') do set "name=%%j"
-    for /f "tokens=*" %%j in ('powershell -NoProfile -Command "(Get-Content -Raw -Path \""!config!\"" | ConvertFrom-Json)[%%i - 1].save"') do set "save=%%j"
+    for /f "tokens=*" %%j in ('powershell -NoProfile -Command "(Get-Content -Raw -Encoding UTF8 -Path \""!config!\"" | ConvertFrom-Json)[%%i - 1].name"') do set "name=%%j"
+    for /f "tokens=*" %%j in ('powershell -NoProfile -Command "(Get-Content -Raw -Encoding UTF8 -Path \""!config!\"" | ConvertFrom-Json)[%%i - 1].save"') do set "save=%%j"
 
     set "save=!save:%%USERPROFILE%%=%USERPROFILE%!"
     set "save=!save:%%PROGRAMDATA%%=%PROGRAMDATA%!"
-    echo "Processing %%i / !length!"  :  "!name!" in "!save!"
+    echo Processing %%i / !length! :  "!name!" at "!save!"
 
     set "ignore_args="
-    for /f "delims=" %%k in ('powershell -NoProfile -Command "$item = (Get-Content -Raw -Path \""!config!\"" | ConvertFrom-Json)[%%i - 1].ignore; if ($item) { $item } else { }"') do (
+    for /f "delims=" %%k in ('powershell -NoProfile -Command "$item = (Get-Content -Raw -Encoding UTF8 -Path \""!config!\"" | ConvertFrom-Json)[%%i - 1].ignore; if ($item) { $item } else { }"') do (
         set "item=%%k"
         set "item=!item:%%USERPROFILE%%=%USERPROFILE%!"
         set "item=!item:%%PROGRAMDATA%%=%PROGRAMDATA%!"
-        echo "ignore item: !item!"
+        echo ignore item: "!item!"
         set "ignore_args=!ignore_args! /XF "!item!" /XD "!item!""
     )
 
