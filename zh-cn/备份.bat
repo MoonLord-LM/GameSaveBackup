@@ -66,7 +66,7 @@ for /f %%i in ('jq length "!config!"') do set "length=%%i"
 echo.
 
 for /l %%i in (1, 1, %length%) do (
-    for /f "tokens=*" %%j in ('jq -r ".[%%i - 1].game" "%config%"') do set "game=%%j"
+    for /f "tokens=*" %%j in ('jq -r ".[%%i - 1].name" "%config%"') do set "game=%%j"
     for /f "tokens=*" %%j in ('jq -r ".[%%i - 1].save" "%config%"') do set "save=%%j"
 
     set "save=!save:%%USERPROFILE%%=%USERPROFILE%!"

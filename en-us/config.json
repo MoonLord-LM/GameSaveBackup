@@ -1,85 +1,85 @@
 [
   {
-    "game": "Elden Ring",
+    "name": "Elden Ring",
     "save": "%USERPROFILE%\\AppData\\Roaming\\EldenRing"
   },
   {
-    "game": "Palworld",
+    "name": "Palworld",
     "save": "%USERPROFILE%\\AppData\\Local\\Pal\\Saved\\SaveGames"
   },
   {
-    "game": "Settlement Survival",
+    "name": "Settlement Survival",
     "save": "%USERPROFILE%\\AppData\\LocalLow\\SZSS INTERACTIVE\\Settlement Survival"
   },
   {
-    "game": "Last Epoch",
+    "name": "Last Epoch",
     "save": "%USERPROFILE%\\AppData\\LocalLow\\Eleventh Hour Games\\Last Epoch"
   },
   {
-    "game": "Prototype",
+    "name": "Prototype",
     "save": "%USERPROFILE%\\Documents\\Prototype"
   },
   {
-    "game": "NieR Automata",
+    "name": "NieR Automata",
     "save": "%USERPROFILE%\\Documents\\My Games\\NieR_Automata"
   },
   {
-    "game": "Dynasty Warriors 9 Empires",
+    "name": "Dynasty Warriors 9 Empires",
     "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\Dynasty Warriors 9 Empires"
   },
   {
-    "game": "Warriors Orochi 4",
+    "name": "Warriors Orochi 4",
     "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\WARRIORS OROCHI 4"
   },
   {
-    "game": "Shin Sangokumusou 5",
+    "name": "Shin Sangokumusou 5",
     "save": "%USERPROFILE%\\Documents\\KOEI\\Shin Sangokumusou 5"
   },
   {
-    "game": "They Are Billions",
+    "name": "They Are Billions",
     "save": "%USERPROFILE%\\Documents\\My Games\\They Are Billions"
   },
   {
-    "game": "Planetbase",
+    "name": "Planetbase",
     "save": "%USERPROFILE%\\Documents\\Planetbase"
   },
   {
-    "game": "Oxygen Not Included",
+    "name": "Oxygen Not Included",
     "save": "%USERPROFILE%\\Documents\\Klei\\OxygenNotIncluded",
     "ignore": [
         "%USERPROFILE%\\Documents\\Klei\\OxygenNotIncluded\\RetiredColonies"
     ]
   },
   {
-    "game": "Don't Starve Together",
+    "name": "Don't Starve Together",
     "save": "%USERPROFILE%\\Documents\\Klei\\DoNotStarveTogether"
   },
   {
-    "game": "Baldur's Gate 3",
+    "name": "Baldur's Gate 3",
     "save": "%USERPROFILE%\\AppData\\Local\\Larian Studios\\Baldur's Gate 3"
   },
   {
-    "game": "Romance Of The Three Kingdoms 8 Remake",
+    "name": "Romance Of The Three Kingdoms 8 Remake",
     "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\SAN8R"
   },
   {
-    "game": "Clair Obscur Expedition 33",
+    "name": "Clair Obscur Expedition 33",
     "save": "%USERPROFILE%\\AppData\\Local\\Sandfall\\Saved"
   },
   {
-    "game": "Ghost Of Tsushima",
+    "name": "Ghost Of Tsushima",
     "save": "%USERPROFILE%\\Documents\\Ghost of Tsushima DIRECTOR'S CUT"
   },
   {
-    "game": "Monument Valley",
+    "name": "Monument Valley",
     "save": "%USERPROFILE%\\AppData\\LocalLow\\ustwo games\\Monument Valley"
   },
   {
-    "game": "BugBits",
+    "name": "BugBits",
     "save": "%ProgramData%\\AlderGames\\BugBits"
   },
   {
-    "game": "JustGo",
+    "name": "JustGo",
     "save": "%USERPROFILE%\\AppData\\LocalLow\\Studio Amateur\\JustGo"
   }
 ]
