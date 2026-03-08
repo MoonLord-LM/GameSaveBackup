@@ -1,4 +1,4 @@
-﻿# Prompt for LLM
+# Prompt for LLM
 
 This file is the prompt content for the LLM.  
 Before making any operations, we must first load this file as basic instructions to avoid making partial modifications to the project.  
@@ -11,7 +11,7 @@ When there are no explicit instructions, perform a complete review of this proje
 
 ## Coding Standards
 
-The entire project's batch scripts, configuration files, etc., strictly use UTF-8 encoding with \r\n line endings.  
+The entire project's batch scripts, configuration files, etc., strictly use UTF-8 without BOM encoding with \r\n line endings.  
 For code style, such as spacing, logging, etc., refer to existing code and try to maintain consistency.  
 Prioritize using simple and easy-to-understand code to implement functionality, reducing comments.
 
@@ -34,7 +34,7 @@ To maintain compatibility between Chinese and English versions without interfere
 
 ## 编码规范
 
-整个项目的批处理脚本和配置文件等，严格使用 UTF-8 编码，\r\n 的换行符。  
+整个项目的批处理脚本和配置文件等，严格使用 UTF-8 without BOM 编码，\r\n 的换行符。  
 代码风格，例如空格、日志等，参考已有的代码，尽量保持一致。  
 优先使用简单便于理解的代码来实现功能，减少注释。  
 
