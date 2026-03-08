@@ -3,12 +3,13 @@
 This file is the prompt content for the LLM.  
 Before making any operations, we must first load this file as basic instructions to avoid making partial modifications to the project.  
 Before making any operations, we must first review the README.md file to understand the entire project.  
+When calling PowerShell commands such as Get-Content, Set-Content, and Add-Content, explicitly add -Encoding utf8 to prevent garbled text.  
 After completing operations, check common batch encoding issues, such as handling of special symbols.  
 After completing operations, check for coding standard issues and apply fixes.  
 After completing operations, ensure that the Chinese and English versions of .json configuration files have accurate content, consistent order, and are identical.  
 After completing operations, ensure that the Chinese and English versions of .bat script code have accurate logic, consistent translation, and are identical.  
 After completing operations, ensure that the Chinese and English versions of .md documentation files have accurate content, consistent translation, and are identical.  
-When there are no explicit instructions, perform a complete review of this project and provide review results and modification suggestions.  
+When there are no explicit instructions, perform a complete review of this project and provide review results and modification suggestions, but do not modify files.  
 After each complete review, summarize the result as a modification suggestion within 30 words and record it in the check result section of LLM.md.  
 Translate check results into Chinese and English, sort by time in descending order, and keep only the latest one for each LLM.
 
@@ -30,20 +31,20 @@ To maintain compatibility between Chinese and English versions without interfere
 
 | LLM+Version | Time (UTC+8) | Conclusion |
 | -- | -- | -- |
-| GPT-5 Codex | 2026-03-08 22:37 | Cleared stale log timestamps and revalidated bilingual files and UTF-8 CRLF standards |
+| GPT-5 Codex | 2026-03-08 22:46 | Aligned LLM prompts and normalized batch CRLF after bilingual review |
 
 # LLM 提示
 
 本文档是给 LLM 使用的提示信息。  
 在做任何操作前，需要先加载本文档作为基础指令，避免对工程做局部修改。  
 在做任何操作前，需要先查看 README.md 文件，理解整个工程。  
-在调用 PowerShell 的 Get-Content、Set-Content、Add-Content 等命令时，必须显式添加 -Encoding utf8，防止乱码。  
+在调用 PowerShell 的 Get-Content、Set-Content、Add-Content 等命令时，必须显式添加 -Encoding utf8 参数，防止乱码。  
 做完操作之后，检查批处理常见编码问题，例如特殊符号处理。  
 做完操作之后，检查是否符合本文档约定的编码规范，并执行修正。  
 做完操作之后，注意检查中英文版本的 .json 配置文件是否内容正确，且顺序一致。  
 做完操作之后，注意检查中英文版本的 .bat 脚本代码是否符合需求，且翻译一致。  
 做完操作之后，注意检查中英文版本的 .md 说明文件是否内容准确，且翻译一致。  
-当没有明确指令时，对本项目做完整审查，给出审查结果和修改建议，但不修改文件。  
+当没有明确指令时，对本项目做完整审查，但只需要给出审查结果和修改建议，不直接修改除本文件之外的文件。  
 每次完整审查后，将结果概括为不超过 30 字，并记录到 LLM.md 的结论部分。  
 检查结果翻译中英文，按时间倒序排列，对于每个 LLM 只需保留最新的一条即可。
 
@@ -61,8 +62,8 @@ To maintain compatibility between Chinese and English versions without interfere
 Git 提交信息统一使用英文，不区分中英文版本。  
 为保持中英文版本兼容互不干扰，中英文版本的 "SaveLocation.bat" 都视为需忽略文件。  
 
-## 检查结果
+## 自检结果
 
 | LLM+版本 | 时间 (UTC+8) | 结论 |
 | -- | -- | -- |
-| GPT-5 Codex | 2026-03-08 22:37 | 清理日志残留时间并复核中英文件及 UTF-8 CRLF 一致性 |
+| GPT-5 Codex | 2026-03-08 22:46 | 对齐 LLM 提示并修复批处理 CRLF 行尾 |
