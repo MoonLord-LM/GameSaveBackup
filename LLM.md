@@ -38,7 +38,7 @@ To maintain compatibility between Chinese and English versions without interfere
 
 本文档是给 LLM 使用的提示信息。  
 在做任何操作前，需要先加载本文档作为基础指令，避免对工程做局部修改。  
-在做任何操作前，需要先查看 README.md 文件，理解整个工程，优先以中文为准，英文参照中文保持一致。  
+在做任何操作前，需要先查看 README.md 文件，理解整个工程。  
 在调用 PowerShell 的 Get-Content、Set-Content、Add-Content 等命令时，必须显式添加 -Encoding utf8 参数，防止乱码。  
 做完操作之后，检查批处理常见编码问题，例如特殊符号处理。  
 做完操作之后，检查是否符合本文档约定的编码规范，并执行修正。  
@@ -52,6 +52,7 @@ To maintain compatibility between Chinese and English versions without interfere
 ## 编码规范
 
 整个项目的批处理脚本和配置文件等，严格使用 UTF-8 without BOM 编码，\r\n 换行。  
+MD 文件，优先以中文为准，英文参照中文保持一致。  
 代码风格（如空格、日志等）参考现有代码，尽量保持一致。  
 优先使用简单且易理解的代码实现功能，减少注释。  
 多余的空行不需要删除。  
