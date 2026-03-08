@@ -6,7 +6,7 @@ You can modify the [`config.json`](https://github.com/MoonLord-LM/GameSaveBackup
 Features:  
 100% pure batch script.  
 Using git for file version control.  
-Using jq for JSON configuration file processing.  
+Using jq for JSON configuration file parsing.  
 Bidirectional synchronization based on the last update time of files in the save directory.  
 
 # 游戏存档备份
@@ -17,5 +17,5 @@ Bidirectional synchronization based on the last update time of files in the save
 说明：  
 100% 纯批处理脚本。  
 使用 git 进行文件版本控制。  
-使用 jq 进行 JSON 配置文件处理。  
+使用 jq 进行 JSON 配置文件解析。  
 按存档目录中的文件的最后更新时间进行双向同步。
