@@ -41,7 +41,7 @@ if !json_count! equ 0 (
     exit
 )
 if !json_count! gtr 1 (
-    echo Error: Multiple [.json] configuration files found in the current directory (total: !json_count!)
+    echo Error: Multiple [.json] configuration files found in the current directory, total: !json_count!
     echo Please keep only one [.json] configuration file
     pause
     exit

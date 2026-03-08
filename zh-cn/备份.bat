@@ -41,7 +41,7 @@ if !json_count! equ 0 (
     exit
 )
 if !json_count! gtr 1 (
-    echo 错误: 当前目录下找到多个 [.json] 配置文件（共 !json_count! 个）
+    echo 错误: 当前目录下找到多个 [.json] 配置文件，共 !json_count! 个
     echo 请只保留一个 [.json] 配置文件
     pause
     exit
