@@ -63,7 +63,7 @@ if !json_count! gtr 1 (
     exit
 )
 
-echo 使用配置文件: !config!
+echo 使用配置文件: [!config!]
 for /f %%i in ('jq length "!config!"') do set "length=%%i"
 echo.
 
