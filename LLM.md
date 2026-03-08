@@ -28,7 +28,7 @@ Due to the enabledelayedexpansion mechanism, game names and backup paths cannot 
 Git commit messages should be unified in English, no need to differentiate between Chinese and English versions.  
 To maintain compatibility between Chinese and English versions without interference, both Chinese and English versions of "SaveLocation.bat" should be treated as files to be ignored.  
 
-## Check Result
+## Self Check Result
 
 | LLM Version | Time UTC+8 | Status | Conclusion |
 | -- | -- | -- | -- |
