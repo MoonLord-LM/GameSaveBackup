@@ -3,6 +3,7 @@
 This file is the prompt content for the LLM.  
 Before making any operations, we must first load this file as basic instructions to avoid making partial modifications to the project.  
 Before making any operations, we must first review the README.md file to understand the entire project.  
+After completing operations, check for coding standard issues and apply fixes.  
 After completing operations, ensure that the Chinese and English versions of .json configuration files have accurate content, consistent order, and are identical.  
 After completing operations, ensure that the Chinese and English versions of .bat script code have accurate logic, consistent translation, and are identical.  
 After completing operations, ensure that the Chinese and English versions of .md documentation files have accurate content, consistent translation, and are identical.  
@@ -25,6 +26,7 @@ To maintain compatibility between Chinese and English versions without interfere
 本文件是给 LLM 使用的提示信息。  
 在做任何操作前，需要先载入本文件作为基础的指令，避免对工程做局部修改。  
 在做任何操作前，需要先查看 README.md 文件，理解整个工程。  
+做完操作之后，检查编码规范问题，并执行修改。  
 做完操作之后，注意检查中英文版本的 .json 配置文件是否内容、顺序准确且一致。  
 做完操作之后，注意检查中英文版本的 .bat 脚本代码是否逻辑、翻译准确且一致。  
 做完操作之后，注意检查中英文版本的 .md 说明文件是否内容、翻译准确且一致。  
