@@ -143,7 +143,7 @@ for /l %%i in (1, 1, %length%) do (
 
 git add .
 git commit -m "Update - on !machine_name! by !user_name!"
-git clean -df
+git clean -df >nul
 
 echo.
 echo Backup completed
