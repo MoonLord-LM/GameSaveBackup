@@ -9,7 +9,8 @@ After completing operations, ensure that the Chinese and English versions of .js
 After completing operations, ensure that the Chinese and English versions of .bat script code have accurate logic, consistent translation, and are identical.  
 After completing operations, ensure that the Chinese and English versions of .md documentation files have accurate content, consistent translation, and are identical.  
 When there are no explicit instructions, perform a complete review of this project and provide review results and modification suggestions.  
-After each complete review, summarize the result as a modification suggestion within 30 words and record it in the check result section of LLM.md.
+After each complete review, summarize the result as a modification suggestion within 30 words and record it in the check result section of LLM.md.  
+Translate check results into Chinese and English, sort by time in descending order, and keep only the latest one for each LLM.
 
 ## Coding Standards
 
@@ -27,11 +28,9 @@ To maintain compatibility between Chinese and English versions without interfere
 
 ## Check Result
 
-```mermaid
 | LLM+Version | Check Time (UTC+8) | Suggestion |
-| --- | --- | --- |
-| GPT-5 Codex | 2026-03-08 13:00 | 修复中英文乱码并统一编码行尾 |
-```
+| -- | -- | -- |
+| GPT-5 Codex | 2026-03-08 21:16 | Fixed Chinese mojibake and synchronized bilingual files |
 
 # LLM 提示
 
@@ -45,6 +44,7 @@ To maintain compatibility between Chinese and English versions without interfere
 做完操作之后，注意检查中英文版本的 .md 说明文件是否内容、翻译准确且一致。  
 当没有明确指令时，对本项目做完整审查，给出审查结果和修改建议。  
 每次完整审查后，将结果概括为不超过 30 字的修改建议，并记录到 LLM.md 的检查结果部分。  
+检查结果翻译中英文，按时间倒序排列，对于每个 LLM 只需保留最新的一条即可。
 
 ## 编码规范
 
@@ -62,8 +62,6 @@ Git 提交信息统一使用英文，不区分中英文版本。
 
 ## 检查结果
 
-```mermaid
-| LLM+版本 | 检查时间(UTC+8) | 修改建议 |
-| --- | --- | --- |
-| GPT-5 Codex | 2026-03-08 13:00 | 修复中英文乱码并统一编码行尾 |
-```
+| LLM+版本 | 检查时间 (UTC+8) | 修改建议 |
+| -- | -- | -- |
+| GPT-5 Codex | 2026-03-08 21:16 | 修复中文乱码并统一中英文内容 |
