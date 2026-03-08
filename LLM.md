@@ -9,13 +9,14 @@ After completing operations, check for coding standard issues and apply fixes.
 After completing operations, ensure that the Chinese and English versions of .json configuration files have accurate content and consistent ordering.  
 After completing operations, ensure that the Chinese and English versions of .bat scripts have accurate logic and consistent translation.  
 After completing operations, ensure that the Chinese and English versions of .md documentation files have accurate content and consistent translation.  
-When there are no explicit instructions, perform a complete review of this project and provide review results and modification suggestions, but do not directly modify any files other than this one.  
-After each complete review, summarize the result as a modification suggestion in no more than 30 words and record it in the check result section of LLM.md.  
-Translate the check results into Chinese and English, sort them by time in descending order, and keep only the latest entry for each LLM.
+When there are no explicit instructions, perform a complete self-review of this project and provide review results and modification suggestions, but do not directly modify any files other than this one.  
+After each self-review, summarize the conclusion as a modification suggestion in no more than 30 words and record it in the appropriate check result section of this file.  
+Translate the self-review conclusion into Chinese and English, sort the entries by time in descending order, and keep only the latest entry for each LLM.
 
 ## Coding Standards
 
 The entire project's batch scripts, configuration files, etc., strictly use UTF-8 without BOM encoding with \r\n line endings.  
+For .md files, prioritize the Chinese text as the source of truth and keep the English text aligned with it.  
 For code style, such as spacing, logging, etc., refer to existing code and try to maintain consistency.  
 Prioritize using simple and easy-to-understand code to implement functionality, reducing comments.  
 Excessive blank lines do not need to be removed.  
@@ -31,8 +32,8 @@ To maintain compatibility between Chinese and English versions without interfere
 
 | LLM+Version | Time (UTC+8) | Conclusion |
 | -- | -- | -- |
+| GPT-5 Codex | 2026-03-08 23:15 | Found Warriors Orochi 4 mistranslation; re-aligned LLM bilingual rules |
 | Claude Haiku 4.5 | 2026-03-08 23:03 | Re-reviewed and fixed Warriors Orochi 4 translation error |
-| GPT-5 Codex | 2026-03-08 23:02 | Reviewed all files; consistent UTF-8/CRLF and bilingual content |
 
 # LLM 提示
 
@@ -52,7 +53,7 @@ To maintain compatibility between Chinese and English versions without interfere
 ## 编码规范
 
 整个项目的批处理脚本和配置文件等，严格使用 UTF-8 without BOM 编码，\r\n 换行。  
-MD 文件，优先以中文为准，英文参照中文保持一致。  
+处理 .md 文件时，优先以中文为准，英文内容需与中文保持一致。  
 代码风格（如空格、日志等）参考现有代码，尽量保持一致。  
 优先使用简单且易理解的代码实现功能，减少注释。  
 多余的空行不需要删除。  
@@ -68,5 +69,5 @@ Git 提交信息统一使用英文，不区分中英文版本。
 
 | LLM+版本 | 时间 (UTC+8) | 结论 |
 | -- | -- | -- |
+| GPT-5 Codex | 2026-03-08 23:15 | 发现无双大蛇4误译；已重新对齐 LLM 双语规则 |
 | Claude Haiku 4.5 | 2026-03-08 23:03 | 重新审查并修复了无双大蛇4翻译错误 |
-| GPT-5 Codex | 2026-03-08 23:02 | 审查所有文件；UTF-8/CRLF与双语内容一致 |
