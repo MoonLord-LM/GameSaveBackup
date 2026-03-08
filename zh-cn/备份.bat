@@ -84,25 +84,29 @@ for /l %%i in (1, 1, %length%) do (
         set "ignore_args=!ignore_args! /XF "!item!" /XD "!item!""
     )
 
-    if not exist "!name!" ( mkdir "!name!" )
-    cd "!name!"
-
     set "max_local_time="
     set "max_backup_time="
 
-    for /f %%a in ('powershell -NoProfile -Command "try { $files = Get-ChildItem -Recurse -Path \""!save!\"" -File -ErrorAction SilentlyContinue; if ($files) { ($files | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.Ticks } else { 0 } } catch { 0 }"') do set "max_local_time=%%a"
-    for /f %%a in ('powershell -NoProfile -Command "try { $files = Get-ChildItem -Recurse -Path \".\" -File -ErrorAction SilentlyContinue; if ($files) { ($files | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.Ticks } else { 0 } } catch { 0 }"') do set "max_backup_time=%%a"
+    if exist "!save!" (
+        for /f %%a in ('powershell -NoProfile -Command "try { $files = Get-ChildItem -Recurse -Path \""!save!\"" -File -ErrorAction SilentlyContinue; if ($files) { ($files | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.Ticks } else { 0 } } catch { 0 }"') do set "max_local_time=%%a"
+        if "!max_local_time!"=="0" (
+            set "max_local_time="
+        ) else (
+            for /f "delims=" %%a in ('powershell -NoProfile -Command "[DateTime]::new(!max_local_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss UTC')"') do set "max_local_time=%%a"
+        )
+    )
 
-    if "!max_local_time!"=="0" (
-        set "max_local_time="
+    if not exist "!name!" (
+        mkdir "!name!"
     ) else (
-        for /f "delims=" %%a in ('powershell -NoProfile -Command "[DateTime]::new(!max_local_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss UTC')"') do set "max_local_time=%%a"
+        for /f %%a in ('powershell -NoProfile -Command "try { $files = Get-ChildItem -Recurse -Path \".\" -File -ErrorAction SilentlyContinue; if ($files) { ($files | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime.Ticks } else { 0 } } catch { 0 }"') do set "max_backup_time=%%a"
+        if "!max_backup_time!"=="0" (
+            set "max_backup_time="
+        ) else (
+            for /f "delims=" %%a in ('powershell -NoProfile -Command "[DateTime]::new(!max_backup_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss UTC')"') do set "max_backup_time=%%a"
+        )
     )
-    if "!max_backup_time!"=="0" (
-        set "max_backup_time="
-    ) else (
-         for /f "delims=" %%a in ('powershell -NoProfile -Command "[DateTime]::new(!max_backup_time!, 'UTC').ToString('yyyy-MM-dd HH:mm:ss UTC')"') do set "max_backup_time=%%a"
-    )
+    cd "!name!"
 
     echo 本地文件修改时间: [!max_local_time!] 备份文件修改时间: [!max_backup_time!]
 
