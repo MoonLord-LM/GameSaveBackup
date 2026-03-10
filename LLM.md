@@ -35,10 +35,11 @@ Example code:
 @echo off
 chcp 65001 >nul
 setlocal enabledelayedexpansion
+powershell -NoProfile -Command "Write-Host '[ %~nx0 ]' -ForegroundColor Cyan" && echo.
 
 
 
-:: This line is a comment, summarizing the entire file
+:: This line is a comment, used to mark the source or summarize the entire file
 
 
 
@@ -48,7 +49,7 @@ if /i "%cd%"=="%SystemRoot%\System32" (
 )
 
 echo This is the main body of the code
-echo Note the fixed 3 lines of code at the beginning and the fixed 3 lines at the end
+echo Note the fixed 4 lines of code at the beginning and the fixed 3 lines at the end
 echo The beginning, summary comment, code body, and end are separated by 3 blank lines
 echo A blank line is always reserved at the end of the file
 
@@ -71,7 +72,7 @@ To maintain compatibility between Chinese and English versions without interfere
 
 | LLM Version | Time UTC+8 | Status | Conclusion |
 | -- | -- | -- | -- |
-| Kimi K2.5 | 2026-03-10 08:31:07 | ✅ | Updated batch files: URL comment, error exits use exit /b 1. |
+| Kimi K2.5 | 2026-03-10 15:03:29 | ✅ | LLM.md example synced with code, all files compliant. |
 | GPT-5.1 Cursor | 2026-03-09 11:29:16 | ✅ | Quick review, no major issues. |
 | DeepSeek Chat | 2026-03-09 03:05:02 | ✅ | Fixed missing 2 trailing spaces in LLM.md, verified compliance. |
 | Claude Haiku 4.5 | 2026-03-09 01:15:08 | ✅ | Reverted complex optimization, restored simple readable code per specification. |
@@ -114,10 +115,11 @@ To maintain compatibility between Chinese and English versions without interfere
 @echo off
 chcp 65001 >nul
 setlocal enabledelayedexpansion
+powershell -NoProfile -Command "Write-Host '[ %~nx0 ]' -ForegroundColor Cyan" && echo.
 
 
 
-:: 这一行是注释，对整个文件进行总结说明
+:: 这一行是注释，对整个文件进行出处标注或者总结说明
 
 
 
@@ -127,7 +129,7 @@ if /i "%cd%"=="%SystemRoot%\System32" (
 )
 
 echo 这里是代码正文
-echo 注意开头的固定 3 行代码和结尾的固定 3 行代码
+echo 注意开头的固定 4 行代码和结尾的固定 3 行代码
 echo 开头、总结注释、代码主体、结尾，中间固定隔开 3 行
 echo 文件末尾固定保留 1 个空行
 
@@ -150,7 +152,7 @@ Git 提交信息统一使用英文，不区分中英文版本。
 
 | LLM 版本 | 时间 UTC+8 | 状态 | 结论 |
 | -- | -- | -- | -- |
-| Kimi K2.5 | 2026-03-10 08:31:07 | ✅ | 批处理文件已更新：URL注释、错误退出使用exit /b 1。 |
+| Kimi K2.5 | 2026-03-10 15:03:29 | ✅ | LLM.md示例与代码同步，所有文件符合规范。 |
 | GPT-5.1 Cursor | 2026-03-09 11:29:16 | ✅ | 快速整体检查，未发现明显问题。 |
 | DeepSeek Chat | 2026-03-09 03:05:02 | ✅ | 修复LLM.md缺少2尾随空格问题，已验证符合规范。 |
 | Claude Haiku 4.5 | 2026-03-09 01:15:08 | ✅ | 回滚复杂优化，恢复简洁易读代码，符合规范。 |
