@@ -10,7 +10,7 @@ if /i "%cd%"=="%SystemRoot%\System32" (
 )
 
 "git.exe" --version >nul 2>&1
-if %errorlevel% neq 0 (
+if errorlevel 1 (
     echo Error: Missing git.exe component
     echo Please download from https://git-scm.com/install/windows
     "explorer.exe" "https://git-scm.com/install/windows"
@@ -121,7 +121,7 @@ for /l %%i in (1, 1, !length!) do (
     ) else if !max_local_time! lss !max_backup_time! (
         echo Local files are older, moving to recycle bin and updating with backup files
         powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
-            robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
+        robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
     ) else if !max_local_time! gtr !max_backup_time! (
         echo Local files are newer, begin to backup
         robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!

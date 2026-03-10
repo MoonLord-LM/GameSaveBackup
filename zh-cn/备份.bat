@@ -10,7 +10,7 @@ if /i "%cd%"=="%SystemRoot%\System32" (
 )
 
 "git.exe" --version >nul 2>&1
-if %errorlevel% neq 0 (
+if errorlevel 1 (
     echo 错误: 缺少 git.exe 组件
     echo 请从 https://git-scm.com/install/windows 下载
     "explorer.exe" "https://git-scm.com/install/windows"
@@ -121,7 +121,7 @@ for /l %%i in (1, 1, !length!) do (
     ) else if !max_local_time! lss !max_backup_time! (
         echo 本地存档文件修改时间较旧，删除到回收站，并使用备份文件更新
         powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
-            robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
+        robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
     ) else if !max_local_time! gtr !max_backup_time! (
         echo 本地存档文件修改时间较新，进行备份
         robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
