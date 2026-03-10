@@ -9,7 +9,7 @@ setlocal enabledelayedexpansion
 
 
 if /i "%cd%"=="%SystemRoot%\System32" (
-    echo Use "Run as administrator" from right-click menu, switching to script directory
+    echo Use "Run as administrator" from right-click menu, switching to script directory & echo.
     cd /d "%~dp0"
 )
 

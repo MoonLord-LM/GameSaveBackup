@@ -41,6 +41,11 @@ setlocal enabledelayedexpansion
 
 
 
+if /i "%cd%"=="%SystemRoot%\System32" (
+    echo Use "Run as administrator" from right-click menu, switching to script directory & echo.
+    cd /d "%~dp0"
+)
+
 echo This is the main body of the code
 echo Note the fixed 3 lines of code at the beginning and the fixed 3 lines at the end
 echo The beginning, summary comment, code body, and end are separated by 3 blank lines
@@ -113,6 +118,11 @@ setlocal enabledelayedexpansion
 :: 这一行是注释，对整个文件进行总结说明
 
 
+
+if /i "%cd%"=="%SystemRoot%\System32" (
+    echo 检测到使用右键的"以管理员权限运行"，切换到脚本所在目录 & echo.
+    cd /d "%~dp0"
+)
 
 echo 这里是代码正文
 echo 注意开头的固定 3 行代码和结尾的固定 3 行代码
