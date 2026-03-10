@@ -144,7 +144,9 @@ git diff --cached --quiet || ( git commit -m "Update - on !machine_name! by !use
 git clean -df >nul
 
 echo 备份完成
-echo.
 
+
+
+echo.
 pause
 exit /b
