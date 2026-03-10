@@ -4,7 +4,7 @@ setlocal enabledelayedexpansion
 
 
 
-:: 开源地址：https://github.com/MoonLord-LM/GameSaveBackup
+:: Open source address: https://github.com/MoonLord-LM/GameSaveBackup
 
 
 
