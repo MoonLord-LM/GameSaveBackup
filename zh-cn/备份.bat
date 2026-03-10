@@ -4,6 +4,10 @@ setlocal enabledelayedexpansion
 
 
 
+:: https://github.com/MoonLord-LM/GameSaveBackup
+
+
+
 if /i "%cd%"=="%SystemRoot%\System32" (
     echo 检测到使用右键的"以管理员权限运行"，切换到脚本所在目录
     cd /d "%~dp0"
@@ -15,7 +19,7 @@ if errorlevel 1 (
     echo 请从 https://git-scm.com/install/windows 下载
     "explorer.exe" "https://git-scm.com/install/windows"
     pause
-    exit
+    exit /b 1
 )
 
 if not exist ".git" (
@@ -42,13 +46,13 @@ if !json_count! equ 0 (
     echo 错误: 当前目录下没有找到 [.json] 配置文件
     echo 请确保有一个 [.json] 配置文件在此目录中
     pause
-    exit
+    exit /b 1
 )
 if !json_count! gtr 1 (
     echo 错误: 当前目录下找到多个 [.json] 配置文件，共 !json_count! 个
     echo 请只保留一个 [.json] 配置文件
     pause
-    exit
+    exit /b 1
 )
 
 echo 使用配置文件: [!config!]
@@ -143,4 +147,4 @@ echo 备份完成
 echo.
 
 pause
-exit
+exit /b

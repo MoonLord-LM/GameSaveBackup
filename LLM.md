@@ -18,13 +18,16 @@ Sort the self-check result entries by time in descending order, and keep only th
 ## Coding Standards
 
 All text files in the entire project, including code, configurations, and documentation, must strictly use UTF-8 without BOM encoding with \r\n line endings.  
+
 For .md files, prioritize the Chinese text as the source of truth. If there is English content, it must be consistent with the Chinese.  
 For .md files, ensure that ordinary single-line text ends with 2 spaces to achieve a line break effect.  
+
 For batch scripts, code readability is prioritized over performance optimization; use simple, easy-to-understand code to implement functionality and reduce comments.  
 For batch scripts, the code style (e.g., spacing, logging) should refer to existing code to maintain consistency as much as possible.  
 If temporary files need to be generated, use a path like `%temp%\\MyBatch_%random%_%random%_%random%_%random%.tmp` to prevent conflicts, and clean it up before the script ends.  
 Try to avoid using English parentheses ( ) or Chinese parentheses （） in echo commands to prevent interference.  
 To check if the previous command succeeded/failed, use the `if errorlevel 0/1` syntax, which is more concise; do not use the `%errorlevel%` variable.  
+When a script exits normally, use `exit /b` to exit; when it exits with an error, use `exit /b 1` to exit.  '''
 
 Example code:
 ```
@@ -62,7 +65,7 @@ To maintain compatibility between Chinese and English versions without interfere
 
 | LLM Version | Time UTC+8 | Status | Conclusion |
 | -- | -- | -- | -- |
-| Kimi K2.5 | 2026-03-10 08:07:57 | ✅ | Fixed errorlevel syntax in batch files, all coding standards compliant. |
+| Kimi K2.5 | 2026-03-10 08:31:07 | ✅ | Updated batch files: URL comment, error exits use exit /b 1. |
 | GPT-5.1 Cursor | 2026-03-09 11:29:16 | ✅ | Quick review, no major issues. |
 | DeepSeek Chat | 2026-03-09 03:05:02 | ✅ | Fixed missing 2 trailing spaces in LLM.md, verified compliance. |
 | Claude Haiku 4.5 | 2026-03-09 01:15:08 | ✅ | Reverted complex optimization, restored simple readable code per specification. |
@@ -88,13 +91,16 @@ To maintain compatibility between Chinese and English versions without interfere
 ## 编码规范
 
 整个工程的代码、配置、说明等各种文本文件，严格使用 UTF-8 without BOM 编码，\r\n 换行。  
+
 处理 .md 文件时，优先以中文为准，如果有英文内容，需与中文保持一致。  
 处理 .md 文件时，要保证普通单行文本的结尾要有 2 个空格，以实现换行效果。  
+
 对于批处理脚本，代码易读优先于性能优化，优先使用简单易懂的代码实现功能，减少注释。  
 批处理脚本的代码风格（如空格、日志等）参考现有代码，尽量保持一致。  
 如果需要生成临时文件，使用 `%temp%\MyBatch_%random%_%random%_%random%_%random%.tmp` 这样的路径防止冲突，并且在脚本结束前做清理。  
 尽量避免在 echo 命令中，使用英文的括号 ( ) 或中文的括号（）符号，避免干扰。  
 判断上一条命令是否成功/失败，用 if errorlevel 0/1 的写法，比较简洁，不要用 %errorlevel% 变量。  
+脚本正常结束时，使用 exit /b 退出，异常结束时，使用 exit /b 1 退出。  
 
 示例代码：
 ```
@@ -132,7 +138,7 @@ Git 提交信息统一使用英文，不区分中英文版本。
 
 | LLM 版本 | 时间 UTC+8 | 状态 | 结论 |
 | -- | -- | -- | -- |
-| Kimi K2.5 | 2026-03-10 08:07:57 | ✅ | 修复批处理 errorlevel 语法，所有编码规范符合要求。 |
+| Kimi K2.5 | 2026-03-10 08:31:07 | ✅ | 批处理文件已更新：URL注释、错误退出使用exit /b 1。 |
 | GPT-5.1 Cursor | 2026-03-09 11:29:16 | ✅ | 快速整体检查，未发现明显问题。 |
 | DeepSeek Chat | 2026-03-09 03:05:02 | ✅ | 修复LLM.md缺少2尾随空格问题，已验证符合规范。 |
 | Claude Haiku 4.5 | 2026-03-09 01:15:08 | ✅ | 回滚复杂优化，恢复简洁易读代码，符合规范。 |

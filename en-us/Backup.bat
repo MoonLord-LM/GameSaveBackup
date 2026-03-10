@@ -4,6 +4,10 @@ setlocal enabledelayedexpansion
 
 
 
+:: https://github.com/MoonLord-LM/GameSaveBackup
+
+
+
 if /i "%cd%"=="%SystemRoot%\System32" (
     echo Use "Run as administrator" from right-click menu, switching to script directory
     cd /d "%~dp0"
@@ -15,7 +19,7 @@ if errorlevel 1 (
     echo Please download from https://git-scm.com/install/windows
     "explorer.exe" "https://git-scm.com/install/windows"
     pause
-    exit
+    exit /b 1
 )
 
 if not exist ".git" (
@@ -42,13 +46,13 @@ if !json_count! equ 0 (
     echo Error: No [.json] configuration file found in the current directory
     echo Please ensure there is [.json] configuration file in this directory
     pause
-    exit
+    exit /b 1
 )
 if !json_count! gtr 1 (
     echo Error: Multiple [.json] configuration files found in the current directory, total: !json_count!
     echo Please keep only one [.json] configuration file
     pause
-    exit
+    exit /b 1
 )
 
 echo Using configuration file: [!config!]
@@ -143,4 +147,4 @@ echo Backup completed
 echo.
 
 pause
-exit
+exit /b
