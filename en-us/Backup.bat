@@ -5,7 +5,7 @@ powershell -NoProfile -Command "Write-Host '[ %~nx0 ]' -ForegroundColor Cyan" &&
 
 
 
-:: Open source address: https://github.com/MoonLord-LM/GameSaveBackup
+REM Open source address: https://github.com/MoonLord-LM/GameSaveBackup
 
 
 

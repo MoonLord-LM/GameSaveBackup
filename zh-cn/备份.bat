@@ -5,7 +5,7 @@ powershell -NoProfile -Command "Write-Host '[ %~nx0 ]' -ForegroundColor Cyan" &&
 
 
 
-:: 开源地址：https://github.com/MoonLord-LM/GameSaveBackup
+REM 开源地址：https://github.com/MoonLord-LM/GameSaveBackup
 
 
 

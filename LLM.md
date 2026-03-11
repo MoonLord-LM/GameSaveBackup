@@ -87,6 +87,7 @@ To maintain compatibility between Chinese and English versions without interfere
 
 | LLM Version | Time UTC+8 | Status | Conclusion |
 | -- | -- | -- | -- |
+| Qwen3.5 Coder | 2026-03-11 14:05:00 | ✅ | Strict review: Fixed comment style, restored MD original format, fully compliant. |
 | Kimi K2.5 | 2026-03-10 15:05:59 | ✅ | Full code review: all batch files comply with LLM.md coding standards. |
 | GPT-5.1 Cursor | 2026-03-09 11:29:16 | ✅ | Quick review, no major issues. |
 | DeepSeek Chat | 2026-03-09 03:05:02 | ✅ | Fixed missing 2 trailing spaces in LLM.md, verified compliance. |
@@ -182,7 +183,8 @@ Git 提交信息统一使用英文，不区分中英文版本。
 
 | LLM 版本 | 时间 UTC+8 | 状态 | 结论 |
 | -- | -- | -- | -- |
-| Kimi K2.5 | 2026-03-10 15:05:59 | ✅ | 完整代码审查：所有批处理文件符合LLM.md编码规范。 |
+| Qwen3.5 Coder | 2026-03-11 14:05:00 | ✅ | 严格审查：修正注释风格，恢复 MD 原文格式，完全符合规范。 |
+| Kimi K2.5 | 2026-03-10 15:05:59 | ✅ | 完整代码审查：所有批处理文件符合 LLM.md 编码规范。 |
 | GPT-5.1 Cursor | 2026-03-09 11:29:16 | ✅ | 快速整体检查，未发现明显问题。 |
 | DeepSeek Chat | 2026-03-09 03:05:02 | ✅ | 修复LLM.md缺少2尾随空格问题，已验证符合规范。 |
 | Claude Haiku 4.5 | 2026-03-09 01:15:08 | ✅ | 回滚复杂优化，恢复简洁易读代码，符合规范。 |
