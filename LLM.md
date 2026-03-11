@@ -30,6 +30,7 @@ To check if the previous command succeeded/failed, use the `if errorlevel 0/1` s
 If the script is run as administrator from the right-click menu, it will switch to the system directory by default, but usually the script does not want to change the relative path; refer to the example code for handling.  
 When a script exits normally, use `exit /b` to exit; when it exits with an error, use `exit /b 1` to exit.  
 When processing video files, ensure compatibility with common formats: *.mp4, *.mkv, *.ts, *.avi, *.wmv, *.flv, *.rmvb, *.rm, *.vob, *.mpg, *.mpeg, *.3gp, *.m4v, *.f4v, *.mov, *.webm.  
+The syntax `del /f /q "!xxx!"` is prohibited; if the variable is empty, all files in the current directory will be deleted. It must be written as `if exist "!xxx!" ( del /f /q "!xxx!" )` instead.  
 
 Example code:
 ```
@@ -121,9 +122,10 @@ To maintain compatibility between Chinese and English versions without interfere
 如果需要生成临时文件，使用 `%temp%\MyBatch_%random%_%random%_%random%_%random%.tmp` 这样的路径防止冲突，并且在脚本结束前做清理。  
 尽量避免在 echo 命令中，使用英文的括号 ( ) 或中文的括号（）符号，避免干扰。  
 判断上一条命令是否成功/失败，用 if errorlevel 0/1 的写法，比较简洁，不要用 %errorlevel% 变量。  
-脚本如果用右键的"以管理员权限运行"，默认会切换到系统目录，而通常脚本并不想改变相对路径，参照示例代码处理。  
+脚本如果用右键的“以管理员权限运行”，默认会切换到系统目录，而通常脚本并不想改变相对路径，参照示例代码处理。  
 脚本正常结束时，使用 exit /b 退出，异常结束时，使用 exit /b 1 退出。  
 处理视频文件时，注意对常见格式都进行兼容：*.mp4, *.mkv, *.ts, *.avi, *.wmv, *.flv, *.rmvb, *.rm, *.vob, *.mpg, *.mpeg, *.3gp, *.m4v, *.f4v, *.mov, *.webm。  
+禁止出现 del /f /q "!xxx!" 的写法，一旦变量为空值，当前目录下所有文件都会被删除，必须写成 if exist "!xxx!" ( del /f /q "!xxx!" ) 的形式。  
 
 示例代码：
 ```
@@ -139,7 +141,7 @@ powershell -NoProfile -Command "Write-Host '[ %~nx0 ]' -ForegroundColor Cyan" &&
 
 
 if /i "%cd%"=="%SystemRoot%\System32" (
-    echo 检测到使用右键的"以管理员权限运行"，切换到脚本所在目录 & echo.
+    echo 检测到使用右键的“以管理员权限运行”，切换到脚本所在目录 & echo.
     cd /d "%~dp0"
 )
 
