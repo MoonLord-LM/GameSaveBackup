@@ -319,7 +319,7 @@ function Load-GameList {
             $displayPath = $displayPath -replace "%PROGRAMDATA%", '$env:PROGRAMDATA'
             
             # 添加行到表格
-            $gameDataGridView.Rows.Add(($i + 1), $gameName, $displayPath)
+            $gameDataGridView.Rows.Add(($i + 1), $gameName, $displayPath) | Out-Null
         }
         
         Write-Log $script:ui.GameListUpdated "Info"
@@ -432,7 +432,7 @@ $copyLogButton.Add_Click({
 
 # 窗口加载时自动查找并加载 JSON 文件
 Write-Log $script:ui.ScanningConfig "Info"
-Find-AndLoadJsonFile
+Find-AndLoadJsonFile | Out-Null
 
 # 开始备份按钮点击事件
 $startButton.Add_Click({
