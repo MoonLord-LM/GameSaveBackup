@@ -43,6 +43,13 @@ $startButton.Size = New-Object System.Drawing.Size(100, 27)
 $startButton.BackColor = [System.Drawing.Color]::LightGreen
 $startButton.Enabled = $false
 
+# 复制日志按钮
+$copyLogButton = New-Object System.Windows.Forms.Button
+$copyLogButton.Text = "复制日志"
+$copyLogButton.Location = New-Object System.Drawing.Point(820, 15)
+$copyLogButton.Size = New-Object System.Drawing.Size(100, 27)
+$copyLogButton.BackColor = [System.Drawing.Color]::LightBlue
+
 # 创建中部面板（用于分页展示）
 $middlePanel = New-Object System.Windows.Forms.Panel
 $middlePanel.Location = New-Object System.Drawing.Point(20, 80)
@@ -125,6 +132,7 @@ $topPanel.Controls.Add($configLabel)
 $topPanel.Controls.Add($configTextBox)
 $topPanel.Controls.Add($browseButton)
 $topPanel.Controls.Add($startButton)
+$topPanel.Controls.Add($copyLogButton)
 
 # 将中部面板添加到主窗口
 $middlePanel.Controls.Add($logTextBox)
@@ -137,9 +145,20 @@ $form.Controls.Add($statusLabel)
 $form.Controls.Add($progressBar)
 
 # 全局变量
-$script:configPath = ""
-$script:isRunning = $false
-$script:configArray = $null
+$global:configPath = ""
+$global:isRunning = $false
+$global:configArray = $null
+$global:job = $null
+$global:timer = $null
+# 使用 hostname 命令获取完整机器名（与备份.bat 保持一致）
+$hostnameOutput = & cmd /c hostname 2>&1
+if ($hostnameOutput) {
+    $script:machineName = $hostnameOutput.ToString().Trim()
+}
+else {
+    $script:machineName = $env:COMPUTERNAME
+}
+$script:userName = [Environment]::UserName
 
 # 日志输出函数
 function Write-Log {
@@ -228,8 +247,8 @@ function Find-AndLoadJsonFile {
     }
     
     # 只有一个 json 文件，自动加载
-    $script:configPath = $jsonFiles.FullName
-    $configTextBox.Text = $script:configPath
+    $global:configPath = $jsonFiles.FullName
+    $configTextBox.Text = $global:configPath
     
     Write-Log "自动检测到配置文件：$((Split-Path -Leaf $script:configPath))" "Info"
     
@@ -266,22 +285,34 @@ $browseButton.Add_Click({
     $fileDialog.InitialDirectory = $scriptDir
     
     if ($fileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-        $script:configPath = $fileDialog.FileName
-        $configTextBox.Text = $script:configPath
+        $global:configPath = $fileDialog.FileName
+        $configTextBox.Text = $global:configPath
         $startButton.Enabled = $true
-        Write-Log "已选择配置文件：" + $script:configPath "Info"
+        Write-Log "已选择配置文件：" + $global:configPath "Info"
         
         # 加载游戏列表
-        Load-GameList -ConfigPath $script:configPath
+        Load-GameList -ConfigPath $global:configPath
     }
 })
 
-# 获取机器名和用户名
-$machineName = $env:COMPUTERNAME
-$userName = [Environment]::UserName
+# 获取机器名和用户名并显示日志
 Write-Log "========================================" "Info"
-Write-Log "机器名：" + $machineName + "  用户名：" + $userName "Info"
+Write-Log ("机器名：" + $script:machineName + "  用户名：" + $script:userName) "Info"
 Write-Log "========================================" "Info"
+
+# 复制日志按钮点击事件
+$copyLogButton.Add_Click({
+    if ($logTextBox.Text.Length -gt 0) {
+        [System.Windows.Forms.Clipboard]::SetText($logTextBox.Text)
+        Write-Log "日志已复制到剪贴板" "Success"
+        $statusLabel.Text = "日志已复制"
+        $statusLabel.ForeColor = [System.Drawing.Color]::Green
+    } else {
+        Write-Log "当前没有日志内容" "Warning"
+        $statusLabel.Text = "无日志可复制"
+        $statusLabel.ForeColor = [System.Drawing.Color]::Orange
+    }
+})
 
 # 窗口加载时自动查找并加载 JSON 文件
 Write-Log "正在扫描配置文件..." "Info"
@@ -289,14 +320,14 @@ Find-AndLoadJsonFile
 
 # 开始备份按钮点击事件
 $startButton.Add_Click({
-    if ($script:isRunning) {
+    if ($global:isRunning) {
         return
     }
     
     # 切换回日志面板
     Show-LogPanel
     
-    $script:isRunning = $true
+    $global:isRunning = $true
     $startButton.Enabled = $false
     $browseButton.Enabled = $false
     $progressBar.Visible = $true
@@ -309,16 +340,17 @@ $startButton.Add_Click({
     Write-Log "开始备份任务" "Progress"
     Write-Log "========================================" "Progress"
     
-    # 使用 PowerShell 异步执行备份任务
-    $job = Start-Job -ScriptBlock {
+    try {
+        # 使用 PowerShell 异步执行备份任务
+        $global:job = Start-Job -ScriptBlock {
         param($configPath, $machineName, $userName)
-        
+            
         $output = [System.Collections.ArrayList]::new()
-        
+            
         # 切换到配置目录
         $configDir = Split-Path -Parent $configPath
         Push-Location $configDir
-        
+            
         # 检查 Git
         $gitExe = Get-Command git -ErrorAction SilentlyContinue
         if (-not $gitExe) {
@@ -327,24 +359,16 @@ $startButton.Add_Click({
             $output.Add("INFO|") | Out-Null
             return $output
         }
-        
-        # 检查配置文件数量
-        $jsonFiles = Get-ChildItem -Path "*.json" -File
-        if ($jsonFiles.Count -eq 0) {
-            $output.Add("ERROR|错误：当前目录下没有找到 [.json] 配置文件") | Out-Null
-            $output.Add("ERROR|请确保有一个 [.json] 配置文件在此目录中") | Out-Null
+            
+        # 验证选定的配置文件是否存在
+        if (-not (Test-Path $configPath)) {
+            $output.Add("ERROR|错误：选定的配置文件不存在：" + $configPath) | Out-Null
             $output.Add("INFO|") | Out-Null
             return $output
         }
-        if ($jsonFiles.Count -gt 1) {
-            $output.Add("ERROR|错误：当前目录下找到多个 [.json] 配置文件，共 " + $jsonFiles.Count + " 个") | Out-Null
-            $output.Add("ERROR|请只保留一个 [.json] 配置文件") | Out-Null
-            $output.Add("INFO|") | Out-Null
-            return $output
-        }
-        
+            
         $output.Add("INFO|使用配置文件：" + (Split-Path -Leaf $configPath)) | Out-Null
-        
+            
         # 读取配置文件
         try {
             $configContent = Get-Content -Path $configPath -Raw -Encoding UTF8
@@ -355,10 +379,10 @@ $startButton.Add_Click({
             $output.Add("ERROR|读取配置文件失败：" + $_) | Out-Null
             return $output
         }
-        
+            
         $output.Add("INFO|") | Out-Null
         $output.Add(("INFO|找到 " + $totalGames + " 个游戏配置")) | Out-Null
-        
+            
         # 初始化 Git
         if (-not (Test-Path ".git")) {
             & git init | Out-Null
@@ -369,27 +393,29 @@ $startButton.Add_Click({
             & git config --local i18n.logoutputencoding utf-8 | Out-Null
             & git config --local i18n.commitencoding utf-8 | Out-Null
         }
-        
+            
         $gameIndex = 0
         foreach ($game in $configArray) {
             $gameIndex++
             $name = $game.name
             $save = $game.save
             $ignore = $game.ignore
-            
+                
+            # 发送进度更新信号
+            $output.Add(("PROGRESS_SIGNAL|" + $gameIndex + "|" + $totalGames)) | Out-Null
             $output.Add(("PROGRESS|处理 " + $gameIndex + " / " + $totalGames + " : `"" + $name + "`" 位于 `"" + $save + "`"")) | Out-Null
-            
+                
             # 替换环境变量
             $saveExpanded = $save -replace "%USERPROFILE%", $env:USERPROFILE
             $saveExpanded = $saveExpanded -replace "%PROGRAMDATA%", $env:PROGRAMDATA
-            
+                
             # 构建忽略参数
             $ignoreArgs = @()
             $ignoreArgs += "/XF"
             $ignoreArgs += "SaveLocation.bat"
             $ignoreArgs += "/XF"
             $ignoreArgs += "存档位置.bat"
-            
+                
             if ($ignore) {
                 foreach ($item in $ignore) {
                     $itemExpanded = $item -replace "%USERPROFILE%", $env:USERPROFILE
@@ -401,7 +427,7 @@ $startButton.Add_Click({
                     $ignoreArgs += $itemExpanded
                 }
             }
-            
+                
             # 获取本地文件修改时间
             $maxLocalTime = $null
             $maxLocalTimeString = ""
@@ -416,7 +442,7 @@ $startButton.Add_Click({
                 }
                 catch {}
             }
-            
+                
             # 获取备份文件修改时间
             $maxBackupTime = $null
             $maxBackupTimeString = ""
@@ -432,16 +458,16 @@ $startButton.Add_Click({
                 }
                 catch {}
             }
-            
-            $output.Add(("INFO|本地文件修改时间：[" + $maxLocalTimeString + "] 备份文件修改时间：[" + $maxBackupTimeString + "]")) | Out-Null
-            
+                
+            $output.Add(("INFO|本地文件修改时间:[" + $maxLocalTimeString + "] 备份文件修改时间:[" + $maxBackupTimeString + "]")) | Out-Null
+                
             # 创建备份目录
             if (-not (Test-Path $backupDir)) {
                 New-Item -ItemType Directory -Path $backupDir | Out-Null
             }
-            
+                
             Push-Location $backupDir
-            
+                
             # 判断备份策略
             if ($null -eq $maxLocalTime) {
                 if ($null -eq $maxBackupTime) {
@@ -491,32 +517,70 @@ $startButton.Add_Click({
             else {
                 $output.Add("SUCCESS|本地存档文件与备份文件修改时间相同，跳过操作") | Out-Null
             }
-            
+                
             Pop-Location
             $output.Add("INFO|") | Out-Null
         }
-        
+            
         # 最终 Git 提交
         & git add .
         if (-not (& git diff --cached --quiet)) {
             & git commit -m ("Update - on " + $machineName + " by " + $userName)
             $output.Add("SUCCESS|最终 Git 提交完成") | Out-Null
         }
-        
+            
         & git clean -df >nul
-        
+            
         $output.Add("SUCCESS|备份完成") | Out-Null
-        
+            
         Pop-Location
-        
+            
         return $output
-    } -ArgumentList $script:configPath, $machineName, $userName
+    } -ArgumentList $global:configPath, $script:machineName, $script:userName
+        
+    Write-Log "备份任务已启动 (Job ID: $($global:job.Id))" "Progress"
+}
+catch {
+    Write-Log "启动备份任务失败：$_" "Error"
+    $startButton.Enabled = $true
+    $browseButton.Enabled = $true
+    $global:isRunning = $false
+    return
+}
     
-    # 轮询 Job 输出
-    $timer = New-Object System.Windows.Forms.Timer
-    $timer.Interval = 500
-    $timer.Add_Tick({
-        # 更新进度条（基于已处理的日志行数）
+    # 创建并启动 Timer
+    $global:timer = New-Object System.Windows.Forms.Timer
+    $global:timer.Interval = 500
+    $global:timer.Add_Tick({
+        # 检查 Job 状态
+        if ($null -eq $global:job) {
+            Write-Log "错误：Job 对象为空" "Error"
+            $global:timer.Stop()
+            return
+        }
+        
+        # 尝试接收 Job 输出
+        try {
+            $jobOutput = Receive-Job -Job $global:job -Keep 2>&1
+            if ($jobOutput -and $jobOutput.Count -gt 0) {
+                foreach ($line in $jobOutput) {
+                    $parts = $line.ToString() -split '\|', 2
+                    if ($parts.Count -eq 2) {
+                        $level = $parts[0]
+                        $message = $parts[1]
+                        # 避免重复显示 PROGRESS_SIGNAL
+                        if ($level -ne "PROGRESS_SIGNAL") {
+                            Write-Log $message $level
+                        }
+                    }
+                }
+            }
+        }
+        catch {
+            # 忽略接收错误，继续轮询
+        }
+        
+        # 更新进度条（基于 PROGRESS_SIGNAL 信号）
         $progressLines = $logTextBox.Text -split "`r`n" | Where-Object { $_ -match "\[Progress\].*处理.*\/" }
         if ($progressLines.Count -gt 0) {
             $lastLine = $progressLines[-1]
@@ -528,17 +592,24 @@ $startButton.Add_Click({
             }
         }
         
-        if ($job.JobStateInfo.State -eq "Completed") {
-            $timer.Stop()
-            $results = Receive-Job -Job $job
-            foreach ($line in $results) {
-                $parts = $line -split '\|', 2
-                if ($parts.Count -eq 2) {
-                    $level = $parts[0]
-                    $message = $parts[1]
-                    Write-Log $message $level
+        if ($global:job.JobStateInfo.State -eq "Completed") {
+            $global:timer.Stop()
+            # 最后一次接收所有输出
+            try {
+                $results = Receive-Job -Job $global:job
+                foreach ($line in $results) {
+                    $parts = $line -split '\|', 2
+                    if ($parts.Count -eq 2) {
+                        $level = $parts[0]
+                        $message = $parts[1]
+                        # 避免重复显示 PROGRESS_SIGNAL
+                        if ($level -ne "PROGRESS_SIGNAL") {
+                            Write-Log $message $level
+                        }
+                    }
                 }
             }
+            catch {}
             
             Write-Log "========================================" "Progress"
             Write-Log "备份任务完成" "Success"
@@ -549,22 +620,26 @@ $startButton.Add_Click({
             $progressBar.Visible = $false
             $startButton.Enabled = $true
             $browseButton.Enabled = $true
-            $script:isRunning = $false
-            Remove-Job -Job $job
+            $global:isRunning = $false
+            Remove-Job -Job $global:job
+            $global:job = $null
         }
-        elseif ($job.JobStateInfo.State -eq "Failed") {
-            $timer.Stop()
-            Write-Log ("备份任务失败：" + $job.JobStateInfo.Reason.Message) "Error"
+        elseif ($global:job.JobStateInfo.State -eq "Failed") {
+            $global:timer.Stop()
+            Write-Log ("备份任务失败：" + $global:job.JobStateInfo.Reason.Message) "Error"
             $statusLabel.Text = "备份失败"
             $statusLabel.ForeColor = [System.Drawing.Color]::Red
             $progressBar.Visible = $false
             $startButton.Enabled = $true
             $browseButton.Enabled = $true
-            $script:isRunning = $false
-            Remove-Job -Job $job
+            $global:isRunning = $false
+            Remove-Job -Job $global:job
+            $global:job = $null
         }
     })
-    $timer.Start()
+    $global:timer.Start()
+    
+    Write-Log "Timer 已启动，开始监控备份任务" "Progress"
 })
 
 # 显示窗口
