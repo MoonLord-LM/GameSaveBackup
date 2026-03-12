@@ -476,22 +476,22 @@ $startButton.Add_Click({
         $gitExe = Get-Command git -ErrorAction SilentlyContinue
         if (-not $gitExe) {
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $logQueue.Add("[$timestamp] [ERROR] " + $uiResources.ERROR_GitMissing) | Out-Null
-            $logQueue.Add("[$timestamp] [ERROR] " + $uiResources.ERROR_GitDownload) | Out-Null
-            $logQueue.Add("[$timestamp] [INFO] ") | Out-Null
+            $logQueue.Add("[$timestamp] [ERROR] " + $uiResources.ERROR_GitMissing)
+            $logQueue.Add("[$timestamp] [ERROR] " + $uiResources.ERROR_GitDownload)
+            $logQueue.Add("[$timestamp] [INFO] ")
             return
         }
             
         # 验证选定的配置文件是否存在
         if (-not (Test-Path $configPath)) {
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $logQueue.Add("[$timestamp] [ERROR] " + $uiResources.ERROR_ConfigNotFound + ": " + $configPath) | Out-Null
-            $logQueue.Add("[$timestamp] [INFO] ") | Out-Null
+            $logQueue.Add("[$timestamp] [ERROR] " + $uiResources.ERROR_ConfigNotFound + ": " + $configPath)
+            $logQueue.Add("[$timestamp] [INFO] ")
             return
         }
             
         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_UsingConfig + ": " + (Split-Path -Leaf $configPath)) | Out-Null
+        $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_UsingConfig + ": " + (Split-Path -Leaf $configPath))
             
         # 读取配置文件
         try {
@@ -501,23 +501,23 @@ $startButton.Add_Click({
         }
         catch {
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $logQueue.Add("[$timestamp] [ERROR] 读取配置文件失败：" + $_) | Out-Null
+            $logQueue.Add("[$timestamp] [ERROR] 读取配置文件失败：" + $_)
             return
         }
             
         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        $logQueue.Add("[$timestamp] [INFO] ") | Out-Null
-        $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_GamesFound + ": " + $totalGames) | Out-Null
+        $logQueue.Add("[$timestamp] [INFO] ")
+        $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_GamesFound + ": " + $totalGames)
             
         # 初始化 Git
         if (-not (Test-Path ".git")) {
-            & git init | Out-Null
-            & git config --local core.autocrlf false | Out-Null
-            & git config --local core.safecrlf false | Out-Null
-            & git config --local core.ignorecase false | Out-Null
-            & git config --local core.quotepath false | Out-Null
-            & git config --local i18n.logoutputencoding utf-8 | Out-Null
-            & git config --local i18n.commitencoding utf-8 | Out-Null
+            & git init
+            & git config --local core.autocrlf false
+            & git config --local core.safecrlf false
+            & git config --local core.ignorecase false
+            & git config --local core.quotepath false
+            & git config --local i18n.logoutputencoding utf-8
+            & git config --local i18n.commitencoding utf-8
         }
             
         $gameIndex = 0
@@ -529,7 +529,7 @@ $startButton.Add_Click({
                 
             # 显示当前处理的遊戲
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $logQueue.Add("[$timestamp] [PROGRESS] " + $uiResources.PROGRESS_Processing + ": " + $gameIndex + " / " + $totalGames + " - '" + $name + "' @ '" + $save + "'") | Out-Null
+            $logQueue.Add("[$timestamp] [PROGRESS] " + $uiResources.PROGRESS_Processing + ": " + $gameIndex + " / " + $totalGames + " - '" + $name + "' @ '" + $save + "'")
                 
             # 替换环境变量
             $saveExpanded = $save -replace "%USERPROFILE%", $env:USERPROFILE
@@ -547,7 +547,7 @@ $startButton.Add_Click({
                     $itemExpanded = $item -replace "%USERPROFILE%", $env:USERPROFILE
                     $itemExpanded = $itemExpanded -replace "%PROGRAMDATA%", $env:PROGRAMDATA
                     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_IgnoreItem + ": '" + $itemExpanded + "'") | Out-Null
+                    $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_IgnoreItem + ": '" + $itemExpanded + "'")
                     $ignoreArgs += "/XF"
                     $ignoreArgs += $itemExpanded
                     $ignoreArgs += "/XD"
@@ -587,11 +587,11 @@ $startButton.Add_Click({
             }
                 
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $logQueue.Add("[$timestamp] [INFO] " + ($uiResources.INFO_FileTimeComparison -f $maxLocalTimeString, $maxBackupTimeString)) | Out-Null
+            $logQueue.Add("[$timestamp] [INFO] " + ($uiResources.INFO_FileTimeComparison -f $maxLocalTimeString, $maxBackupTimeString))
                 
             # 创建备份目录
             if (-not (Test-Path $backupDir)) {
-                New-Item -ItemType Directory -Path $backupDir | Out-Null
+                New-Item -ItemType Directory -Path $backupDir
             }
                 
             Push-Location $backupDir
@@ -600,21 +600,21 @@ $startButton.Add_Click({
             if ($null -eq $maxLocalTime) {
                 if ($null -eq $maxBackupTime) {
                     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logQueue.Add("[$timestamp] [WARNING] " + $uiResources.WARNING_BothMissing) | Out-Null
+                    $logQueue.Add("[$timestamp] [WARNING] " + $uiResources.WARNING_BothMissing)
                 }
                 else {
                     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logQueue.Add("[$timestamp] [WARNING] " + $uiResources.WARNING_LocalMissing) | Out-Null
+                    $logQueue.Add("[$timestamp] [WARNING] " + $uiResources.WARNING_LocalMissing)
                     $sh = New-Object -ComObject Shell.Application
                     $sh.Namespace(10).MoveHere($saveExpanded)
                     $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs
                     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_RobocopyReturn + ": " + $result) | Out-Null
+                    $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_RobocopyReturn + ": " + $result)
                 }
             }
             elseif ($null -eq $maxBackupTime) {
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_BackupMissing) | Out-Null
+                $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_BackupMissing)
                 if (-not (Test-Path "存档位置.bat")) {
                     $batContent = "if not exist `"" + $saveExpanded + "`" mkdir `"" + $saveExpanded + "`"`r`n"
                     $batContent += "`"explorer.exe`" `"" + $saveExpanded + "`""
@@ -623,47 +623,47 @@ $startButton.Add_Click({
                 }
                 $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_RobocopyReturn + ": " + $result) | Out-Null
+                $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_RobocopyReturn + ": " + $result)
                 & git add .
                 if (-not (& git diff --cached --quiet)) {
                     & git commit -m ("Update - " + $name + " on " + $machineName + " by " + $userName)
                     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logQueue.Add("[$timestamp] [SUCCESS] " + $uiResources.SUCCESS_GitCommit) | Out-Null
+                    $logQueue.Add("[$timestamp] [SUCCESS] " + $uiResources.SUCCESS_GitCommit)
                 }
             }
             elseif ($maxLocalTime -lt $maxBackupTime) {
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [WARNING] " + $uiResources.WARNING_LocalOlder) | Out-Null
+                $logQueue.Add("[$timestamp] [WARNING] " + $uiResources.WARNING_LocalOlder)
                 $sh = New-Object -ComObject Shell.Application
                 $sh.Namespace(10).MoveHere($saveExpanded)
                 $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_RobocopyReturn + ": " + $result) | Out-Null
+                $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_RobocopyReturn + ": " + $result)
             }
             elseif ($maxLocalTime -gt $maxBackupTime) {
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_LocalNewer) | Out-Null
+                $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_LocalNewer)
                 $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_RobocopyReturn + ": " + $result) | Out-Null
+                $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_RobocopyReturn + ": " + $result)
                 & git add .
                 if (-not (& git diff --cached --quiet)) {
                     & git commit -m ("Update - " + $name + " on " + $machineName + " by " + $userName)
                     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logQueue.Add("[$timestamp] [SUCCESS] " + $uiResources.SUCCESS_GitCommit) | Out-Null
+                    $logQueue.Add("[$timestamp] [SUCCESS] " + $uiResources.SUCCESS_GitCommit)
                 }
             }
             else {
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [SUCCESS] " + $uiResources.INFO_SameTime) | Out-Null
+                $logQueue.Add("[$timestamp] [SUCCESS] " + $uiResources.INFO_SameTime)
             }
                 
             Pop-Location
             
             # 游戏处理完成后，发送进度更新信号
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $logQueue.Add("[$timestamp] [PROGRESS_SIGNAL] $gameIndex|$totalGames") | Out-Null
-            $logQueue.Add("[$timestamp] [INFO] ") | Out-Null
+            $logQueue.Add("[$timestamp] [PROGRESS_SIGNAL] $gameIndex|$totalGames")
+            $logQueue.Add("[$timestamp] [INFO] ")
         }
             
         # 最终 Git 提交
@@ -671,22 +671,22 @@ $startButton.Add_Click({
         if (-not (& git diff --cached --quiet)) {
             & git commit -m ("Update - on " + $machineName + " by " + $userName)
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $logQueue.Add("[$timestamp] [SUCCESS] " + $uiResources.SUCCESS_FinalCommit) | Out-Null
+            $logQueue.Add("[$timestamp] [SUCCESS] " + $uiResources.SUCCESS_FinalCommit)
         }
             
         & git clean -df *>$null
             
         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        $logQueue.Add("[$timestamp] [SUCCESS] " + $uiResources.SUCCESS_BackupComplete) | Out-Null
+        $logQueue.Add("[$timestamp] [SUCCESS] " + $uiResources.SUCCESS_BackupComplete)
             
         Pop-Location
-    }) | Out-Null
+    })
     
-    $psInstance.AddParameter('configPath', $global:configPath) | Out-Null
-    $psInstance.AddParameter('machineName', $script:machineName) | Out-Null
-    $psInstance.AddParameter('userName', $script:userName) | Out-Null
-    $psInstance.AddParameter('logQueue', $global:logQueue) | Out-Null
-    $psInstance.AddParameter('uiResources', $script:ui) | Out-Null
+    $psInstance.AddParameter('configPath', $global:configPath)
+    $psInstance.AddParameter('machineName', $script:machineName)
+    $psInstance.AddParameter('userName', $script:userName)
+    $psInstance.AddParameter('logQueue', $global:logQueue)
+    $psInstance.AddParameter('uiResources', $script:ui)
     
     # 异步执行
     $global:asyncResult = $psInstance.BeginInvoke()
