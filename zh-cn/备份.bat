@@ -113,27 +113,33 @@ for /l %%i in (1, 1, !length!) do (
             powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
             robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
         )
-    ) else if "!max_backup_time!"=="" (
-        echo 备份文件缺失，进行备份
-        if not exist "存档位置.bat" (
-            echo if not exist "!save!" mkdir "!save!" > "存档位置.bat"
-            echo "explorer.exe" "!save!" >> "存档位置.bat"
-            powershell -NoProfile -Command "(Get-Item '存档位置.bat').LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime"
-        )
-        robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
-        git add .
-        git diff --cached --quiet || git commit -m "Update - !name! on !machine_name! by !user_name!"
-    ) else if !max_local_time! lss !max_backup_time! (
-        echo 本地存档文件修改时间较旧，删除到回收站，并使用备份文件更新
-        powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
-        robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
-    ) else if !max_local_time! gtr !max_backup_time! (
-        echo 本地存档文件修改时间较新，进行备份
-        robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
-        git add .
-        git diff --cached --quiet || git commit -m "Update - !name! on !machine_name! by !user_name!"
     ) else (
-        echo 本地存档文件与备份文件修改时间相同，跳过操作
+        if "!max_backup_time!"=="" (
+            echo 备份文件缺失，进行备份
+            if not exist "存档位置.bat" (
+                echo if not exist "!save!" mkdir "!save!" > "存档位置.bat"
+                echo "explorer.exe" "!save!" >> "存档位置.bat"
+                powershell -NoProfile -Command "(Get-Item '存档位置.bat').LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime"
+            )
+            robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
+            git add .
+            git diff --cached --quiet || git commit -m "Update - !name! on !machine_name! by !user_name!"
+        ) else (
+            if !max_local_time! lss !max_backup_time! (
+                echo 本地存档文件修改时间较旧，删除到回收站，并使用备份文件更新
+                powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
+                robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
+            ) else (
+                if !max_local_time! gtr !max_backup_time! (
+                    echo 本地存档文件修改时间较新，进行备份
+                    robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
+                    git add .
+                    git diff --cached --quiet || git commit -m "Update - !name! on !machine_name! by !user_name!"
+                ) else (
+                    echo 本地存档文件与备份文件修改时间相同，跳过操作
+                )
+            )
+        )
     )
 
     cd ..

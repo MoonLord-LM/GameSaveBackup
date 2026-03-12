@@ -113,27 +113,33 @@ for /l %%i in (1, 1, !length!) do (
             powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
             robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
         )
-    ) else if "!max_backup_time!"=="" (
-        echo Backup files are missing, begin to backup
-        if not exist "SaveLocation.bat" (
-            echo if not exist "!save!" mkdir "!save!" > "SaveLocation.bat"
-            echo "explorer.exe" "!save!" >> "SaveLocation.bat"
-            powershell -NoProfile -Command "(Get-Item 'SaveLocation.bat').LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime"
-        )
-        robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
-        git add .
-        git diff --cached --quiet || git commit -m "Update - !name! on !machine_name! by !user_name!"
-    ) else if !max_local_time! lss !max_backup_time! (
-        echo Local files are older, moving to recycle bin and updating with backup files
-        powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
-        robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
-    ) else if !max_local_time! gtr !max_backup_time! (
-        echo Local files are newer, begin to backup
-        robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
-        git add .
-        git diff --cached --quiet || git commit -m "Update - !name! on !machine_name! by !user_name!"
     ) else (
-        echo Local save files and backup files are modified at same time, skip with no operation
+        if "!max_backup_time!"=="" (
+            echo Backup files are missing, begin to backup
+            if not exist "SaveLocation.bat" (
+                echo if not exist "!save!" mkdir "!save!" > "SaveLocation.bat"
+                echo "explorer.exe" "!save!" >> "SaveLocation.bat"
+                powershell -NoProfile -Command "(Get-Item 'SaveLocation.bat').LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime"
+            )
+            robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
+            git add .
+            git diff --cached --quiet || git commit -m "Update - !name! on !machine_name! by !user_name!"
+        ) else (
+            if !max_local_time! lss !max_backup_time! (
+                echo Local files are older, moving to recycle bin and updating with backup files
+                powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
+                robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
+            ) else (
+                if !max_local_time! gtr !max_backup_time! (
+                    echo Local files are newer, begin to backup
+                    robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
+                    git add .
+                    git diff --cached --quiet || git commit -m "Update - !name! on !machine_name! by !user_name!"
+                ) else (
+                    echo Local save files and backup files are modified at same time, skip with no operation
+                )
+            )
+        )
     )
 
     cd ..
