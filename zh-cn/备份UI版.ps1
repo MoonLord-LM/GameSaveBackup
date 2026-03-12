@@ -154,6 +154,8 @@ $global:timer = $null
 $global:asyncResult = $null
 $global:psInstance = $null
 $global:runspacePool = $null
+# 使用同步集合来存储实时日志
+$global:logQueue = [System.Collections.Concurrent.ConcurrentBag[string]]::new()
 # 使用 hostname 命令获取完整机器名（与备份.bat 保持一致）
 try {
     $hostnameOutput = & cmd /c hostname
@@ -355,9 +357,7 @@ $startButton.Add_Click({
     
     # 添加要执行的脚本和参数
     $psInstance.AddScript({
-        param($configPath, $machineName, $userName)
-        
-        $output = [System.Collections.ArrayList]::new()
+        param($configPath, $machineName, $userName, $logQueue)
         
         # 切换到配置目录
         $configDir = Split-Path -Parent $configPath
@@ -366,20 +366,23 @@ $startButton.Add_Click({
         # 检查 Git
         $gitExe = Get-Command git -ErrorAction SilentlyContinue
         if (-not $gitExe) {
-            $output.Add("ERROR|错误：缺少 git.exe 组件") | Out-Null
-            $output.Add("ERROR|请从 https://git-scm.com/install/windows 下载") | Out-Null
-            $output.Add("INFO|") | Out-Null
-            return $output
+            $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            $logQueue.Add("[$timestamp] [ERROR] 错误：缺少 git.exe 组件") | Out-Null
+            $logQueue.Add("[$timestamp] [ERROR] 请从 https://git-scm.com/install/windows 下载") | Out-Null
+            $logQueue.Add("[$timestamp] [INFO] ") | Out-Null
+            return
         }
             
         # 验证选定的配置文件是否存在
         if (-not (Test-Path $configPath)) {
-            $output.Add("ERROR|错误：选定的配置文件不存在：" + $configPath) | Out-Null
-            $output.Add("INFO|") | Out-Null
-            return $output
+            $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            $logQueue.Add("[$timestamp] [ERROR] 错误：选定的配置文件不存在：" + $configPath) | Out-Null
+            $logQueue.Add("[$timestamp] [INFO] ") | Out-Null
+            return
         }
             
-        $output.Add("INFO|使用配置文件：" + (Split-Path -Leaf $configPath)) | Out-Null
+        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        $logQueue.Add("[$timestamp] [INFO] 使用配置文件：" + (Split-Path -Leaf $configPath)) | Out-Null
             
         # 读取配置文件
         try {
@@ -388,12 +391,14 @@ $startButton.Add_Click({
             $totalGames = $configArray.Count
         }
         catch {
-            $output.Add("ERROR|读取配置文件失败：" + $_) | Out-Null
-            return $output
+            $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            $logQueue.Add("[$timestamp] [ERROR] 读取配置文件失败：" + $_) | Out-Null
+            return
         }
             
-        $output.Add("INFO|") | Out-Null
-        $output.Add(("INFO|找到 " + $totalGames + " 个游戏配置")) | Out-Null
+        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        $logQueue.Add("[$timestamp] [INFO] ") | Out-Null
+        $logQueue.Add("[$timestamp] [INFO] 找到 " + $totalGames + " 个游戏配置") | Out-Null
             
         # 初始化 Git
         if (-not (Test-Path ".git")) {
@@ -413,9 +418,9 @@ $startButton.Add_Click({
             $save = $game.save
             $ignore = $game.ignore
                 
-            # 发送进度更新信号
-            $output.Add(("PROGRESS_SIGNAL|" + $gameIndex + "|" + $totalGames)) | Out-Null
-            $output.Add(("PROGRESS|处理 " + $gameIndex + " / " + $totalGames + " : `"" + $name + "`" 位于 `"" + $save + "`"")) | Out-Null
+            # 显示当前处理的遊戲
+            $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            $logQueue.Add("[$timestamp] [PROGRESS] 处理 " + $gameIndex + " / " + $totalGames + " : `"" + $name + "`" 位于 `"" + $save + "`"") | Out-Null
                 
             # 替换环境变量
             $saveExpanded = $save -replace "%USERPROFILE%", $env:USERPROFILE
@@ -432,7 +437,8 @@ $startButton.Add_Click({
                 foreach ($item in $ignore) {
                     $itemExpanded = $item -replace "%USERPROFILE%", $env:USERPROFILE
                     $itemExpanded = $itemExpanded -replace "%PROGRAMDATA%", $env:PROGRAMDATA
-                    $output.Add(("INFO|忽略项：`"" + $itemExpanded + "`"")) | Out-Null
+                    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                    $logQueue.Add("[$timestamp] [INFO] 忽略项：`"" + $itemExpanded + "`"") | Out-Null
                     $ignoreArgs += "/XF"
                     $ignoreArgs += $itemExpanded
                     $ignoreArgs += "/XD"
@@ -471,7 +477,8 @@ $startButton.Add_Click({
                 catch {}
             }
                 
-            $output.Add(("INFO|本地文件修改时间:[" + $maxLocalTimeString + "] 备份文件修改时间:[" + $maxBackupTimeString + "]")) | Out-Null
+            $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            $logQueue.Add("[$timestamp] [INFO] 本地文件修改时间:[" + $maxLocalTimeString + "] 备份文件修改时间:[" + $maxBackupTimeString + "]") | Out-Null
                 
             # 创建备份目录
             if (-not (Test-Path $backupDir)) {
@@ -483,18 +490,22 @@ $startButton.Add_Click({
             # 判断备份策略
             if ($null -eq $maxLocalTime) {
                 if ($null -eq $maxBackupTime) {
-                    $output.Add("WARNING|本地存档文件与备份文件都不存在，跳过操作") | Out-Null
+                    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                    $logQueue.Add("[$timestamp] [WARNING] 本地存档文件与备份文件都不存在，跳过操作") | Out-Null
                 }
                 else {
-                    $output.Add("WARNING|本地存档文件缺失，使用备份文件恢复") | Out-Null
+                    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                    $logQueue.Add("[$timestamp] [WARNING] 本地存档文件缺失，使用备份文件恢复") | Out-Null
                     $sh = New-Object -ComObject Shell.Application
                     $sh.Namespace(10).MoveHere($saveExpanded)
                     $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs
-                    $output.Add(("INFO|Robocopy 返回码：" + $result)) | Out-Null
+                    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                    $logQueue.Add("[$timestamp] [INFO] Robocopy 返回码：" + $result) | Out-Null
                 }
             }
             elseif ($null -eq $maxBackupTime) {
-                $output.Add("INFO|备份文件缺失，进行备份") | Out-Null
+                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                $logQueue.Add("[$timestamp] [INFO] 备份文件缺失，进行备份") | Out-Null
                 if (-not (Test-Path "存档位置.bat")) {
                     $batContent = "if not exist `"" + $saveExpanded + "`" mkdir `"" + $saveExpanded + "`"`r`n"
                     $batContent += "`"explorer.exe`" `"" + $saveExpanded + "`""
@@ -502,60 +513,70 @@ $startButton.Add_Click({
                     (Get-Item "存档位置.bat").LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime
                 }
                 $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs
-                $output.Add(("INFO|Robocopy 返回码：" + $result)) | Out-Null
+                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                $logQueue.Add("[$timestamp] [INFO] Robocopy 返回码：" + $result) | Out-Null
                 & git add .
                 if (-not (& git diff --cached --quiet)) {
                     & git commit -m ("Update - " + $name + " on " + $machineName + " by " + $userName)
-                    $output.Add("SUCCESS|Git 提交完成") | Out-Null
+                    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                    $logQueue.Add("[$timestamp] [SUCCESS] Git 提交完成") | Out-Null
                 }
             }
             elseif ($maxLocalTime -lt $maxBackupTime) {
-                $output.Add("WARNING|本地存档文件修改时间较旧，删除到回收站，并使用备份文件更新") | Out-Null
+                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                $logQueue.Add("[$timestamp] [WARNING] 本地存档文件修改时间较旧，删除到回收站，并使用备份文件更新") | Out-Null
                 $sh = New-Object -ComObject Shell.Application
                 $sh.Namespace(10).MoveHere($saveExpanded)
                 $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs
-                $output.Add(("INFO|Robocopy 返回码：" + $result)) | Out-Null
+                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                $logQueue.Add("[$timestamp] [INFO] Robocopy 返回码：" + $result) | Out-Null
             }
             elseif ($maxLocalTime -gt $maxBackupTime) {
-                $output.Add("INFO|本地存档文件修改时间较新，进行备份") | Out-Null
+                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                $logQueue.Add("[$timestamp] [INFO] 本地存档文件修改时间较新，进行备份") | Out-Null
                 $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs
-                $output.Add(("INFO|Robocopy 返回码：" + $result)) | Out-Null
+                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                $logQueue.Add("[$timestamp] [INFO] Robocopy 返回码：" + $result) | Out-Null
                 & git add .
                 if (-not (& git diff --cached --quiet)) {
                     & git commit -m ("Update - " + $name + " on " + $machineName + " by " + $userName)
-                    $output.Add("SUCCESS|Git 提交完成") | Out-Null
+                    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                    $logQueue.Add("[$timestamp] [SUCCESS] Git 提交完成") | Out-Null
                 }
             }
             else {
-                $output.Add("SUCCESS|本地存档文件与备份文件修改时间相同，跳过操作") | Out-Null
+                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                $logQueue.Add("[$timestamp] [SUCCESS] 本地存档文件与备份文件修改时间相同，跳过操作") | Out-Null
             }
                 
             Pop-Location
-            $output.Add("INFO|") | Out-Null
             
-            # 每处理完一个游戏，立即输出当前结果
-            Write-Output ($output.ToArray()[-4..-1] -join "|")
+            # 游戏处理完成后，发送进度更新信号
+            $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            $logQueue.Add("[$timestamp] [PROGRESS_SIGNAL] $gameIndex|$totalGames") | Out-Null
+            $logQueue.Add("[$timestamp] [INFO] ") | Out-Null
         }
             
         # 最终 Git 提交
         & git add .
         if (-not (& git diff --cached --quiet)) {
             & git commit -m ("Update - on " + $machineName + " by " + $userName)
-            $output.Add("SUCCESS|最终 Git 提交完成") | Out-Null
+            $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            $logQueue.Add("[$timestamp] [SUCCESS] 最终 Git 提交完成") | Out-Null
         }
             
         & git clean -df *>$null
             
-        $output.Add("SUCCESS|备份完成") | Out-Null
+        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        $logQueue.Add("[$timestamp] [SUCCESS] 备份完成") | Out-Null
             
         Pop-Location
-            
-        return $output
     }) | Out-Null
     
     $psInstance.AddParameter('configPath', $global:configPath) | Out-Null
     $psInstance.AddParameter('machineName', $script:machineName) | Out-Null
     $psInstance.AddParameter('userName', $script:userName) | Out-Null
+    $psInstance.AddParameter('logQueue', $global:logQueue) | Out-Null
     
     # 异步执行
     $global:asyncResult = $psInstance.BeginInvoke()
@@ -564,74 +585,77 @@ $startButton.Add_Click({
     
     # 创建并启动 Timer
     $global:timer = New-Object System.Windows.Forms.Timer
-    $global:timer.Interval = 200
+    $global:timer.Interval = 100  # 缩短轮询间隔到 100ms，更快响应
     $global:timer.Add_Tick({
-        # 检查执行状态
-        if ($null -eq $global:asyncResult) {
-            Write-Log "错误：异步结果为空" "Error"
-            $global:timer.Stop()
-            return
-        }
-        
-        # 尝试接收输出
+        # 从同步集合中读取并显示日志
         try {
-            if ($global:psInstance.Streams.Output.DataAvailable) {
-                $output = $global:psInstance.Streams.Output.Read()
-                if ($output) {
-                    $lines = $output.ToString() -split '\|'
-                    foreach ($line in $lines) {
-                        if ([string]::IsNullOrWhiteSpace($line)) { continue }
-                        $parts = $line -split '\|', 2
-                        if ($parts.Count -ge 2) {
-                            $level = $parts[0]
-                            $message = $parts[1]
-                            
-                            # 处理进度信号，更新进度条（使用动画效果）
-                            if ($level -eq "PROGRESS_SIGNAL") {
-                                $signalParts = $message -split '\|'
-                                if ($signalParts.Count -eq 2) {
-                                    $current = [int]$signalParts[0]
-                                    $total = [int]$signalParts[1]
-                                    $targetPercentage = [int](($current / $total) * 100)
-                                    
-                                    # 平滑过渡到目标百分比
-                                    $step = 5
-                                    if ($progressBar.Value -lt $targetPercentage) {
-                                        for ($i = $progressBar.Value; $i -le $targetPercentage; $i += $step) {
-                                            $progressBar.Value = $i
-                                            Start-Sleep -Milliseconds 10
-                                        }
+            if ($null -ne $global:logQueue -and -not $global:logQueue.IsEmpty) {
+                $logLine = ""
+                while ($global:logQueue.TryTake([ref]$logLine)) {
+                    # 直接显示完整日志行
+                    # 格式：[timestamp] [Level] Message
+                    $firstBracketEnd = $logLine.IndexOf(']', $logLine.IndexOf('['))
+                    $secondBracketStart = $logLine.IndexOf('[', $firstBracketEnd)
+                    $secondBracketEnd = $logLine.IndexOf(']', $secondBracketStart)
+                    
+                    if ($firstBracketEnd -gt 0 -and $secondBracketStart -gt 0 -and $secondBracketEnd -gt $secondBracketStart) {
+                        $level = $logLine.Substring($secondBracketStart + 1, $secondBracketEnd - $secondBracketStart - 1)
+                        # 提取完整消息 (包含所有原始内容)
+                        $message = $logLine.Substring($secondBracketEnd + 2).Trim()
+                        
+                        # 处理进度信号
+                        if ($level -eq "PROGRESS_SIGNAL") {
+                            $signalParts = $message -split '\|'
+                            if ($signalParts.Count -eq 2) {
+                                $current = [int]$signalParts[0]
+                                $total = [int]$signalParts[1]
+                                $targetPercentage = [int](($current / $total) * 100)
+                                
+                                # 平滑过渡到目标百分比
+                                $step = 3
+                                $currentValue = $progressBar.Value
+                                if ($currentValue -lt $targetPercentage) {
+                                    for ($i = $currentValue; $i -le $targetPercentage; $i += $step) {
+                                        $progressBar.Value = $i
+                                        Start-Sleep -Milliseconds 20
                                     }
-                                    $progressBar.Value = $targetPercentage
                                 }
+                                $progressBar.Value = $targetPercentage
                             }
-                            # 避免重复显示 PROGRESS_SIGNAL
-                            elseif ($level -ne "PROGRESS_SIGNAL") {
-                                Write-Log $message $level
-                            }
+                        }
+                        # 显示其他完整日志
+                        elseif (-not [string]::IsNullOrWhiteSpace($message)) {
+                            Write-Log $message $level
                         }
                     }
                 }
             }
         }
         catch {
-            # 忽略接收错误，继续轮询
+            # 忽略读取错误
         }
         
         # 检查是否完成
         if ($global:asyncResult.IsCompleted) {
             $global:timer.Stop()
             
-            # 获取最终结果
+            # 等待一小段时间确保所有日志都被读取
+            Start-Sleep -Milliseconds 200
+            
+            # 清空剩余的日志
             try {
-                $finalOutput = $global:psInstance.EndInvoke($global:asyncResult)
-                if ($finalOutput) {
-                    foreach ($line in $finalOutput) {
-                        $parts = $line -split '\|', 2
-                        if ($parts.Count -eq 2) {
-                            $level = $parts[0]
-                            $message = $parts[1]
-                            if ($level -ne "PROGRESS_SIGNAL") {
+                if ($null -ne $global:logQueue -and -not $global:logQueue.IsEmpty) {
+                    $logLine = ""
+                    while ($global:logQueue.TryTake([ref]$logLine)) {
+                        # 提取完整日志内容
+                        $firstBracketEnd = $logLine.IndexOf(']', $logLine.IndexOf('['))
+                        $secondBracketStart = $logLine.IndexOf('[', $firstBracketEnd)
+                        $secondBracketEnd = $logLine.IndexOf(']', $secondBracketStart)
+                        
+                        if ($firstBracketEnd -gt 0 -and $secondBracketStart -gt 0 -and $secondBracketEnd -gt $secondBracketStart) {
+                            $level = $logLine.Substring($secondBracketStart + 1, $secondBracketEnd - $secondBracketStart - 1)
+                            $message = $logLine.Substring($secondBracketEnd + 2).Trim()
+                            if ($level -ne "PROGRESS_SIGNAL" -and -not [string]::IsNullOrWhiteSpace($message)) {
                                 Write-Log $message $level
                             }
                         }
