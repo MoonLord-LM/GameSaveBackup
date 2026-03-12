@@ -6,67 +6,83 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
+# 根据系统语言自动选择配置文件目录
+try {
+    $systemLang = [System.Globalization.CultureInfo]::CurrentUICulture.TwoLetterISOLanguageName
+    if ($systemLang -eq 'zh') {
+        $script:langDir = 'zh-cn'
+    } else {
+        $script:langDir = 'en-us'
+    }
+} catch {
+    $script:langDir = 'zh-cn'  # 默认使用中文
+}
+
 # 创建主窗口
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "游戏存档备份工具"
-$form.Size = New-Object System.Drawing.Size(1100, 800)
+$form.Size = New-Object System.Drawing.Size(1280, 720)
 $form.StartPosition = "CenterScreen"
-$form.Font = [System.Drawing.SystemFonts]::DefaultFont
 
-# 创建顶部面板
+# 创建顶部面板（操作区）
 $topPanel = New-Object System.Windows.Forms.Panel
 $topPanel.Height = 70
 $topPanel.Dock = "Top"
-$topPanel.MinimumSize = New-Object System.Drawing.Size(1000, 70)
+$topPanel.MinimumSize = New-Object System.Drawing.Size(1150, 70)
+
+# 创建中部面板（内容区，包含 TabControl）
+$centerPanel = New-Object System.Windows.Forms.Panel
+$centerPanel.Dock = "Fill"
+$centerPanel.Padding = New-Object System.Windows.Forms.Padding(10, 10, 10, 10)
+
+# 创建底部面板（进度条区）
+$bottomPanel = New-Object System.Windows.Forms.Panel
+$bottomPanel.Size = New-Object System.Drawing.Size(1280, 35)
+$bottomPanel.Dock = "Bottom"
+$bottomPanel.Padding = New-Object System.Windows.Forms.Padding(10, 10, 10, 10)
 
 # 配置文件标签和文本框
 $configLabel = New-Object System.Windows.Forms.Label
 $configLabel.Text = "配置文件:"
 $configLabel.Location = New-Object System.Drawing.Point(10, 18)
 $configLabel.AutoSize = $true
-$configLabel.Font = [System.Drawing.SystemFonts]::DefaultFont
 
 # 配置文件文本框 - 使用 Anchor 实现自适应
 $configTextBox = New-Object System.Windows.Forms.TextBox
 $configTextBox.Location = New-Object System.Drawing.Point(100, 15)
-$configTextBox.Size = New-Object System.Drawing.Size(550, 32)
+$configTextBox.Size = New-Object System.Drawing.Size(680, 32)
 $configTextBox.Anchor = [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 $configTextBox.ReadOnly = $true
-$configTextBox.Font = [System.Drawing.SystemFonts]::DefaultFont
 
 # 选择配置按钮 - 固定在右侧最左边
 $browseButton = New-Object System.Windows.Forms.Button
 $browseButton.Text = "选择配置"
-$browseButton.Location = New-Object System.Drawing.Point(660, 15)
-$browseButton.Size = New-Object System.Drawing.Size(100, 35)
+$browseButton.Location = New-Object System.Drawing.Point(790, 15)
+$browseButton.Size = New-Object System.Drawing.Size(110, 35)
 $browseButton.Anchor = [System.Windows.Forms.AnchorStyles]::Right
-$browseButton.Font = [System.Drawing.SystemFonts]::DefaultFont
+$browseButton.BackColor = [System.Drawing.Color]::LightBlue
 
 # 开始备份按钮 - 在选择配置按钮右边
 $startButton = New-Object System.Windows.Forms.Button
 $startButton.Text = "开始备份"
-$startButton.Location = New-Object System.Drawing.Point(770, 15)
-$startButton.Size = New-Object System.Drawing.Size(100, 35)
+$startButton.Location = New-Object System.Drawing.Point(910, 15)
+$startButton.Size = New-Object System.Drawing.Size(110, 35)
 $startButton.Anchor = [System.Windows.Forms.AnchorStyles]::Right
-$startButton.Font = [System.Drawing.SystemFonts]::DefaultFont
-$startButton.BackColor = [System.Drawing.Color]::LightGreen
+$startButton.BackColor = [System.Drawing.Color]::LightBlue
 $startButton.Enabled = $false
 
 # 复制日志按钮 - 在最右边
 $copyLogButton = New-Object System.Windows.Forms.Button
 $copyLogButton.Text = "复制日志"
-$copyLogButton.Location = New-Object System.Drawing.Point(880, 15)
-$copyLogButton.Size = New-Object System.Drawing.Size(100, 35)
+$copyLogButton.Location = New-Object System.Drawing.Point(1030, 15)
+$copyLogButton.Size = New-Object System.Drawing.Size(110, 35)
 $copyLogButton.Anchor = [System.Windows.Forms.AnchorStyles]::Right
-$copyLogButton.Font = [System.Drawing.SystemFonts]::DefaultFont
-$copyLogButton.BackColor = [System.Drawing.Color]::LightBlue
 
 # 创建中部 TabControl（标签页容器）
 $tabControl = New-Object System.Windows.Forms.TabControl
-$tabControl.Location = New-Object System.Drawing.Point(10, 85)
-$tabControl.Size = New-Object System.Drawing.Size(1060, 600)
-$tabControl.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
-$tabControl.Font = [System.Drawing.SystemFonts]::DefaultFont
+$tabControl.Location = New-Object System.Drawing.Point(0, 0)
+$tabControl.Size = New-Object System.Drawing.Size(1260, 550)
+$tabControl.Dock = "Fill"
 
 # 创建日志标签页
 $logTabPage = New-Object System.Windows.Forms.TabPage
@@ -81,19 +97,24 @@ $gameListTabPage.Padding = New-Object System.Windows.Forms.Padding(0)
 # 创建日志区域
 $logTextBox = New-Object System.Windows.Forms.RichTextBox
 $logTextBox.Location = New-Object System.Drawing.Point(0, 0)
-$logTextBox.Size = New-Object System.Drawing.Size(1060, 600)
+$logTextBox.Size = New-Object System.Drawing.Size(1260, 560)
 $logTextBox.Dock = "Fill"
 $logTextBox.ReadOnly = $true
-$logTextBox.Font = [System.Drawing.SystemFonts]::DefaultFont
 $logTextBox.BackColor = [System.Drawing.Color]::White
-# 设置细滚动条样式
 $logTextBox.ScrollBars = [System.Windows.Forms.RichTextBoxScrollBars]::Vertical
 
 # 游戏信息表格 (DataGridView) - 直接填充整个标签页
 $gameDataGridView = New-Object System.Windows.Forms.DataGridView
 $gameDataGridView.Location = New-Object System.Drawing.Point(0, 0)
-$gameDataGridView.Size = New-Object System.Drawing.Size(1060, 600)
+$gameDataGridView.Size = New-Object System.Drawing.Size(1260, 560)
 $gameDataGridView.Dock = "Fill"
+$gameDataGridView.ColumnCount = 3
+$gameDataGridView.Columns[0].Name = "序号"
+$gameDataGridView.Columns[0].Width = 60
+$gameDataGridView.Columns[1].Name = "游戏名称"
+$gameDataGridView.Columns[1].Width = 200
+$gameDataGridView.Columns[2].Name = "存档路径"
+$gameDataGridView.Columns[2].Width = 920
 $gameDataGridView.AllowUserToAddRows = $false
 $gameDataGridView.AllowUserToDeleteRows = $false
 $gameDataGridView.ReadOnly = $true
@@ -104,38 +125,22 @@ $gameDataGridView.BackgroundColor = [System.Drawing.Color]::White
 $gameDataGridView.BorderStyle = [System.Windows.Forms.BorderStyle]::None
 $gameDataGridView.RowHeadersVisible = $false
 $gameDataGridView.EnableHeadersVisualStyles = $false
-$gameDataGridView.ColumnHeadersDefaultCellStyle.Font = [System.Drawing.SystemFonts]::DefaultFont
 $gameDataGridView.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::LightGray
 $gameDataGridView.ColumnHeadersHeight = 40
-$gameDataGridView.DefaultCellStyle.Font = [System.Drawing.SystemFonts]::DefaultFont
-$gameDataGridView.DefaultCellStyle.Padding = New-Object System.Windows.Forms.Padding(5)
 $gameDataGridView.RowTemplate.Height = 45
-$gameDataGridView.ColumnCount = 3
-$gameDataGridView.Columns[0].Name = "序号"
-$gameDataGridView.Columns[0].Width = 60
-$gameDataGridView.Columns[1].Name = "游戏名称"
-$gameDataGridView.Columns[1].Width = 200
-$gameDataGridView.Columns[2].Name = "存档路径"
-$gameDataGridView.Columns[2].Width = 740
-# 启用垂直滚动条，禁用水平滚动条
 $gameDataGridView.ScrollBars = [System.Windows.Forms.ScrollBars]::Vertical
-# 设置滚动条属性
 $gameDataGridView.AdvancedColumnHeadersBorderStyle.All = [System.Windows.Forms.DataGridViewAdvancedCellBorderStyle]::None
 
-# 创建底部状态栏（静默，不显示文字）
-$statusLabel = New-Object System.Windows.Forms.Label
-$statusLabel.Text = ""
-$statusLabel.Location = New-Object System.Drawing.Point(20, 695)
-$statusLabel.AutoSize = $true
-$statusLabel.Visible = $false
+# 创建底部面板（用于包裹进度条）
+$bottomPanel = New-Object System.Windows.Forms.Panel
+$bottomPanel.Size = New-Object System.Drawing.Size(1280, 35)
+$bottomPanel.Dock = "Bottom"
+$bottomPanel.Padding = New-Object System.Windows.Forms.Padding(10, 10, 10, 10)
 
-# 进度条（始终在底部并铺满）
+# 进度条（在底部 Dock）
 $progressBar = New-Object System.Windows.Forms.ProgressBar
-$progressBar.Location = New-Object System.Drawing.Point(10, 695)
-$progressBar.Size = New-Object System.Drawing.Size(1060, 23)
-$progressBar.Dock = "Bottom"
+$progressBar.Dock = "Fill"
 $progressBar.Visible = $false
-# 设置进度条样式为连续
 $progressBar.Style = [System.Windows.Forms.ProgressBarStyle]::Continuous
 
 # 将日志文本框添加到日志标签页
@@ -144,8 +149,11 @@ $logTabPage.Controls.Add($logTextBox)
 # 将游戏列表表格添加到游戏列表标签页
 $gameListTabPage.Controls.Add($gameDataGridView)
 
-# 将标签页添加到 TabControl（初始只添加日志标签页）
+# 将标签页添加到 TabControl
 $tabControl.Controls.Add($logTabPage)
+
+# 将 TabControl 添加到中部面板
+$centerPanel.Controls.Add($tabControl)
 
 # 将顶部面板添加到底部
 $topPanel.Controls.Add($configLabel)
@@ -154,11 +162,13 @@ $topPanel.Controls.Add($browseButton)
 $topPanel.Controls.Add($startButton)
 $topPanel.Controls.Add($copyLogButton)
 
-# 将 TabControl 添加到主窗口
+# 将进度条添加到底部面板
+$bottomPanel.Controls.Add($progressBar)
+
+# 将三个面板添加到主窗口（注意顺序：先添加 Fill，再添加 Top/Bottom）
+$form.Controls.Add($centerPanel)
 $form.Controls.Add($topPanel)
-$form.Controls.Add($tabControl)
-$form.Controls.Add($statusLabel)
-$form.Controls.Add($progressBar)
+$form.Controls.Add($bottomPanel)
 
 # 全局变量
 $global:configPath = ""
@@ -261,8 +271,14 @@ function Find-AndLoadJsonFile {
         $scriptDir = [System.IO.Directory]::GetCurrentDirectory()
     }
     
-    # 查找所有 json 文件
-    $jsonFiles = Get-ChildItem -Path $scriptDir -Filter "*.json" -File -ErrorAction SilentlyContinue
+    # 根据语言目录查找 json 文件
+    $langPath = Join-Path $scriptDir $script:langDir
+    if (Test-Path $langPath) {
+        $jsonFiles = Get-ChildItem -Path $langPath -Filter "*.json" -File -ErrorAction SilentlyContinue
+    } else {
+        # 如果语言目录不存在，则在根目录查找
+        $jsonFiles = Get-ChildItem -Path $scriptDir -Filter "*.json" -File -ErrorAction SilentlyContinue
+    }
     
     if ($jsonFiles.Count -eq 0) {
         Write-Log "警告：当前目录下未找到 [.json] 配置文件" "Warning"
