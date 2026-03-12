@@ -65,7 +65,7 @@ $logTabPage.Padding = New-Object System.Windows.Forms.Padding(0)
 # 创建游戏列表标签页
 $gameListTabPage = New-Object System.Windows.Forms.TabPage
 $gameListTabPage.Text = "游戏列表"
-$gameListTabPage.Padding = New-Object System.Windows.Forms.Padding(5)
+$gameListTabPage.Padding = New-Object System.Windows.Forms.Padding(0)
 
 # 创建日志区域
 $logTextBox = New-Object System.Windows.Forms.RichTextBox
@@ -76,19 +76,11 @@ $logTextBox.ReadOnly = $true
 $logTextBox.Font = New-Object System.Drawing.Font("Consolas", 9)
 $logTextBox.BackColor = [System.Drawing.Color]::White
 
-# 游戏列表标题
-$gameListLabel = New-Object System.Windows.Forms.Label
-$gameListLabel.Text = "已配置的游戏"
-$gameListLabel.Location = New-Object System.Drawing.Point(10, 10)
-$gameListLabel.AutoSize = $true
-$gameListLabel.Font = New-Object System.Drawing.Font("Microsoft YaHei UI", 12, [System.Drawing.FontStyle]::Bold)
-$gameListLabel.ForeColor = [System.Drawing.Color]::DarkBlue
-
-# 游戏信息表格（DataGridView）
+# 游戏信息表格（DataGridView） - 直接填充整个标签页
 $gameDataGridView = New-Object System.Windows.Forms.DataGridView
-$gameDataGridView.Location = New-Object System.Drawing.Point(10, 40)
-$gameDataGridView.Size = New-Object System.Drawing.Size(1020, 550)
-$gameDataGridView.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
+$gameDataGridView.Location = New-Object System.Drawing.Point(0, 0)
+$gameDataGridView.Size = New-Object System.Drawing.Size(1040, 600)
+$gameDataGridView.Dock = "Fill"
 $gameDataGridView.AllowUserToAddRows = $false
 $gameDataGridView.AllowUserToDeleteRows = $false
 $gameDataGridView.ReadOnly = $true
@@ -96,7 +88,7 @@ $gameDataGridView.SelectionMode = [System.Windows.Forms.DataGridViewSelectionMod
 $gameDataGridView.MultiSelect = $false
 $gameDataGridView.AutoSizeColumnsMode = [System.Windows.Forms.DataGridViewAutoSizeColumnsMode]::Fill
 $gameDataGridView.BackgroundColor = [System.Drawing.Color]::White
-$gameDataGridView.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+$gameDataGridView.BorderStyle = [System.Windows.Forms.BorderStyle]::None
 $gameDataGridView.RowHeadersVisible = $false
 $gameDataGridView.EnableHeadersVisualStyles = $false
 $gameDataGridView.ColumnHeadersDefaultCellStyle.Font = New-Object System.Drawing.Font("Microsoft YaHei UI", 10, [System.Drawing.FontStyle]::Bold)
@@ -112,7 +104,7 @@ $gameDataGridView.Columns[1].Name = "游戏名称"
 $gameDataGridView.Columns[1].Width = 200
 $gameDataGridView.Columns[2].Name = "存档路径"
 $gameDataGridView.Columns[2].Width = 740
-# 启用滚动条
+# 启用垂直滚动条，禁用水平滚动条
 $gameDataGridView.ScrollBars = [System.Windows.Forms.ScrollBars]::Vertical
 
 # 创建底部状态栏（静默，不显示文字）
@@ -132,8 +124,7 @@ $progressBar.Visible = $false
 # 将日志文本框添加到日志标签页
 $logTabPage.Controls.Add($logTextBox)
 
-# 将控件添加到游戏列表标签页
-$gameListTabPage.Controls.Add($gameListLabel)
+# 将游戏列表表格添加到游戏列表标签页
 $gameListTabPage.Controls.Add($gameDataGridView)
 
 # 将标签页添加到 TabControl
