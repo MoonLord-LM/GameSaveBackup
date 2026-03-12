@@ -50,13 +50,24 @@ $copyLogButton.Location = New-Object System.Drawing.Point(820, 15)
 $copyLogButton.Size = New-Object System.Drawing.Size(100, 27)
 $copyLogButton.BackColor = [System.Drawing.Color]::LightBlue
 
-# 创建中部面板（用于分页展示）
-$middlePanel = New-Object System.Windows.Forms.Panel
-$middlePanel.Location = New-Object System.Drawing.Point(20, 80)
-$middlePanel.Size = New-Object System.Drawing.Size(1040, 600)
-$middlePanel.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
+# 创建中部 TabControl（标签页容器）
+$tabControl = New-Object System.Windows.Forms.TabControl
+$tabControl.Location = New-Object System.Drawing.Point(20, 80)
+$tabControl.Size = New-Object System.Drawing.Size(1040, 600)
+$tabControl.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
+$tabControl.Font = New-Object System.Drawing.Font("Microsoft YaHei UI", 9)
 
-# 创建日志区域（初始显示）
+# 创建日志标签页
+$logTabPage = New-Object System.Windows.Forms.TabPage
+$logTabPage.Text = "运行日志"
+$logTabPage.Padding = New-Object System.Windows.Forms.Padding(0)
+
+# 创建游戏列表标签页
+$gameListTabPage = New-Object System.Windows.Forms.TabPage
+$gameListTabPage.Text = "游戏列表"
+$gameListTabPage.Padding = New-Object System.Windows.Forms.Padding(5)
+
+# 创建日志区域
 $logTextBox = New-Object System.Windows.Forms.RichTextBox
 $logTextBox.Location = New-Object System.Drawing.Point(0, 0)
 $logTextBox.Size = New-Object System.Drawing.Size(1040, 600)
@@ -65,17 +76,9 @@ $logTextBox.ReadOnly = $true
 $logTextBox.Font = New-Object System.Drawing.Font("Consolas", 9)
 $logTextBox.BackColor = [System.Drawing.Color]::White
 
-# 创建游戏列表面板（初始隐藏）
-$gameListPanel = New-Object System.Windows.Forms.Panel
-$gameListPanel.Location = New-Object System.Drawing.Point(0, 0)
-$gameListPanel.Size = New-Object System.Drawing.Size(1040, 600)
-$gameListPanel.Dock = "Fill"
-$gameListPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-$gameListPanel.Visible = $false
-
 # 游戏列表标题
 $gameListLabel = New-Object System.Windows.Forms.Label
-$gameListLabel.Text = "游戏列表"
+$gameListLabel.Text = "已配置的游戏"
 $gameListLabel.Location = New-Object System.Drawing.Point(10, 10)
 $gameListLabel.AutoSize = $true
 $gameListLabel.Font = New-Object System.Drawing.Font("Microsoft YaHei UI", 12, [System.Drawing.FontStyle]::Bold)
@@ -109,6 +112,8 @@ $gameDataGridView.Columns[1].Name = "游戏名称"
 $gameDataGridView.Columns[1].Width = 200
 $gameDataGridView.Columns[2].Name = "存档路径"
 $gameDataGridView.Columns[2].Width = 740
+# 启用滚动条
+$gameDataGridView.ScrollBars = [System.Windows.Forms.ScrollBars]::Vertical
 
 # 创建底部状态栏（静默，不显示文字）
 $statusLabel = New-Object System.Windows.Forms.Label
@@ -124,24 +129,27 @@ $progressBar.Size = New-Object System.Drawing.Size(1040, 23)
 $progressBar.Anchor = [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 $progressBar.Visible = $false
 
-# 将控件添加到游戏列表面板
-$gameListPanel.Controls.Add($gameListLabel)
-$gameListPanel.Controls.Add($gameDataGridView)
+# 将日志文本框添加到日志标签页
+$logTabPage.Controls.Add($logTextBox)
 
-# 将控件添加到顶部面板
+# 将控件添加到游戏列表标签页
+$gameListTabPage.Controls.Add($gameListLabel)
+$gameListTabPage.Controls.Add($gameDataGridView)
+
+# 将标签页添加到 TabControl
+$tabControl.Controls.Add($logTabPage)
+$tabControl.Controls.Add($gameListTabPage)
+
+# 将顶部面板添加到底部
 $topPanel.Controls.Add($configLabel)
 $topPanel.Controls.Add($configTextBox)
 $topPanel.Controls.Add($browseButton)
 $topPanel.Controls.Add($startButton)
 $topPanel.Controls.Add($copyLogButton)
 
-# 将中部面板添加到主窗口
-$middlePanel.Controls.Add($logTextBox)
-$middlePanel.Controls.Add($gameListPanel)
-
-# 将顶部面板添加到底部
+# 将 TabControl 添加到主窗口
 $form.Controls.Add($topPanel)
-$form.Controls.Add($middlePanel)
+$form.Controls.Add($tabControl)
 $form.Controls.Add($statusLabel)
 $form.Controls.Add($progressBar)
 
@@ -225,9 +233,8 @@ function Load-GameList {
         
         Write-Log "游戏列表已更新" "Info"
         
-        # 切换到游戏列表面板
-        $logTextBox.Visible = $false
-        $gameListPanel.Visible = $true
+        # 切换到游戏列表标签页
+        $tabControl.SelectedTab = $gameListTabPage
         
     } catch {
         Write-Log "加载游戏列表失败：$_" "Error"
@@ -266,23 +273,21 @@ function Find-AndLoadJsonFile {
     # 加载游戏列表
     Load-GameList -ConfigPath $script:configPath
     
-    # 启用开始按钮
-    $startButton.Enabled = $true
+    # 如果加载成功，启用开始按钮
+    if ($null -ne $script:configArray) {
+        $startButton.Enabled = $true
+    }
     
     return $true
 }
 
-# 切换回日志面板函数
+# 切换回日志标签页函数
 function Show-LogPanel {
-    $gameListPanel.Visible = $false
-    $logTextBox.Visible = $true
+    $tabControl.SelectedTab = $logTabPage
 }
 
 # 浏览按钮点击事件
 $browseButton.Add_Click({
-    # 先切换回日志面板
-    Show-LogPanel
-    
     $fileDialog = New-Object System.Windows.Forms.OpenFileDialog
     $fileDialog.Filter = "JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*"
     $fileDialog.Title = "选择配置文件"
@@ -298,11 +303,15 @@ $browseButton.Add_Click({
     if ($fileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
         $global:configPath = $fileDialog.FileName
         $configTextBox.Text = $global:configPath
-        $startButton.Enabled = $true
         Write-Log "已选择配置文件：" + $global:configPath "Info"
         
-        # 加载游戏列表
+        # 加载游戏列表（Load-GameList 函数内部会在成功后切换到游戏列表标签页）
         Load-GameList -ConfigPath $global:configPath
+        
+        # 如果加载成功，启用开始按钮
+        if ($null -ne $script:configArray) {
+            $startButton.Enabled = $true
+        }
     }
 })
 
