@@ -37,7 +37,6 @@ $script:resources = @{
         ConfigNotFound = "警告：当前目录下未找到 [.json] 配置文件"
         ConfigSelected = "已选择配置文件："
         BackupStarted = "开始备份任务"
-        BackupCompleted = "备份任务完成"
         RunspaceStarted = "Runspace 已启动，开始监控备份任务"
         LogCopied = "日志已复制到剪贴板"
         NoLog = "当前没有日志内容"
@@ -46,7 +45,6 @@ $script:resources = @{
         ColumnSavePath = "存档路径"
         FileFilter = "JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*"
         FileDialogTitle = "选择配置文件"
-        SeparatorLine = "========================================"
         # 备份任务日志
         ERROR_GitMissing = "错误：缺少 git.exe 组件"
         ERROR_GitDownload = "请从 https://git-scm.com/install/windows 下载"
@@ -82,7 +80,6 @@ $script:resources = @{
         ConfigNotFound = "Warning: No [.json] config file found in current directory"
         ConfigSelected = "Config file selected: "
         BackupStarted = "Starting backup task"
-        BackupCompleted = "Backup task completed"
         RunspaceStarted = "Runspace started, monitoring backup task"
         LogCopied = "Log copied to clipboard"
         NoLog = "No log content"
@@ -91,7 +88,6 @@ $script:resources = @{
         ColumnSavePath = "Save Path"
         FileFilter = "JSON Files (*.json)|*.json|All Files (*.*)|*.*"
         FileDialogTitle = "Select Config File"
-        SeparatorLine = "========================================"
         # Backup Task Logs
         ERROR_GitMissing = "Error: git.exe component is missing"
         ERROR_GitDownload = "Please download from https://git-scm.com/install/windows"
@@ -285,7 +281,7 @@ function Write-Log {
     )
     
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    $logLine = "[" + $timestamp + "] [" + $Level + "] " + $Message + "`r`n"
+    $logLine = "[" + $timestamp + "] " + $Message + "`r`n"
     
     $logTextBox.SelectionStart = $logTextBox.TextLength
     
@@ -423,9 +419,7 @@ $browseButton.Add_Click({
 })
 
 # 获取机器名和用户名并显示日志
-Write-Log $script:ui.SeparatorLine "Info"
 Write-Log ($script:ui.MachineInfo -f $script:machineName, $script:userName) "Info"
-Write-Log $script:ui.SeparatorLine "Info"
 
 # 复制日志按钮点击事件
 $copyLogButton.Add_Click({
@@ -459,9 +453,7 @@ $startButton.Add_Click({
     $progressBar.Maximum = 100
     $progressBar.Value = 0
     
-    Write-Log $script:ui.SeparatorLine "Progress"
     Write-Log $script:ui.BackupStarted "Progress"
-    Write-Log $script:ui.SeparatorLine "Progress"
     
     # 创建 Runspace 池来执行备份任务
     $runspacePool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1, 1)
@@ -478,27 +470,28 @@ $startButton.Add_Click({
         # 切换到配置目录
         $configDir = Split-Path -Parent $configPath
         Push-Location $configDir
+        
+        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        $logQueue.Add("[$timestamp] [Info] 当前工作目录：" + (Get-Location).Path)
             
         # 检查 Git
         $gitExe = Get-Command git -ErrorAction SilentlyContinue
         if (-not $gitExe) {
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $logQueue.Add("[$timestamp] [ERROR] " + $uiResources.ERROR_GitMissing)
-            $logQueue.Add("[$timestamp] [ERROR] " + $uiResources.ERROR_GitDownload)
-            $logQueue.Add("[$timestamp] [INFO] ")
+            $logQueue.Add("[$timestamp] [Error] " + $uiResources.ERROR_GitMissing)
+            $logQueue.Add("[$timestamp] [Error] " + $uiResources.ERROR_GitDownload)
             return
         }
             
         # 验证选定的配置文件是否存在
         if (-not (Test-Path $configPath)) {
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $logQueue.Add("[$timestamp] [ERROR] " + $uiResources.ERROR_ConfigNotFound + ": " + $configPath)
-            $logQueue.Add("[$timestamp] [INFO] ")
+            $logQueue.Add("[$timestamp] [Error] " + $uiResources.ERROR_ConfigNotFound + ": " + $configPath)
             return
         }
             
         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_UsingConfig + ": " + (Split-Path -Leaf $configPath))
+        $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_UsingConfig + ": " + (Split-Path -Leaf $configPath))
             
         # 读取配置文件
         try {
@@ -513,8 +506,7 @@ $startButton.Add_Click({
         }
             
         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        $logQueue.Add("[$timestamp] [INFO] ")
-        $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_GamesFound + ": " + $totalGames)
+        $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_GamesFound + ": " + $totalGames)
             
         # 初始化 Git
         if (-not (Test-Path ".git")) {
@@ -536,7 +528,7 @@ $startButton.Add_Click({
                 
             # 显示当前处理的遊戲
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $logQueue.Add("[$timestamp] [PROGRESS] " + $uiResources.PROGRESS_Processing + ": " + $gameIndex + " / " + $totalGames + " - '" + $name + "' @ '" + $save + "'")
+            $logQueue.Add("[$timestamp] [Progress] " + $uiResources.PROGRESS_Processing + ": " + $gameIndex + " / " + $totalGames + " - '" + $name + "' @ '" + $save + "'")
                 
             # 替换环境变量
             $saveExpanded = $save -replace "%USERPROFILE%", $env:USERPROFILE
@@ -554,7 +546,7 @@ $startButton.Add_Click({
                     $itemExpanded = $item -replace "%USERPROFILE%", $env:USERPROFILE
                     $itemExpanded = $itemExpanded -replace "%PROGRAMDATA%", $env:PROGRAMDATA
                     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_IgnoreItem + ": '" + $itemExpanded + "'")
+                    $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_IgnoreItem + ": '" + $itemExpanded + "'")
                     $ignoreArgs += "/XF"
                     $ignoreArgs += $itemExpanded
                     $ignoreArgs += "/XD"
@@ -601,27 +593,31 @@ $startButton.Add_Click({
                 New-Item -ItemType Directory -Path $backupDir
             }
                 
+            # 进入备份目录
             Push-Location $backupDir
+                
+            $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            $logQueue.Add("[$timestamp] [Info] 进入备份目录：" + (Get-Location).Path)
                 
             # 判断备份策略
             if ($null -eq $maxLocalTime) {
                 if ($null -eq $maxBackupTime) {
                     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logQueue.Add("[$timestamp] [WARNING] " + $uiResources.WARNING_BothMissing)
+                    $logQueue.Add("[$timestamp] [Warning] " + $uiResources.WARNING_BothMissing)
                 }
                 else {
                     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logQueue.Add("[$timestamp] [WARNING] " + $uiResources.WARNING_LocalMissing)
+                    $logQueue.Add("[$timestamp] [Warning] " + $uiResources.WARNING_LocalMissing)
                     $sh = New-Object -ComObject Shell.Application
                     $sh.Namespace(10).MoveHere($saveExpanded)
                     $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs
                     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_RobocopyReturn + ": " + $result)
+                    $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_RobocopyReturn + ": " + $result)
                 }
             }
             elseif ($null -eq $maxBackupTime) {
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_BackupMissing)
+                $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_BackupMissing)
                 if (-not (Test-Path "存档位置.bat")) {
                     $batContent = "if not exist `"" + $saveExpanded + "`" mkdir `"" + $saveExpanded + "`"`r`n"
                     $batContent += "`"explorer.exe`" `"" + $saveExpanded + "`""
@@ -630,47 +626,47 @@ $startButton.Add_Click({
                 }
                 $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_RobocopyReturn + ": " + $result)
+                $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_RobocopyReturn + ": " + $result)
                 & git add .
                 if (-not (& git diff --cached --quiet)) {
                     & git commit -m ("Update - " + $name + " on " + $machineName + " by " + $userName)
                     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logQueue.Add("[$timestamp] [SUCCESS] " + $uiResources.SUCCESS_GitCommit)
+                    $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_GitCommit)
                 }
             }
             elseif ($maxLocalTime -lt $maxBackupTime) {
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [WARNING] " + $uiResources.WARNING_LocalOlder)
+                $logQueue.Add("[$timestamp] [Warning] " + $uiResources.WARNING_LocalOlder)
                 $sh = New-Object -ComObject Shell.Application
                 $sh.Namespace(10).MoveHere($saveExpanded)
                 $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_RobocopyReturn + ": " + $result)
+                $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_RobocopyReturn + ": " + $result)
             }
             elseif ($maxLocalTime -gt $maxBackupTime) {
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_LocalNewer)
+                $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_LocalNewer)
                 $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [INFO] " + $uiResources.INFO_RobocopyReturn + ": " + $result)
+                $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_RobocopyReturn + ": " + $result)
                 & git add .
                 if (-not (& git diff --cached --quiet)) {
                     & git commit -m ("Update - " + $name + " on " + $machineName + " by " + $userName)
                     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logQueue.Add("[$timestamp] [SUCCESS] " + $uiResources.SUCCESS_GitCommit)
+                    $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_GitCommit)
                 }
             }
             else {
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [SUCCESS] " + $uiResources.INFO_SameTime)
+                $logQueue.Add("[$timestamp] [Success] " + $uiResources.INFO_SameTime)
             }
                 
+            # 恢复工作目录到配置目录（重要！避免目录层级越来越深）
             Pop-Location
-            
+                
             # 游戏处理完成后，发送进度更新信号
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $logQueue.Add("[$timestamp] [PROGRESS_SIGNAL] $gameIndex|$totalGames")
-            $logQueue.Add("[$timestamp] [INFO] ")
+            $logQueue.Add("[$timestamp] PROGRESS_SIGNAL: $gameIndex|$totalGames")
         }
             
         # 最终 Git 提交
@@ -678,14 +674,15 @@ $startButton.Add_Click({
         if (-not (& git diff --cached --quiet)) {
             & git commit -m ("Update - on " + $machineName + " by " + $userName)
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $logQueue.Add("[$timestamp] [SUCCESS] " + $uiResources.SUCCESS_FinalCommit)
+            $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_FinalCommit)
         }
             
         & git clean -df *>$null
             
         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        $logQueue.Add("[$timestamp] [SUCCESS] " + $uiResources.SUCCESS_BackupComplete)
+        $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_BackupComplete)
             
+        # 恢复至脚本启动时的工作目录
         Pop-Location
     })
     
@@ -712,17 +709,15 @@ $startButton.Add_Click({
                     # 直接显示完整日志行
                     # 格式：[timestamp] [Level] Message
                     $firstBracketEnd = $logLine.IndexOf(']', $logLine.IndexOf('['))
-                    $secondBracketStart = $logLine.IndexOf('[', $firstBracketEnd)
-                    $secondBracketEnd = $logLine.IndexOf(']', $secondBracketStart)
                     
-                    if ($firstBracketEnd -gt 0 -and $secondBracketStart -gt 0 -and $secondBracketEnd -gt $secondBracketStart) {
-                        $level = $logLine.Substring($secondBracketStart + 1, $secondBracketEnd - $secondBracketStart - 1)
+                    if ($firstBracketEnd -gt 0) {
                         # 提取完整消息 (包含所有原始内容)
-                        $message = $logLine.Substring($secondBracketEnd + 2).Trim()
+                        $message = $logLine.Substring($firstBracketEnd + 2).Trim()
                         
                         # 处理进度信号
-                        if ($level -eq "PROGRESS_SIGNAL") {
-                            $signalParts = $message -split '\|'
+                        if ($message.StartsWith("PROGRESS_SIGNAL:")) {
+                            $signalValue = $message.Substring(16).Trim()
+                            $signalParts = $signalValue -split '\|'
                             if ($signalParts.Count -eq 2) {
                                 $current = [int]$signalParts[0]
                                 $total = [int]$signalParts[1]
@@ -740,8 +735,18 @@ $startButton.Add_Click({
                                 $progressBar.Value = $targetPercentage
                             }
                         }
-                        # 显示其他完整日志
+                        # 显示其他完整日志（带颜色）
                         elseif (-not [string]::IsNullOrWhiteSpace($message)) {
+                            # 默认级别为 Info
+                            $level = "Info"
+                            
+                            # 检查是否有级别标记 [Level]
+                            if ($message -match "^\[(Info|Error|Warning|Success|Progress)\] ") {
+                                $level = $matches[1]
+                                # 移除级别标记，只保留实际消息
+                                $message = $message -replace "^\[(Info|Error|Warning|Success|Progress)\] ", ""
+                            }
+                            
                             Write-Log $message $level
                         }
                     }
@@ -766,13 +771,21 @@ $startButton.Add_Click({
                     while ($global:logQueue.TryTake([ref]$logLine)) {
                         # 提取完整日志内容
                         $firstBracketEnd = $logLine.IndexOf(']', $logLine.IndexOf('['))
-                        $secondBracketStart = $logLine.IndexOf('[', $firstBracketEnd)
-                        $secondBracketEnd = $logLine.IndexOf(']', $secondBracketStart)
                         
-                        if ($firstBracketEnd -gt 0 -and $secondBracketStart -gt 0 -and $secondBracketEnd -gt $secondBracketStart) {
-                            $level = $logLine.Substring($secondBracketStart + 1, $secondBracketEnd - $secondBracketStart - 1)
-                            $message = $logLine.Substring($secondBracketEnd + 2).Trim()
-                            if ($level -ne "PROGRESS_SIGNAL" -and -not [string]::IsNullOrWhiteSpace($message)) {
+                        if ($firstBracketEnd -gt 0) {
+                            $message = $logLine.Substring($firstBracketEnd + 2).Trim()
+                            # 跳过进度信号，显示其他日志（带颜色）
+                            if (-not $message.StartsWith("PROGRESS_SIGNAL:") -and -not [string]::IsNullOrWhiteSpace($message)) {
+                                # 默认级别为 Info
+                                $level = "Info"
+                                
+                                # 检查是否有级别标记 [Level]
+                                if ($message -match "^\[(Info|Error|Warning|Success|Progress)\] ") {
+                                    $level = $matches[1]
+                                    # 移除级别标记，只保留实际消息
+                                    $message = $message -replace "^\[(Info|Error|Warning|Success|Progress)\] ", ""
+                                }
+                                
                                 Write-Log $message $level
                             }
                         }
@@ -780,10 +793,6 @@ $startButton.Add_Click({
                 }
             }
             catch {}
-            
-            Write-Log $script:ui.SeparatorLine "Progress"
-            Write-Log $script:ui.BackupCompleted "Success"
-            Write-Log $script:ui.SeparatorLine "Progress"
             
             $progressBar.Value = 100
             Start-Sleep -Milliseconds 500
