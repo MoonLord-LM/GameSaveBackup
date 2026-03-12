@@ -9,7 +9,7 @@ Add-Type -AssemblyName System.Drawing
 # 创建主窗口
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "游戏存档备份工具"
-$form.Size = New-Object System.Drawing.Size(900, 700)
+$form.Size = New-Object System.Drawing.Size(1100, 800)
 $form.StartPosition = "CenterScreen"
 $form.Font = New-Object System.Drawing.Font("Microsoft YaHei UI", 9)
 
@@ -43,27 +43,82 @@ $startButton.Size = New-Object System.Drawing.Size(100, 27)
 $startButton.BackColor = [System.Drawing.Color]::LightGreen
 $startButton.Enabled = $false
 
-# 创建中部日志区域
+# 创建中部面板（用于分页展示）
+$middlePanel = New-Object System.Windows.Forms.Panel
+$middlePanel.Location = New-Object System.Drawing.Point(20, 80)
+$middlePanel.Size = New-Object System.Drawing.Size(1040, 600)
+$middlePanel.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
+
+# 创建日志区域（初始显示）
 $logTextBox = New-Object System.Windows.Forms.RichTextBox
-$logTextBox.Location = New-Object System.Drawing.Point(20, 80)
-$logTextBox.Size = New-Object System.Drawing.Size(840, 500)
-$logTextBox.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
+$logTextBox.Location = New-Object System.Drawing.Point(0, 0)
+$logTextBox.Size = New-Object System.Drawing.Size(1040, 600)
+$logTextBox.Dock = "Fill"
 $logTextBox.ReadOnly = $true
 $logTextBox.Font = New-Object System.Drawing.Font("Consolas", 9)
 $logTextBox.BackColor = [System.Drawing.Color]::White
 
+# 创建游戏列表面板（初始隐藏）
+$gameListPanel = New-Object System.Windows.Forms.Panel
+$gameListPanel.Location = New-Object System.Drawing.Point(0, 0)
+$gameListPanel.Size = New-Object System.Drawing.Size(1040, 600)
+$gameListPanel.Dock = "Fill"
+$gameListPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+$gameListPanel.Visible = $false
+
+# 游戏列表标题
+$gameListLabel = New-Object System.Windows.Forms.Label
+$gameListLabel.Text = "游戏列表"
+$gameListLabel.Location = New-Object System.Drawing.Point(10, 10)
+$gameListLabel.AutoSize = $true
+$gameListLabel.Font = New-Object System.Drawing.Font("Microsoft YaHei UI", 12, [System.Drawing.FontStyle]::Bold)
+$gameListLabel.ForeColor = [System.Drawing.Color]::DarkBlue
+
+# 游戏信息表格（DataGridView）
+$gameDataGridView = New-Object System.Windows.Forms.DataGridView
+$gameDataGridView.Location = New-Object System.Drawing.Point(10, 40)
+$gameDataGridView.Size = New-Object System.Drawing.Size(1020, 550)
+$gameDataGridView.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
+$gameDataGridView.AllowUserToAddRows = $false
+$gameDataGridView.AllowUserToDeleteRows = $false
+$gameDataGridView.ReadOnly = $true
+$gameDataGridView.SelectionMode = [System.Windows.Forms.DataGridViewSelectionMode]::FullRowSelect
+$gameDataGridView.MultiSelect = $false
+$gameDataGridView.AutoSizeColumnsMode = [System.Windows.Forms.DataGridViewAutoSizeColumnsMode]::Fill
+$gameDataGridView.BackgroundColor = [System.Drawing.Color]::White
+$gameDataGridView.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+$gameDataGridView.RowHeadersVisible = $false
+$gameDataGridView.EnableHeadersVisualStyles = $false
+$gameDataGridView.ColumnHeadersDefaultCellStyle.Font = New-Object System.Drawing.Font("Microsoft YaHei UI", 10, [System.Drawing.FontStyle]::Bold)
+$gameDataGridView.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::LightGray
+$gameDataGridView.ColumnHeadersHeight = 30
+$gameDataGridView.DefaultCellStyle.Font = New-Object System.Drawing.Font("Microsoft YaHei UI", 9)
+$gameDataGridView.DefaultCellStyle.Padding = New-Object System.Windows.Forms.Padding(5)
+$gameDataGridView.RowTemplate.Height = 40
+$gameDataGridView.ColumnCount = 3
+$gameDataGridView.Columns[0].Name = "序号"
+$gameDataGridView.Columns[0].Width = 60
+$gameDataGridView.Columns[1].Name = "游戏名称"
+$gameDataGridView.Columns[1].Width = 200
+$gameDataGridView.Columns[2].Name = "存档路径"
+$gameDataGridView.Columns[2].Width = 740
+
 # 创建底部状态栏
 $statusLabel = New-Object System.Windows.Forms.Label
 $statusLabel.Text = "就绪"
-$statusLabel.Location = New-Object System.Drawing.Point(20, 590)
+$statusLabel.Location = New-Object System.Drawing.Point(20, 690)
 $statusLabel.AutoSize = $true
 $statusLabel.ForeColor = [System.Drawing.Color]::Blue
 
 # 进度条
 $progressBar = New-Object System.Windows.Forms.ProgressBar
-$progressBar.Location = New-Object System.Drawing.Point(200, 590)
-$progressBar.Size = New-Object System.Drawing.Size(660, 23)
+$progressBar.Location = New-Object System.Drawing.Point(200, 690)
+$progressBar.Size = New-Object System.Drawing.Size(860, 23)
 $progressBar.Visible = $false
+
+# 将控件添加到游戏列表面板
+$gameListPanel.Controls.Add($gameListLabel)
+$gameListPanel.Controls.Add($gameDataGridView)
 
 # 将控件添加到顶部面板
 $topPanel.Controls.Add($configLabel)
@@ -71,15 +126,20 @@ $topPanel.Controls.Add($configTextBox)
 $topPanel.Controls.Add($browseButton)
 $topPanel.Controls.Add($startButton)
 
-# 将控件添加到主窗口
+# 将中部面板添加到主窗口
+$middlePanel.Controls.Add($logTextBox)
+$middlePanel.Controls.Add($gameListPanel)
+
+# 将顶部面板添加到底部
 $form.Controls.Add($topPanel)
-$form.Controls.Add($logTextBox)
+$form.Controls.Add($middlePanel)
 $form.Controls.Add($statusLabel)
 $form.Controls.Add($progressBar)
 
 # 全局变量
 $script:configPath = ""
 $script:isRunning = $false
+$script:configArray = $null
 
 # 日志输出函数
 function Write-Log {
@@ -105,8 +165,94 @@ function Write-Log {
     $logTextBox.ScrollToCaret()
 }
 
+# 加载并显示游戏列表函数
+function Load-GameList {
+    param([string]$ConfigPath)
+    
+    try {
+        # 清空现有的游戏数据
+        $gameDataGridView.Rows.Clear()
+        
+        # 读取 JSON 配置
+        $script:configArray = Get-Content -Path $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $totalGames = $script:configArray.Count
+        
+        Write-Log "成功加载配置文件，共 $totalGames 个游戏" "Success"
+        
+        # 为每个游戏添加表格行
+        for ($i = 0; $i -lt $totalGames; $i++) {
+            $game = $script:configArray[$i]
+            $gameName = $game.name
+            $savePath = $game.save
+            
+            # 替换环境变量显示
+            $displayPath = $savePath -replace "%USERPROFILE%", '$env:USERPROFILE'
+            $displayPath = $displayPath -replace "%PROGRAMDATA%", '$env:PROGRAMDATA'
+            
+            # 添加行到表格
+            $gameDataGridView.Rows.Add(($i + 1), $gameName, $displayPath)
+        }
+        
+        Write-Log "游戏列表已更新" "Info"
+        
+        # 切换到游戏列表面板
+        $logTextBox.Visible = $false
+        $gameListPanel.Visible = $true
+        
+    } catch {
+        Write-Log "加载游戏列表失败：$_" "Error"
+        $script:configArray = $null
+    }
+}
+
+# 自动查找并加载 JSON 配置文件
+function Find-AndLoadJsonFile {
+    # 获取脚本所在目录
+    try {
+        $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+    } catch {
+        $scriptDir = [System.IO.Directory]::GetCurrentDirectory()
+    }
+    
+    # 查找所有 json 文件
+    $jsonFiles = Get-ChildItem -Path $scriptDir -Filter "*.json" -File -ErrorAction SilentlyContinue
+    
+    if ($jsonFiles.Count -eq 0) {
+        Write-Log "警告：当前目录下未找到 [.json] 配置文件" "Warning"
+        return $false
+    }
+    
+    if ($jsonFiles.Count -gt 1) {
+        Write-Log "警告：当前目录下找到多个 [.json] 配置文件（共 $($jsonFiles.Count) 个），请选择一个加载" "Warning"
+        return $false
+    }
+    
+    # 只有一个 json 文件，自动加载
+    $script:configPath = $jsonFiles.FullName
+    $configTextBox.Text = $script:configPath
+    
+    Write-Log "自动检测到配置文件：$((Split-Path -Leaf $script:configPath))" "Info"
+    
+    # 加载游戏列表
+    Load-GameList -ConfigPath $script:configPath
+    
+    # 启用开始按钮
+    $startButton.Enabled = $true
+    
+    return $true
+}
+
+# 切换回日志面板函数
+function Show-LogPanel {
+    $gameListPanel.Visible = $false
+    $logTextBox.Visible = $true
+}
+
 # 浏览按钮点击事件
 $browseButton.Add_Click({
+    # 先切换回日志面板
+    Show-LogPanel
+    
     $fileDialog = New-Object System.Windows.Forms.OpenFileDialog
     $fileDialog.Filter = "JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*"
     $fileDialog.Title = "选择配置文件"
@@ -124,13 +270,22 @@ $browseButton.Add_Click({
         $configTextBox.Text = $script:configPath
         $startButton.Enabled = $true
         Write-Log "已选择配置文件：" + $script:configPath "Info"
+        
+        # 加载游戏列表
+        Load-GameList -ConfigPath $script:configPath
     }
 })
 
 # 获取机器名和用户名
 $machineName = $env:COMPUTERNAME
 $userName = [Environment]::UserName
+Write-Log "========================================" "Info"
 Write-Log "机器名：" + $machineName + "  用户名：" + $userName "Info"
+Write-Log "========================================" "Info"
+
+# 窗口加载时自动查找并加载 JSON 文件
+Write-Log "正在扫描配置文件..." "Info"
+Find-AndLoadJsonFile
 
 # 开始备份按钮点击事件
 $startButton.Add_Click({
@@ -138,11 +293,17 @@ $startButton.Add_Click({
         return
     }
     
+    # 切换回日志面板
+    Show-LogPanel
+    
     $script:isRunning = $true
     $startButton.Enabled = $false
     $browseButton.Enabled = $false
     $progressBar.Visible = $true
-    $progressBar.Style = [System.Windows.Forms.ProgressBarStyle]::Marquee
+    $progressBar.Style = [System.Windows.Forms.ProgressBarStyle]::Continuous
+    $progressBar.Minimum = 0
+    $progressBar.Maximum = 100
+    $progressBar.Value = 0
     
     Write-Log "========================================" "Progress"
     Write-Log "开始备份任务" "Progress"
@@ -355,6 +516,18 @@ $startButton.Add_Click({
     $timer = New-Object System.Windows.Forms.Timer
     $timer.Interval = 500
     $timer.Add_Tick({
+        # 更新进度条（基于已处理的日志行数）
+        $progressLines = $logTextBox.Text -split "`r`n" | Where-Object { $_ -match "\[Progress\].*处理.*\/" }
+        if ($progressLines.Count -gt 0) {
+            $lastLine = $progressLines[-1]
+            if ($lastLine -match "处理 (\d+) \/ (\d+)") {
+                $current = [int]$matches[1]
+                $total = [int]$matches[2]
+                $percentage = [int](($current / $total) * 100)
+                $progressBar.Value = $percentage
+            }
+        }
+        
         if ($job.JobStateInfo.State -eq "Completed") {
             $timer.Stop()
             $results = Receive-Job -Job $job
