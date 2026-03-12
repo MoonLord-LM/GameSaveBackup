@@ -1,4 +1,4 @@
-# 设置字符编码 UTF-8
+﻿# 设置字符编码 UTF-8
 [System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
