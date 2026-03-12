@@ -151,11 +151,16 @@ $global:configArray = $null
 $global:job = $null
 $global:timer = $null
 # 使用 hostname 命令获取完整机器名（与备份.bat 保持一致）
-$hostnameOutput = & cmd /c hostname 2>&1
-if ($hostnameOutput) {
-    $script:machineName = $hostnameOutput.ToString().Trim()
+try {
+    $hostnameOutput = & cmd /c hostname
+    if ($hostnameOutput) {
+        $script:machineName = $hostnameOutput.ToString().Trim()
+    }
+    else {
+        $script:machineName = $env:COMPUTERNAME
+    }
 }
-else {
+catch {
     $script:machineName = $env:COMPUTERNAME
 }
 $script:userName = [Environment]::UserName
@@ -529,7 +534,7 @@ $startButton.Add_Click({
             $output.Add("SUCCESS|最终 Git 提交完成") | Out-Null
         }
             
-        & git clean -df >nul
+        & git clean -df *>$null
             
         $output.Add("SUCCESS|备份完成") | Out-Null
             
@@ -561,7 +566,7 @@ catch {
         
         # 尝试接收 Job 输出
         try {
-            $jobOutput = Receive-Job -Job $global:job -Keep 2>&1
+            $jobOutput = Receive-Job -Job $global:job -Keep
             if ($jobOutput -and $jobOutput.Count -gt 0) {
                 foreach ($line in $jobOutput) {
                     $parts = $line.ToString() -split '\|', 2
