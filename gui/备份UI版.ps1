@@ -1,4 +1,4 @@
-﻿# 设置字符编码
+﻿# 设置字符编码 UTF-8
 [System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
@@ -6,77 +6,148 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-# 根据系统语言自动选择配置文件目录
+# 根据系统语言自动选择界面语言
 try {
     $systemLang = [System.Globalization.CultureInfo]::CurrentUICulture.TwoLetterISOLanguageName
     if ($systemLang -eq 'zh') {
         $script:langDir = 'zh-cn'
+        $script:uiLang = 'zh-cn'
     } else {
         $script:langDir = 'en-us'
+        $script:uiLang = 'en-us'
     }
 } catch {
-    $script:langDir = 'zh-cn'  # 默认使用中文
+    $script:langDir = 'en-us'
 }
+
+# 定义多语言资源
+$script:resources = @{
+    'zh-cn' = @{
+        FormTitle = "游戏存档备份工具"
+        ConfigLabel = "配置文件:"
+        BrowseButton = "选择配置"
+        StartButton = "开始备份"
+        CopyLogButton = "复制日志"
+        LogTabPage = "运行日志"
+        GameListTabPage = "游戏列表"
+        MachineInfo = "机器名：{0}  用户名：{1}"
+        ScanningConfig = "正在扫描配置文件..."
+        ConfigLoaded = "成功加载配置文件，共 {0} 个游戏"
+        GameListUpdated = "游戏列表已更新"
+        ConfigNotFound = "警告：当前目录下未找到 [.json] 配置文件"
+        ConfigSelected = "已选择配置文件："
+        BackupStarted = "开始备份任务"
+        BackupCompleted = "备份任务完成"
+        RunspaceStarted = "Runspace 已启动，开始监控备份任务"
+        LogCopied = "日志已复制到剪贴板"
+        NoLog = "当前没有日志内容"
+        ColumnIndex = "序号"
+        ColumnGameName = "游戏名称"
+        ColumnSavePath = "存档路径"
+    }
+    'en-us' = @{
+        FormTitle = "Game Save Backup Tool"
+        ConfigLabel = "Config File:"
+        BrowseButton = "Browse Config"
+        StartButton = "Start Backup"
+        CopyLogButton = "Copy Log"
+        LogTabPage = "Run Log"
+        GameListTabPage = "Game List"
+        MachineInfo = "Machine: {0}  User: {1}"
+        ScanningConfig = "Scanning config file..."
+        ConfigLoaded = "Config file loaded successfully, {0} game(s) found"
+        GameListUpdated = "Game list updated"
+        ConfigNotFound = "Warning: No [.json] config file found in current directory"
+        ConfigSelected = "Config file selected: "
+        BackupStarted = "Starting backup task"
+        BackupCompleted = "Backup task completed"
+        RunspaceStarted = "Runspace started, monitoring backup task"
+        LogCopied = "Log copied to clipboard"
+        NoLog = "No log content"
+        ColumnIndex = "#"
+        ColumnGameName = "Game Name"
+        ColumnSavePath = "Save Path"
+    }
+}
+
+# 获取当前语言的 UI 文本
+$script:ui = $script:resources[$script:uiLang]
 
 # 创建主窗口
 $form = New-Object System.Windows.Forms.Form
-$form.Text = "游戏存档备份工具"
+$form.Text = $script:ui.FormTitle
 $form.Size = New-Object System.Drawing.Size(1280, 720)
 $form.StartPosition = "CenterScreen"
+$form.Font = New-Object System.Drawing.Font("Microsoft YaHei", 10)
 
 # 创建顶部面板（操作区）
 $topPanel = New-Object System.Windows.Forms.Panel
-$topPanel.Height = 70
 $topPanel.Dock = "Top"
-$topPanel.MinimumSize = New-Object System.Drawing.Size(1150, 70)
+$topPanel.Size = New-Object System.Drawing.Size(1280, 60)
+$topPanel.Padding = New-Object System.Windows.Forms.Padding(10, 10, 10, 10)
 
-# 创建中部面板（内容区，包含 TabControl）
+# 创建中部面板（内容区）
 $centerPanel = New-Object System.Windows.Forms.Panel
 $centerPanel.Dock = "Fill"
-$centerPanel.Padding = New-Object System.Windows.Forms.Padding(10, 10, 10, 10)
+$centerPanel.Padding = New-Object System.Windows.Forms.Padding(10, 0, 10, 0)
 
-# 创建底部面板（进度条区）
+# 创建底部面板（提示区）
 $bottomPanel = New-Object System.Windows.Forms.Panel
-$bottomPanel.Size = New-Object System.Drawing.Size(1280, 35)
 $bottomPanel.Dock = "Bottom"
+$bottomPanel.Size = New-Object System.Drawing.Size(1280, 40)
 $bottomPanel.Padding = New-Object System.Windows.Forms.Padding(10, 10, 10, 10)
+
+# DEBUG 调试布局使用，勿删
+# $topPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+# $centerPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+# $bottomPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+
+# 将三个面板添加到主窗口（注意顺序：先添加 Fill，再添加 Top/Bottom）
+$form.Controls.Add($centerPanel)
+$form.Controls.Add($topPanel)
+$form.Controls.Add($bottomPanel)
 
 # 配置文件标签和文本框
 $configLabel = New-Object System.Windows.Forms.Label
-$configLabel.Text = "配置文件:"
-$configLabel.Location = New-Object System.Drawing.Point(10, 18)
+$configLabel.Text = $script:ui.ConfigLabel
+$configLabel.Location = New-Object System.Drawing.Point(15, 20)
 $configLabel.AutoSize = $true
+$topPanel.Controls.Add($configLabel)
 
 # 配置文件文本框 - 使用 Anchor 实现自适应
 $configTextBox = New-Object System.Windows.Forms.TextBox
-$configTextBox.Location = New-Object System.Drawing.Point(100, 15)
-$configTextBox.Size = New-Object System.Drawing.Size(680, 32)
+$configTextBox.Location = New-Object System.Drawing.Point(90, 18)
+$configTextBox.Size = New-Object System.Drawing.Size(800, 50)
 $configTextBox.Anchor = [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 $configTextBox.ReadOnly = $true
+$topPanel.Controls.Add($configTextBox)
 
 # 选择配置按钮 - 固定在右侧最左边
 $browseButton = New-Object System.Windows.Forms.Button
-$browseButton.Text = "选择配置"
-$browseButton.Location = New-Object System.Drawing.Point(790, 15)
-$browseButton.Size = New-Object System.Drawing.Size(110, 35)
+$browseButton.Text = $script:ui.BrowseButton
+$browseButton.Location = New-Object System.Drawing.Point(900, 15)
+$browseButton.Size = New-Object System.Drawing.Size(110, 30)
 $browseButton.Anchor = [System.Windows.Forms.AnchorStyles]::Right
 $browseButton.BackColor = [System.Drawing.Color]::LightBlue
+$topPanel.Controls.Add($browseButton)
 
 # 开始备份按钮 - 在选择配置按钮右边
 $startButton = New-Object System.Windows.Forms.Button
-$startButton.Text = "开始备份"
-$startButton.Location = New-Object System.Drawing.Point(910, 15)
-$startButton.Size = New-Object System.Drawing.Size(110, 35)
+$startButton.Text = $script:ui.StartButton
+$startButton.Location = New-Object System.Drawing.Point(1020, 15)
+$startButton.Size = New-Object System.Drawing.Size(110, 30)
 $startButton.Anchor = [System.Windows.Forms.AnchorStyles]::Right
 $startButton.BackColor = [System.Drawing.Color]::LightBlue
 $startButton.Enabled = $false
+$topPanel.Controls.Add($startButton)
 
 # 复制日志按钮 - 在最右边
 $copyLogButton = New-Object System.Windows.Forms.Button
-$copyLogButton.Text = "复制日志"
-$copyLogButton.Location = New-Object System.Drawing.Point(1030, 15)
-$copyLogButton.Size = New-Object System.Drawing.Size(110, 35)
+$copyLogButton.Text = $script:ui.CopyLogButton
+$copyLogButton.Location = New-Object System.Drawing.Point(1140, 15)
+$copyLogButton.Size = New-Object System.Drawing.Size(110, 30)
 $copyLogButton.Anchor = [System.Windows.Forms.AnchorStyles]::Right
+$topPanel.Controls.Add($copyLogButton)
 
 # 创建中部 TabControl（标签页容器）
 $tabControl = New-Object System.Windows.Forms.TabControl
@@ -86,89 +157,54 @@ $tabControl.Dock = "Fill"
 
 # 创建日志标签页
 $logTabPage = New-Object System.Windows.Forms.TabPage
-$logTabPage.Text = "运行日志"
-$logTabPage.Padding = New-Object System.Windows.Forms.Padding(0)
+$logTabPage.Text = $script:ui.LogTabPage
+$tabControl.Controls.Add($logTabPage)
 
 # 创建游戏列表标签页
 $gameListTabPage = New-Object System.Windows.Forms.TabPage
-$gameListTabPage.Text = "游戏列表"
-$gameListTabPage.Padding = New-Object System.Windows.Forms.Padding(0)
+$gameListTabPage.Text = $script:ui.GameListTabPage
+$centerPanel.Controls.Add($tabControl)
 
-# 创建日志区域
+# 日志显示区域
 $logTextBox = New-Object System.Windows.Forms.RichTextBox
+$logTextBox.ReadOnly = $true
+$logTextBox.ScrollBars = [System.Windows.Forms.RichTextBoxScrollBars]::Vertical
+$logTextBox.BorderStyle = [System.Windows.Forms.BorderStyle]::None
+$logTextBox.BackColor = [System.Drawing.Color]::White
 $logTextBox.Location = New-Object System.Drawing.Point(0, 0)
 $logTextBox.Size = New-Object System.Drawing.Size(1260, 560)
 $logTextBox.Dock = "Fill"
-$logTextBox.ReadOnly = $true
-$logTextBox.BackColor = [System.Drawing.Color]::White
-$logTextBox.ScrollBars = [System.Windows.Forms.RichTextBoxScrollBars]::Vertical
+$logTabPage.Controls.Add($logTextBox)
 
-# 游戏信息表格 (DataGridView) - 直接填充整个标签页
+# 游戏信息显示表格
 $gameDataGridView = New-Object System.Windows.Forms.DataGridView
+$gameDataGridView.ReadOnly = $true
+$gameDataGridView.AllowUserToAddRows = $false
+$gameDataGridView.AllowUserToDeleteRows = $false
+$gameDataGridView.ScrollBars = [System.Windows.Forms.ScrollBars]::Vertical
+$gameDataGridView.BorderStyle = [System.Windows.Forms.BorderStyle]::None
+$gameDataGridView.BackgroundColor = [System.Drawing.Color]::White
+$gameDataGridView.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::LightGray
+$gameDataGridView.ColumnHeadersHeight = 40
+$gameDataGridView.RowTemplate.Height = 30
 $gameDataGridView.Location = New-Object System.Drawing.Point(0, 0)
 $gameDataGridView.Size = New-Object System.Drawing.Size(1260, 560)
 $gameDataGridView.Dock = "Fill"
 $gameDataGridView.ColumnCount = 3
-$gameDataGridView.Columns[0].Name = "序号"
+$gameDataGridView.Columns[0].Name = $script:ui.ColumnIndex
 $gameDataGridView.Columns[0].Width = 60
-$gameDataGridView.Columns[1].Name = "游戏名称"
+$gameDataGridView.Columns[1].Name = $script:ui.ColumnGameName
 $gameDataGridView.Columns[1].Width = 200
-$gameDataGridView.Columns[2].Name = "存档路径"
+$gameDataGridView.Columns[2].Name = $script:ui.ColumnSavePath
 $gameDataGridView.Columns[2].Width = 920
-$gameDataGridView.AllowUserToAddRows = $false
-$gameDataGridView.AllowUserToDeleteRows = $false
-$gameDataGridView.ReadOnly = $true
-$gameDataGridView.SelectionMode = [System.Windows.Forms.DataGridViewSelectionMode]::FullRowSelect
-$gameDataGridView.MultiSelect = $false
-$gameDataGridView.AutoSizeColumnsMode = [System.Windows.Forms.DataGridViewAutoSizeColumnsMode]::Fill
-$gameDataGridView.BackgroundColor = [System.Drawing.Color]::White
-$gameDataGridView.BorderStyle = [System.Windows.Forms.BorderStyle]::None
-$gameDataGridView.RowHeadersVisible = $false
-$gameDataGridView.EnableHeadersVisualStyles = $false
-$gameDataGridView.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::LightGray
-$gameDataGridView.ColumnHeadersHeight = 40
-$gameDataGridView.RowTemplate.Height = 45
-$gameDataGridView.ScrollBars = [System.Windows.Forms.ScrollBars]::Vertical
-$gameDataGridView.AdvancedColumnHeadersBorderStyle.All = [System.Windows.Forms.DataGridViewAdvancedCellBorderStyle]::None
+$gameListTabPage.Controls.Add($gameDataGridView)
 
-# 创建底部面板（用于包裹进度条）
-$bottomPanel = New-Object System.Windows.Forms.Panel
-$bottomPanel.Size = New-Object System.Drawing.Size(1280, 35)
-$bottomPanel.Dock = "Bottom"
-$bottomPanel.Padding = New-Object System.Windows.Forms.Padding(10, 10, 10, 10)
-
-# 进度条（在底部 Dock）
+# 底部进度条
 $progressBar = New-Object System.Windows.Forms.ProgressBar
 $progressBar.Dock = "Fill"
 $progressBar.Visible = $false
 $progressBar.Style = [System.Windows.Forms.ProgressBarStyle]::Continuous
-
-# 将日志文本框添加到日志标签页
-$logTabPage.Controls.Add($logTextBox)
-
-# 将游戏列表表格添加到游戏列表标签页
-$gameListTabPage.Controls.Add($gameDataGridView)
-
-# 将标签页添加到 TabControl
-$tabControl.Controls.Add($logTabPage)
-
-# 将 TabControl 添加到中部面板
-$centerPanel.Controls.Add($tabControl)
-
-# 将顶部面板添加到底部
-$topPanel.Controls.Add($configLabel)
-$topPanel.Controls.Add($configTextBox)
-$topPanel.Controls.Add($browseButton)
-$topPanel.Controls.Add($startButton)
-$topPanel.Controls.Add($copyLogButton)
-
-# 将进度条添加到底部面板
 $bottomPanel.Controls.Add($progressBar)
-
-# 将三个面板添加到主窗口（注意顺序：先添加 Fill，再添加 Top/Bottom）
-$form.Controls.Add($centerPanel)
-$form.Controls.Add($topPanel)
-$form.Controls.Add($bottomPanel)
 
 # 全局变量
 $global:configPath = ""
@@ -233,6 +269,7 @@ function Load-GameList {
         $totalGames = $script:configArray.Count
         
         Write-Log "成功加载配置文件，共 $totalGames 个游戏" "Success"
+        Write-Log ($script:ui.ConfigLoaded -f $totalGames) "Success"
         
         # 为每个游戏添加表格行
         for ($i = 0; $i -lt $totalGames; $i++) {
@@ -249,6 +286,7 @@ function Load-GameList {
         }
         
         Write-Log "游戏列表已更新" "Info"
+        Write-Log $script:ui.GameListUpdated "Info"
         
         # 仅在成功加载时才添加游戏列表标签页并切换
         if ($tabControl.TabPages.Contains($gameListTabPage) -eq $false) {
@@ -281,7 +319,7 @@ function Find-AndLoadJsonFile {
     }
     
     if ($jsonFiles.Count -eq 0) {
-        Write-Log "警告：当前目录下未找到 [.json] 配置文件" "Warning"
+        Write-Log $script:ui.ConfigNotFound "Warning"
         return $false
     }
     
@@ -294,7 +332,7 @@ function Find-AndLoadJsonFile {
     $global:configPath = $jsonFiles.FullName
     $configTextBox.Text = $global:configPath
     
-    Write-Log "自动检测到配置文件：$((Split-Path -Leaf $script:configPath))" "Info"
+    Write-Log ($script:ui.ConfigSelected + "$((Split-Path -Leaf $script:configPath))") "Info"
     
     # 加载游戏列表
     Load-GameList -ConfigPath $script:configPath
@@ -329,7 +367,7 @@ $browseButton.Add_Click({
     if ($fileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
         $global:configPath = $fileDialog.FileName
         $configTextBox.Text = $global:configPath
-        Write-Log "已选择配置文件：" + $global:configPath "Info"
+        Write-Log ($script:ui.ConfigSelected + $global:configPath) "Info"
         
         # 加载游戏列表（Load-GameList 函数内部会在成功后切换到游戏列表标签页）
         Load-GameList -ConfigPath $global:configPath
@@ -343,21 +381,21 @@ $browseButton.Add_Click({
 
 # 获取机器名和用户名并显示日志
 Write-Log "========================================" "Info"
-Write-Log ("机器名：" + $script:machineName + "  用户名：" + $script:userName) "Info"
+Write-Log ($script:ui.MachineInfo -f $script:machineName, $script:userName) "Info"
 Write-Log "========================================" "Info"
 
 # 复制日志按钮点击事件
 $copyLogButton.Add_Click({
     if ($logTextBox.Text.Length -gt 0) {
         [System.Windows.Forms.Clipboard]::SetText($logTextBox.Text)
-        Write-Log "日志已复制到剪贴板" "Success"
+        Write-Log $script:ui.LogCopied "Success"
     } else {
-        Write-Log "当前没有日志内容" "Warning"
+        Write-Log $script:ui.NoLog "Warning"
     }
 })
 
 # 窗口加载时自动查找并加载 JSON 文件
-Write-Log "正在扫描配置文件..." "Info"
+Write-Log $script:ui.ScanningConfig "Info"
 Find-AndLoadJsonFile
 
 # 开始备份按钮点击事件
@@ -379,7 +417,7 @@ $startButton.Add_Click({
     $progressBar.Value = 0
     
     Write-Log "========================================" "Progress"
-    Write-Log "开始备份任务" "Progress"
+    Write-Log $script:ui.BackupStarted "Progress"
     Write-Log "========================================" "Progress"
     
     # 创建 Runspace 池来执行备份任务
@@ -700,7 +738,7 @@ $startButton.Add_Click({
             catch {}
             
             Write-Log "========================================" "Progress"
-            Write-Log "备份任务完成" "Success"
+            Write-Log $script:ui.BackupCompleted "Success"
             Write-Log "========================================" "Progress"
             
             $progressBar.Value = 100
@@ -718,7 +756,7 @@ $startButton.Add_Click({
     })
     $global:timer.Start()
     
-    Write-Log "Runspace 已启动，开始监控备份任务" "Progress"
+    Write-Log $script:ui.RunspaceStarted "Progress"
 })
 
 # 显示窗口
