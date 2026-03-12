@@ -110,17 +110,18 @@ $gameDataGridView.Columns[1].Width = 200
 $gameDataGridView.Columns[2].Name = "存档路径"
 $gameDataGridView.Columns[2].Width = 740
 
-# 创建底部状态栏
+# 创建底部状态栏（静默，不显示文字）
 $statusLabel = New-Object System.Windows.Forms.Label
-$statusLabel.Text = "就绪"
+$statusLabel.Text = ""
 $statusLabel.Location = New-Object System.Drawing.Point(20, 690)
 $statusLabel.AutoSize = $true
-$statusLabel.ForeColor = [System.Drawing.Color]::Blue
+$statusLabel.Visible = $false
 
-# 进度条
+# 进度条（居中并铺满）
 $progressBar = New-Object System.Windows.Forms.ProgressBar
-$progressBar.Location = New-Object System.Drawing.Point(200, 690)
-$progressBar.Size = New-Object System.Drawing.Size(860, 23)
+$progressBar.Location = New-Object System.Drawing.Point(20, 690)
+$progressBar.Size = New-Object System.Drawing.Size(1040, 23)
+$progressBar.Anchor = [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 $progressBar.Visible = $false
 
 # 将控件添加到游戏列表面板
@@ -150,6 +151,9 @@ $global:isRunning = $false
 $global:configArray = $null
 $global:job = $null
 $global:timer = $null
+$global:asyncResult = $null
+$global:psInstance = $null
+$global:runspacePool = $null
 # 使用 hostname 命令获取完整机器名（与备份.bat 保持一致）
 try {
     $hostnameOutput = & cmd /c hostname
@@ -310,12 +314,8 @@ $copyLogButton.Add_Click({
     if ($logTextBox.Text.Length -gt 0) {
         [System.Windows.Forms.Clipboard]::SetText($logTextBox.Text)
         Write-Log "日志已复制到剪贴板" "Success"
-        $statusLabel.Text = "日志已复制"
-        $statusLabel.ForeColor = [System.Drawing.Color]::Green
     } else {
         Write-Log "当前没有日志内容" "Warning"
-        $statusLabel.Text = "无日志可复制"
-        $statusLabel.ForeColor = [System.Drawing.Color]::Orange
     }
 })
 
@@ -345,13 +345,20 @@ $startButton.Add_Click({
     Write-Log "开始备份任务" "Progress"
     Write-Log "========================================" "Progress"
     
-    try {
-        # 使用 PowerShell 异步执行备份任务
-        $global:job = Start-Job -ScriptBlock {
+    # 创建 Runspace 池来执行备份任务
+    $runspacePool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1, 1)
+    $runspacePool.Open()
+    
+    # 创建 PowerShell 实例
+    $psInstance = [System.Management.Automation.PowerShell]::Create()
+    $psInstance.RunspacePool = $runspacePool
+    
+    # 添加要执行的脚本和参数
+    $psInstance.AddScript({
         param($configPath, $machineName, $userName)
-            
+        
         $output = [System.Collections.ArrayList]::new()
-            
+        
         # 切换到配置目录
         $configDir = Split-Path -Parent $configPath
         Push-Location $configDir
@@ -525,6 +532,9 @@ $startButton.Add_Click({
                 
             Pop-Location
             $output.Add("INFO|") | Out-Null
+            
+            # 每处理完一个游戏，立即输出当前结果
+            Write-Output ($output.ToArray()[-4..-1] -join "|")
         }
             
         # 最终 Git 提交
@@ -541,41 +551,64 @@ $startButton.Add_Click({
         Pop-Location
             
         return $output
-    } -ArgumentList $global:configPath, $script:machineName, $script:userName
-        
-    Write-Log "备份任务已启动 (Job ID: $($global:job.Id))" "Progress"
-}
-catch {
-    Write-Log "启动备份任务失败：$_" "Error"
-    $startButton.Enabled = $true
-    $browseButton.Enabled = $true
-    $global:isRunning = $false
-    return
-}
+    }) | Out-Null
+    
+    $psInstance.AddParameter('configPath', $global:configPath) | Out-Null
+    $psInstance.AddParameter('machineName', $script:machineName) | Out-Null
+    $psInstance.AddParameter('userName', $script:userName) | Out-Null
+    
+    # 异步执行
+    $global:asyncResult = $psInstance.BeginInvoke()
+    $global:psInstance = $psInstance
+    $global:runspacePool = $runspacePool
     
     # 创建并启动 Timer
     $global:timer = New-Object System.Windows.Forms.Timer
-    $global:timer.Interval = 500
+    $global:timer.Interval = 200
     $global:timer.Add_Tick({
-        # 检查 Job 状态
-        if ($null -eq $global:job) {
-            Write-Log "错误：Job 对象为空" "Error"
+        # 检查执行状态
+        if ($null -eq $global:asyncResult) {
+            Write-Log "错误：异步结果为空" "Error"
             $global:timer.Stop()
             return
         }
         
-        # 尝试接收 Job 输出
+        # 尝试接收输出
         try {
-            $jobOutput = Receive-Job -Job $global:job -Keep
-            if ($jobOutput -and $jobOutput.Count -gt 0) {
-                foreach ($line in $jobOutput) {
-                    $parts = $line.ToString() -split '\|', 2
-                    if ($parts.Count -eq 2) {
-                        $level = $parts[0]
-                        $message = $parts[1]
-                        # 避免重复显示 PROGRESS_SIGNAL
-                        if ($level -ne "PROGRESS_SIGNAL") {
-                            Write-Log $message $level
+            if ($global:psInstance.Streams.Output.DataAvailable) {
+                $output = $global:psInstance.Streams.Output.Read()
+                if ($output) {
+                    $lines = $output.ToString() -split '\|'
+                    foreach ($line in $lines) {
+                        if ([string]::IsNullOrWhiteSpace($line)) { continue }
+                        $parts = $line -split '\|', 2
+                        if ($parts.Count -ge 2) {
+                            $level = $parts[0]
+                            $message = $parts[1]
+                            
+                            # 处理进度信号，更新进度条（使用动画效果）
+                            if ($level -eq "PROGRESS_SIGNAL") {
+                                $signalParts = $message -split '\|'
+                                if ($signalParts.Count -eq 2) {
+                                    $current = [int]$signalParts[0]
+                                    $total = [int]$signalParts[1]
+                                    $targetPercentage = [int](($current / $total) * 100)
+                                    
+                                    # 平滑过渡到目标百分比
+                                    $step = 5
+                                    if ($progressBar.Value -lt $targetPercentage) {
+                                        for ($i = $progressBar.Value; $i -le $targetPercentage; $i += $step) {
+                                            $progressBar.Value = $i
+                                            Start-Sleep -Milliseconds 10
+                                        }
+                                    }
+                                    $progressBar.Value = $targetPercentage
+                                }
+                            }
+                            # 避免重复显示 PROGRESS_SIGNAL
+                            elseif ($level -ne "PROGRESS_SIGNAL") {
+                                Write-Log $message $level
+                            }
                         }
                     }
                 }
@@ -585,31 +618,22 @@ catch {
             # 忽略接收错误，继续轮询
         }
         
-        # 更新进度条（基于 PROGRESS_SIGNAL 信号）
-        $progressLines = $logTextBox.Text -split "`r`n" | Where-Object { $_ -match "\[Progress\].*处理.*\/" }
-        if ($progressLines.Count -gt 0) {
-            $lastLine = $progressLines[-1]
-            if ($lastLine -match "处理 (\d+) \/ (\d+)") {
-                $current = [int]$matches[1]
-                $total = [int]$matches[2]
-                $percentage = [int](($current / $total) * 100)
-                $progressBar.Value = $percentage
-            }
-        }
-        
-        if ($global:job.JobStateInfo.State -eq "Completed") {
+        # 检查是否完成
+        if ($global:asyncResult.IsCompleted) {
             $global:timer.Stop()
-            # 最后一次接收所有输出
+            
+            # 获取最终结果
             try {
-                $results = Receive-Job -Job $global:job
-                foreach ($line in $results) {
-                    $parts = $line -split '\|', 2
-                    if ($parts.Count -eq 2) {
-                        $level = $parts[0]
-                        $message = $parts[1]
-                        # 避免重复显示 PROGRESS_SIGNAL
-                        if ($level -ne "PROGRESS_SIGNAL") {
-                            Write-Log $message $level
+                $finalOutput = $global:psInstance.EndInvoke($global:asyncResult)
+                if ($finalOutput) {
+                    foreach ($line in $finalOutput) {
+                        $parts = $line -split '\|', 2
+                        if ($parts.Count -eq 2) {
+                            $level = $parts[0]
+                            $message = $parts[1]
+                            if ($level -ne "PROGRESS_SIGNAL") {
+                                Write-Log $message $level
+                            }
                         }
                     }
                 }
@@ -620,31 +644,22 @@ catch {
             Write-Log "备份任务完成" "Success"
             Write-Log "========================================" "Progress"
             
-            $statusLabel.Text = "备份完成"
-            $statusLabel.ForeColor = [System.Drawing.Color]::Green
+            $progressBar.Value = 100
+            Start-Sleep -Milliseconds 500
             $progressBar.Visible = $false
             $startButton.Enabled = $true
             $browseButton.Enabled = $true
             $global:isRunning = $false
-            Remove-Job -Job $global:job
-            $global:job = $null
-        }
-        elseif ($global:job.JobStateInfo.State -eq "Failed") {
-            $global:timer.Stop()
-            Write-Log ("备份任务失败：" + $global:job.JobStateInfo.Reason.Message) "Error"
-            $statusLabel.Text = "备份失败"
-            $statusLabel.ForeColor = [System.Drawing.Color]::Red
-            $progressBar.Visible = $false
-            $startButton.Enabled = $true
-            $browseButton.Enabled = $true
-            $global:isRunning = $false
-            Remove-Job -Job $global:job
-            $global:job = $null
+            
+            # 清理资源
+            $global:psInstance.Dispose()
+            $global:runspacePool.Close()
+            $global:runspacePool.Dispose()
         }
     })
     $global:timer.Start()
     
-    Write-Log "Timer 已启动，开始监控备份任务" "Progress"
+    Write-Log "Runspace 已启动，开始监控备份任务" "Progress"
 })
 
 # 显示窗口
