@@ -44,6 +44,9 @@ $script:resources = @{
         ColumnIndex = "序号"
         ColumnGameName = "游戏名称"
         ColumnSavePath = "存档路径"
+        FileFilter = "JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*"
+        FileDialogTitle = "选择配置文件"
+        SeparatorLine = "========================================"
         # 备份任务日志
         ERROR_GitMissing = "错误：缺少 git.exe 组件"
         ERROR_GitDownload = "请从 https://git-scm.com/install/windows 下载"
@@ -86,6 +89,9 @@ $script:resources = @{
         ColumnIndex = "#"
         ColumnGameName = "Game Name"
         ColumnSavePath = "Save Path"
+        FileFilter = "JSON Files (*.json)|*.json|All Files (*.*)|*.*"
+        FileDialogTitle = "Select Config File"
+        SeparatorLine = "========================================"
         # Backup Task Logs
         ERROR_GitMissing = "Error: git.exe component is missing"
         ERROR_GitDownload = "Please download from https://git-scm.com/install/windows"
@@ -192,6 +198,7 @@ $tabControl = New-Object System.Windows.Forms.TabControl
 $tabControl.Location = New-Object System.Drawing.Point(0, 0)
 $tabControl.Size = New-Object System.Drawing.Size(1260, 550)
 $tabControl.Dock = "Fill"
+$centerPanel.Controls.Add($tabControl)
 
 # 创建日志标签页
 $logTabPage = New-Object System.Windows.Forms.TabPage
@@ -201,7 +208,7 @@ $tabControl.Controls.Add($logTabPage)
 # 创建游戏列表标签页
 $gameListTabPage = New-Object System.Windows.Forms.TabPage
 $gameListTabPage.Text = $script:ui.GameListTabPage
-$centerPanel.Controls.Add($tabControl)
+# 注意：游戏列表标签页在初始化时不添加到 tabControl，仅在加载配置后动态添加
 
 # 日志显示区域
 $logTextBox = New-Object System.Windows.Forms.RichTextBox
@@ -389,8 +396,8 @@ function Show-LogPanel {
 # 浏览按钮点击事件
 $browseButton.Add_Click({
     $fileDialog = New-Object System.Windows.Forms.OpenFileDialog
-    $fileDialog.Filter = "JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*"
-    $fileDialog.Title = "选择配置文件"
+    $fileDialog.Filter = $script:ui.FileFilter
+    $fileDialog.Title = $script:ui.FileDialogTitle
     
     # 获取脚本所在目录
     try {
@@ -416,9 +423,9 @@ $browseButton.Add_Click({
 })
 
 # 获取机器名和用户名并显示日志
-Write-Log "========================================" "Info"
+Write-Log $script:ui.SeparatorLine "Info"
 Write-Log ($script:ui.MachineInfo -f $script:machineName, $script:userName) "Info"
-Write-Log "========================================" "Info"
+Write-Log $script:ui.SeparatorLine "Info"
 
 # 复制日志按钮点击事件
 $copyLogButton.Add_Click({
@@ -452,9 +459,9 @@ $startButton.Add_Click({
     $progressBar.Maximum = 100
     $progressBar.Value = 0
     
-    Write-Log "========================================" "Progress"
+    Write-Log $script:ui.SeparatorLine "Progress"
     Write-Log $script:ui.BackupStarted "Progress"
-    Write-Log "========================================" "Progress"
+    Write-Log $script:ui.SeparatorLine "Progress"
     
     # 创建 Runspace 池来执行备份任务
     $runspacePool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1, 1)
@@ -774,9 +781,9 @@ $startButton.Add_Click({
             }
             catch {}
             
-            Write-Log "========================================" "Progress"
+            Write-Log $script:ui.SeparatorLine "Progress"
             Write-Log $script:ui.BackupCompleted "Success"
-            Write-Log "========================================" "Progress"
+            Write-Log $script:ui.SeparatorLine "Progress"
             
             $progressBar.Value = 100
             Start-Sleep -Milliseconds 500
