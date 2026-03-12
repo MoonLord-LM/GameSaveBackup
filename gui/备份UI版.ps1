@@ -1,4 +1,4 @@
-﻿# 设置字符编码 UTF-8
+# 设置字符编码 UTF-8
 [System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
@@ -279,12 +279,12 @@ function Write-Log {
         [string]$Message,
         [string]$Level = "Info"
     )
-    
+
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $logLine = "[" + $timestamp + "] " + $Message + "`r`n"
-    
+
     $logTextBox.SelectionStart = $logTextBox.TextLength
-    
+
     switch ($Level) {
         "Info" { $logTextBox.SelectionColor = [System.Drawing.Color]::Black }
         "Success" { $logTextBox.SelectionColor = [System.Drawing.Color]::Green }
@@ -292,7 +292,7 @@ function Write-Log {
         "Error" { $logTextBox.SelectionColor = [System.Drawing.Color]::Red }
         "Progress" { $logTextBox.SelectionColor = [System.Drawing.Color]::Blue }
     }
-    
+
     $logTextBox.AppendText($logLine)
     $logTextBox.ScrollToCaret()
 }
@@ -300,39 +300,39 @@ function Write-Log {
 # 加载并显示游戏列表函数
 function Load-GameList {
     param([string]$ConfigPath)
-    
+
     try {
         # 清空现有的游戏数据
         $gameDataGridView.Rows.Clear()
-        
+
         # 读取 JSON 配置
         $script:configArray = Get-Content -Path $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
         $totalGames = $script:configArray.Count
-        
+
         Write-Log ($script:ui.ConfigLoaded -f $totalGames) "Success"
-        
+
         # 为每个游戏添加表格行
         for ($i = 0; $i -lt $totalGames; $i++) {
             $game = $script:configArray[$i]
             $gameName = $game.name
             $savePath = $game.save
-            
+
             # 替换环境变量显示
             $displayPath = $savePath -replace "%USERPROFILE%", '$env:USERPROFILE'
             $displayPath = $displayPath -replace "%PROGRAMDATA%", '$env:PROGRAMDATA'
-            
+
             # 添加行到表格
             $gameDataGridView.Rows.Add(($i + 1), $gameName, $displayPath) | Out-Null
         }
-        
+
         Write-Log $script:ui.GameListUpdated "Info"
-        
+
         # 仅在成功加载时才添加游戏列表标签页并切换
         if ($tabControl.TabPages.Contains($gameListTabPage) -eq $false) {
             $tabControl.Controls.Add($gameListTabPage)
         }
         $tabControl.SelectedTab = $gameListTabPage
-        
+
     } catch {
         Write-Log ($script:ui.GameListUpdated + ": $_") "Error"
         $script:configArray = $null
@@ -347,7 +347,7 @@ function Find-AndLoadJsonFile {
     } catch {
         $scriptDir = [System.IO.Directory]::GetCurrentDirectory()
     }
-    
+
     # 根据语言目录查找 json 文件
     $langPath = Join-Path $scriptDir $script:langDir
     if (Test-Path $langPath) {
@@ -356,12 +356,12 @@ function Find-AndLoadJsonFile {
         # 如果语言目录不存在，则在根目录查找
         $jsonFiles = Get-ChildItem -Path $scriptDir -Filter "*.json" -File -ErrorAction SilentlyContinue
     }
-    
+
     if ($jsonFiles.Count -eq 0) {
         Write-Log $script:ui.ConfigNotFound "Warning"
         return $false
     }
-    
+
     if ($jsonFiles.Count -gt 1) {
         Write-Log ($script:ui.ConfigNotFound + " (" + $jsonFiles.Count + ")") "Warning"
         return $false
@@ -375,12 +375,12 @@ function Find-AndLoadJsonFile {
 
     # 加载游戏列表
     Load-GameList -ConfigPath $script:configPath
-    
+
     # 如果加载成功，启用开始按钮
     if ($null -ne $script:configArray) {
         $startButton.Enabled = $true
     }
-    
+
     return $true
 }
 
@@ -394,7 +394,7 @@ $browseButton.Add_Click({
     $fileDialog = New-Object System.Windows.Forms.OpenFileDialog
     $fileDialog.Filter = $script:ui.FileFilter
     $fileDialog.Title = $script:ui.FileDialogTitle
-    
+
     # 获取脚本所在目录
     try {
         $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -402,15 +402,15 @@ $browseButton.Add_Click({
         $scriptDir = [System.IO.Directory]::GetCurrentDirectory()
     }
     $fileDialog.InitialDirectory = $scriptDir
-    
+
     if ($fileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
         $global:configPath = $fileDialog.FileName
         $configTextBox.Text = $global:configPath
         Write-Log ($script:ui.ConfigSelected + $global:configPath) "Info"
-        
+
         # 加载游戏列表（Load-GameList 函数内部会在成功后切换到游戏列表标签页）
         Load-GameList -ConfigPath $global:configPath
-        
+
         # 如果加载成功，启用开始按钮
         if ($null -ne $script:configArray) {
             $startButton.Enabled = $true
@@ -440,10 +440,10 @@ $startButton.Add_Click({
     if ($global:isRunning) {
         return
     }
-    
+
     # 切换回日志面板
     Show-LogPanel
-    
+
     $global:isRunning = $true
     $startButton.Enabled = $false
     $browseButton.Enabled = $false
@@ -452,28 +452,28 @@ $startButton.Add_Click({
     $progressBar.Minimum = 0
     $progressBar.Maximum = 100
     $progressBar.Value = 0
-    
+
     Write-Log $script:ui.BackupStarted "Progress"
-    
+
     # 创建 Runspace 池来执行备份任务
     $runspacePool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1, 1)
     $runspacePool.Open()
-    
+
     # 创建 PowerShell 实例
     $psInstance = [System.Management.Automation.PowerShell]::Create()
     $psInstance.RunspacePool = $runspacePool
-    
+
     # 添加要执行的脚本和参数
     $psInstance.AddScript({
         param($configPath, $machineName, $userName, $logQueue, $uiResources)
-        
+
         # 切换到配置目录
         $configDir = Split-Path -Parent $configPath
         Push-Location $configDir
-        
+
         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
         $logQueue.Add("[$timestamp] [Info] 当前工作目录：" + (Get-Location).Path)
-            
+
         # 检查 Git
         $gitExe = Get-Command git -ErrorAction SilentlyContinue
         if (-not $gitExe) {
@@ -482,17 +482,17 @@ $startButton.Add_Click({
             $logQueue.Add("[$timestamp] [Error] " + $uiResources.ERROR_GitDownload)
             return
         }
-            
+
         # 验证选定的配置文件是否存在
         if (-not (Test-Path $configPath)) {
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
             $logQueue.Add("[$timestamp] [Error] " + $uiResources.ERROR_ConfigNotFound + ": " + $configPath)
             return
         }
-            
+
         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
         $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_UsingConfig + ": " + (Split-Path -Leaf $configPath))
-            
+
         # 读取配置文件
         try {
             $configContent = Get-Content -Path $configPath -Raw -Encoding UTF8
@@ -504,10 +504,10 @@ $startButton.Add_Click({
             $logQueue.Add("[$timestamp] [ERROR] 读取配置文件失败：" + $_)
             return
         }
-            
+
         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
         $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_GamesFound + ": " + $totalGames)
-            
+
         # 初始化 Git
         if (-not (Test-Path ".git")) {
             & git init
@@ -518,29 +518,29 @@ $startButton.Add_Click({
             & git config --local i18n.logoutputencoding utf-8
             & git config --local i18n.commitencoding utf-8
         }
-            
+
         $gameIndex = 0
         foreach ($game in $configArray) {
             $gameIndex++
             $name = $game.name
             $save = $game.save
             $ignore = $game.ignore
-                
+
             # 显示当前处理的遊戲
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
             $logQueue.Add("[$timestamp] [Progress] " + $uiResources.PROGRESS_Processing + ": " + $gameIndex + " / " + $totalGames + " - '" + $name + "' @ '" + $save + "'")
-                
+
             # 替换环境变量
             $saveExpanded = $save -replace "%USERPROFILE%", $env:USERPROFILE
             $saveExpanded = $saveExpanded -replace "%PROGRAMDATA%", $env:PROGRAMDATA
-                
+
             # 构建忽略参数
             $ignoreArgs = @()
             $ignoreArgs += "/XF"
             $ignoreArgs += "SaveLocation.bat"
             $ignoreArgs += "/XF"
             $ignoreArgs += "存档位置.bat"
-                
+
             if ($ignore) {
                 foreach ($item in $ignore) {
                     $itemExpanded = $item -replace "%USERPROFILE%", $env:USERPROFILE
@@ -553,7 +553,7 @@ $startButton.Add_Click({
                     $ignoreArgs += $itemExpanded
                 }
             }
-                
+
             # 获取本地文件修改时间
             $maxLocalTime = $null
             $maxLocalTimeString = ""
@@ -568,7 +568,7 @@ $startButton.Add_Click({
                 }
                 catch {}
             }
-                
+
             # 获取备份文件修改时间
             $maxBackupTime = $null
             $maxBackupTimeString = ""
@@ -584,21 +584,21 @@ $startButton.Add_Click({
                 }
                 catch {}
             }
-                
+
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
             $logQueue.Add("[$timestamp] [INFO] " + ($uiResources.INFO_FileTimeComparison -f $maxLocalTimeString, $maxBackupTimeString))
-                
+
             # 创建备份目录
             if (-not (Test-Path $backupDir)) {
                 New-Item -ItemType Directory -Path $backupDir
             }
-                
+
             # 进入备份目录
             Push-Location $backupDir
-                
+
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
             $logQueue.Add("[$timestamp] [Info] 进入备份目录：" + (Get-Location).Path)
-                
+
             # 判断备份策略
             if ($null -eq $maxLocalTime) {
                 if ($null -eq $maxBackupTime) {
@@ -660,15 +660,15 @@ $startButton.Add_Click({
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 $logQueue.Add("[$timestamp] [Success] " + $uiResources.INFO_SameTime)
             }
-                
+
             # 恢复工作目录到配置目录（重要！避免目录层级越来越深）
             Pop-Location
-                
+
             # 游戏处理完成后，发送进度更新信号
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
             $logQueue.Add("[$timestamp] PROGRESS_SIGNAL: $gameIndex|$totalGames")
         }
-            
+
         # 最终 Git 提交
         & git add .
         if (-not (& git diff --cached --quiet)) {
@@ -676,27 +676,27 @@ $startButton.Add_Click({
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
             $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_FinalCommit)
         }
-            
+
         & git clean -df *>$null
-            
+
         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
         $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_BackupComplete)
-            
+
         # 恢复至脚本启动时的工作目录
         Pop-Location
     })
-    
+
     $psInstance.AddParameter('configPath', $global:configPath)
     $psInstance.AddParameter('machineName', $script:machineName)
     $psInstance.AddParameter('userName', $script:userName)
     $psInstance.AddParameter('logQueue', $global:logQueue)
     $psInstance.AddParameter('uiResources', $script:ui)
-    
+
     # 异步执行
     $global:asyncResult = $psInstance.BeginInvoke()
     $global:psInstance = $psInstance
     $global:runspacePool = $runspacePool
-    
+
     # 创建并启动 Timer
     $global:timer = New-Object System.Windows.Forms.Timer
     $global:timer.Interval = 100  # 缩短轮询间隔到 100ms，更快响应
@@ -709,11 +709,11 @@ $startButton.Add_Click({
                     # 直接显示完整日志行
                     # 格式：[timestamp] [Level] Message
                     $firstBracketEnd = $logLine.IndexOf(']', $logLine.IndexOf('['))
-                    
+
                     if ($firstBracketEnd -gt 0) {
                         # 提取完整消息 (包含所有原始内容)
                         $message = $logLine.Substring($firstBracketEnd + 2).Trim()
-                        
+
                         # 处理进度信号
                         if ($message.StartsWith("PROGRESS_SIGNAL:")) {
                             $signalValue = $message.Substring(16).Trim()
@@ -722,7 +722,7 @@ $startButton.Add_Click({
                                 $current = [int]$signalParts[0]
                                 $total = [int]$signalParts[1]
                                 $targetPercentage = [int](($current / $total) * 100)
-                                
+
                                 # 平滑过渡到目标百分比
                                 $step = 3
                                 $currentValue = $progressBar.Value
@@ -739,14 +739,14 @@ $startButton.Add_Click({
                         elseif (-not [string]::IsNullOrWhiteSpace($message)) {
                             # 默认级别为 Info
                             $level = "Info"
-                            
+
                             # 检查是否有级别标记 [Level]
                             if ($message -match "^\[(Info|Error|Warning|Success|Progress)\] ") {
                                 $level = $matches[1]
                                 # 移除级别标记，只保留实际消息
                                 $message = $message -replace "^\[(Info|Error|Warning|Success|Progress)\] ", ""
                             }
-                            
+
                             Write-Log $message $level
                         }
                     }
@@ -756,14 +756,14 @@ $startButton.Add_Click({
         catch {
             # 忽略读取错误
         }
-        
+
         # 检查是否完成
         if ($global:asyncResult.IsCompleted) {
             $global:timer.Stop()
-            
+
             # 等待一小段时间确保所有日志都被读取
             Start-Sleep -Milliseconds 200
-            
+
             # 清空剩余的日志
             try {
                 if ($null -ne $global:logQueue -and -not $global:logQueue.IsEmpty) {
@@ -771,21 +771,21 @@ $startButton.Add_Click({
                     while ($global:logQueue.TryTake([ref]$logLine)) {
                         # 提取完整日志内容
                         $firstBracketEnd = $logLine.IndexOf(']', $logLine.IndexOf('['))
-                        
+
                         if ($firstBracketEnd -gt 0) {
                             $message = $logLine.Substring($firstBracketEnd + 2).Trim()
                             # 跳过进度信号，显示其他日志（带颜色）
                             if (-not $message.StartsWith("PROGRESS_SIGNAL:") -and -not [string]::IsNullOrWhiteSpace($message)) {
                                 # 默认级别为 Info
                                 $level = "Info"
-                                
+
                                 # 检查是否有级别标记 [Level]
                                 if ($message -match "^\[(Info|Error|Warning|Success|Progress)\] ") {
                                     $level = $matches[1]
                                     # 移除级别标记，只保留实际消息
                                     $message = $message -replace "^\[(Info|Error|Warning|Success|Progress)\] ", ""
                                 }
-                                
+
                                 Write-Log $message $level
                             }
                         }
@@ -793,14 +793,14 @@ $startButton.Add_Click({
                 }
             }
             catch {}
-            
+
             $progressBar.Value = 100
             Start-Sleep -Milliseconds 500
             $progressBar.Visible = $false
             $startButton.Enabled = $true
             $browseButton.Enabled = $true
             $global:isRunning = $false
-            
+
             # 清理资源
             $global:psInstance.Dispose()
             $global:runspacePool.Close()
@@ -808,7 +808,7 @@ $startButton.Add_Click({
         }
     })
     $global:timer.Start()
-    
+
     Write-Log $script:ui.RunspaceStarted "Progress"
 })
 
