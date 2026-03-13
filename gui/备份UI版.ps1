@@ -1,4 +1,8 @@
-﻿# 设置字符编码 UTF-8
+﻿# DEBUG 显示 PowerShell 版本信息，勿删
+Write-Host "`$PSVersionTable :"
+$PSVersionTable
+
+# 设置字符编码 UTF-8
 [System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
