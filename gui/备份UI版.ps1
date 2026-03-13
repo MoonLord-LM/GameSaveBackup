@@ -722,16 +722,6 @@ $startButton.Add_Click({
                                 $current = [int]$signalParts[0]
                                 $total = [int]$signalParts[1]
                                 $targetPercentage = [int](($current / $total) * 100)
-
-                                # 平滑过渡到目标百分比
-                                $step = 3
-                                $currentValue = $progressBar.Value
-                                if ($currentValue -lt $targetPercentage) {
-                                    for ($i = $currentValue; $i -le $targetPercentage; $i += $step) {
-                                        $progressBar.Value = $i
-                                        Start-Sleep -Milliseconds 20
-                                    }
-                                }
                                 $progressBar.Value = $targetPercentage
                             }
                         }
@@ -760,9 +750,6 @@ $startButton.Add_Click({
         # 检查是否完成
         if ($global:asyncResult.IsCompleted) {
             $global:timer.Stop()
-
-            # 等待一小段时间确保所有日志都被读取
-            Start-Sleep -Milliseconds 200
 
             # 清空剩余的日志
             try {
@@ -795,7 +782,6 @@ $startButton.Add_Click({
             catch {}
 
             $progressBar.Value = 100
-            Start-Sleep -Milliseconds 500
             $progressBar.Visible = $false
             $startButton.Enabled = $true
             $browseButton.Enabled = $true
