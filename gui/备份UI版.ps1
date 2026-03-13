@@ -126,11 +126,12 @@ $form.Text = $script:ui.FormTitle
 $form.Size = New-Object System.Drawing.Size(1280, 720)
 $form.StartPosition = "CenterScreen"
 $form.Font = New-Object System.Drawing.Font("Microsoft YaHei", 10)
+$form.MinimumSize = New-Object System.Drawing.Size(1000, 600)
 
 # 创建顶部面板（操作区）
 $topPanel = New-Object System.Windows.Forms.Panel
 $topPanel.Dock = "Top"
-$topPanel.Size = New-Object System.Drawing.Size(1280, 60)
+$topPanel.Height = 60
 $topPanel.Padding = New-Object System.Windows.Forms.Padding(10, 10, 10, 10)
 
 # 创建中部面板（内容区）
@@ -141,13 +142,8 @@ $centerPanel.Padding = New-Object System.Windows.Forms.Padding(10, 0, 10, 0)
 # 创建底部面板（提示区）
 $bottomPanel = New-Object System.Windows.Forms.Panel
 $bottomPanel.Dock = "Bottom"
-$bottomPanel.Size = New-Object System.Drawing.Size(1280, 40)
+$bottomPanel.Height = 40
 $bottomPanel.Padding = New-Object System.Windows.Forms.Padding(10, 10, 10, 10)
-
-# DEBUG 调试布局使用，勿删
-# $topPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-# $centerPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-# $bottomPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
 
 # 将三个面板添加到主窗口（注意顺序：先添加 Fill，再添加 Top/Bottom）
 $form.Controls.Add($centerPanel)
@@ -155,51 +151,66 @@ $form.Controls.Add($topPanel)
 $form.Controls.Add($bottomPanel)
 
 # 配置文件标签和文本框
+$topInfoPanel = New-Object System.Windows.Forms.Panel
+$topInfoPanel.Dock = "Fill"
+$topPanel.Controls.Add($topInfoPanel)
+
+# 配置文件标签
 $configLabel = New-Object System.Windows.Forms.Label
 $configLabel.Text = $script:ui.ConfigLabel
-$configLabel.Location = New-Object System.Drawing.Point(15, 20)
-$configLabel.AutoSize = $true
-$topPanel.Controls.Add($configLabel)
+$configLabel.Location = New-Object System.Drawing.Point(10, 10)
+$configLabel.Size = New-Object System.Drawing.Size(80, 40)
+$topInfoPanel.Controls.Add($configLabel)
 
-# 配置文件文本框 - 使用 Anchor 实现自适应
+# 配置文件文本框
 $configTextBox = New-Object System.Windows.Forms.TextBox
-$configTextBox.Location = New-Object System.Drawing.Point(95, 18)
-$configTextBox.Size = New-Object System.Drawing.Size(800, 50)
-$configTextBox.Anchor = [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
+$configTextBox.Anchor = "Left, Right"
+$configTextBox.Location = New-Object System.Drawing.Point(100, 8)
+$configTextBox.Width = $topInfoPanel.Width - 130
 $configTextBox.ReadOnly = $true
-$topPanel.Controls.Add($configTextBox)
+$topInfoPanel.Controls.Add($configTextBox)
 
-# 选择配置按钮 - 固定在右侧最左边
+# 按钮组 Panel
+$topButtonGroupPanel = New-Object System.Windows.Forms.Panel
+$topButtonGroupPanel.Dock = "Right"
+$topButtonGroupPanel.Width = 360
+$topPanel.Controls.Add($topButtonGroupPanel)
+
+# 选择配置按钮
 $browseButton = New-Object System.Windows.Forms.Button
 $browseButton.Text = $script:ui.BrowseButton
-$browseButton.Location = New-Object System.Drawing.Point(900, 15)
+$browseButton.Location = New-Object System.Drawing.Point(5, 5)
 $browseButton.Size = New-Object System.Drawing.Size(110, 30)
-$browseButton.Anchor = [System.Windows.Forms.AnchorStyles]::Right
 $browseButton.BackColor = [System.Drawing.Color]::LightBlue
-$topPanel.Controls.Add($browseButton)
+$topButtonGroupPanel.Controls.Add($browseButton)
 
-# 开始备份按钮 - 在选择配置按钮右边
+# 开始备份按钮
 $startButton = New-Object System.Windows.Forms.Button
 $startButton.Text = $script:ui.StartButton
-$startButton.Location = New-Object System.Drawing.Point(1020, 15)
+$startButton.Location = New-Object System.Drawing.Point(125, 5)
 $startButton.Size = New-Object System.Drawing.Size(110, 30)
-$startButton.Anchor = [System.Windows.Forms.AnchorStyles]::Right
 $startButton.BackColor = [System.Drawing.Color]::LightBlue
 $startButton.Enabled = $false
-$topPanel.Controls.Add($startButton)
+$topButtonGroupPanel.Controls.Add($startButton)
 
-# 复制日志按钮 - 在最右边
+# 复制日志按钮
 $copyLogButton = New-Object System.Windows.Forms.Button
 $copyLogButton.Text = $script:ui.CopyLogButton
-$copyLogButton.Location = New-Object System.Drawing.Point(1140, 15)
+$copyLogButton.Location = New-Object System.Drawing.Point(245, 5)
 $copyLogButton.Size = New-Object System.Drawing.Size(110, 30)
-$copyLogButton.Anchor = [System.Windows.Forms.AnchorStyles]::Right
-$topPanel.Controls.Add($copyLogButton)
+$topButtonGroupPanel.Controls.Add($copyLogButton)
+
+# DEBUG 调试布局使用，勿删
+# $topPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+# $centerPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+# $bottomPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+# $topInfoPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+# $topButtonGroupPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+# $configLabel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+# $configTextBox.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
 
 # 创建中部 TabControl（标签页容器）
 $tabControl = New-Object System.Windows.Forms.TabControl
-$tabControl.Location = New-Object System.Drawing.Point(0, 0)
-$tabControl.Size = New-Object System.Drawing.Size(1260, 550)
 $tabControl.Dock = "Fill"
 $centerPanel.Controls.Add($tabControl)
 
@@ -219,8 +230,6 @@ $logTextBox.ReadOnly = $true
 $logTextBox.ScrollBars = [System.Windows.Forms.RichTextBoxScrollBars]::Vertical
 $logTextBox.BorderStyle = [System.Windows.Forms.BorderStyle]::None
 $logTextBox.BackColor = [System.Drawing.Color]::White
-$logTextBox.Location = New-Object System.Drawing.Point(0, 0)
-$logTextBox.Size = New-Object System.Drawing.Size(1260, 560)
 $logTextBox.Dock = "Fill"
 $logTabPage.Controls.Add($logTextBox)
 
@@ -235,8 +244,6 @@ $gameDataGridView.BackgroundColor = [System.Drawing.Color]::White
 $gameDataGridView.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::LightGray
 $gameDataGridView.ColumnHeadersHeight = 40
 $gameDataGridView.RowTemplate.Height = 30
-$gameDataGridView.Location = New-Object System.Drawing.Point(0, 0)
-$gameDataGridView.Size = New-Object System.Drawing.Size(1260, 560)
 $gameDataGridView.Dock = "Fill"
 $gameDataGridView.ColumnCount = 3
 $gameDataGridView.Columns[0].Name = $script:ui.ColumnIndex
