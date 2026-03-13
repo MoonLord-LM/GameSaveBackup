@@ -10,19 +10,20 @@ Add-Type -AssemblyName System.Drawing
 try {
     $systemLang = [System.Globalization.CultureInfo]::CurrentUICulture.TwoLetterISOLanguageName
     if ($systemLang -eq 'zh') {
-        $script:langDir = 'zh-cn'
-        $script:uiLang = 'zh-cn'
+        $script:uiLang = 'zh'
     } else {
-        $script:langDir = 'en-us'
-        $script:uiLang = 'en-us'
+        $script:uiLang = 'en'
     }
+
+    # DEBUG 测试国际化使用，勿删
+    $script:uiLang = 'en'
 } catch {
-    $script:langDir = 'en-us'
+    $script:uiLang = 'en'
 }
 
 # 定义多语言资源
 $script:resources = @{
-    'zh-cn' = @{
+    'zh' = @{
         FormTitle = "游戏存档备份工具"
         ConfigLabel = "配置文件:"
         BrowseButton = "选择配置"
@@ -53,6 +54,9 @@ $script:resources = @{
         INFO_GamesFound = "找到游戏配置数量"
         PROGRESS_Processing = "处理"
         INFO_IgnoreItem = "忽略项"
+        INFO_CurrentWorkingDir = "当前工作目录"
+        INFO_EnteringBackupDir = "进入备份目录"
+        ERROR_ConfigReadFailed = "读取配置文件失败"
         INFO_FileTimeComparison = "本地文件修改时间:[{0}] 备份文件修改时间:[{1}]"
         WARNING_BothMissing = "本地存档文件与备份文件都不存在，跳过操作"
         WARNING_LocalMissing = "本地存档文件缺失，使用备份文件恢复"
@@ -65,7 +69,7 @@ $script:resources = @{
         SUCCESS_FinalCommit = "最终 Git 提交完成"
         SUCCESS_BackupComplete = "备份完成"
     }
-    'en-us' = @{
+    'en' = @{
         FormTitle = "Game Save Backup Tool"
         ConfigLabel = "Config File:"
         BrowseButton = "Browse Config"
@@ -96,6 +100,9 @@ $script:resources = @{
         INFO_GamesFound = "game(s) found in configuration"
         PROGRESS_Processing = "Processing"
         INFO_IgnoreItem = "Ignore item"
+        INFO_CurrentWorkingDir = "Current working directory"
+        INFO_EnteringBackupDir = "Entering backup directory"
+        ERROR_ConfigReadFailed = "Failed to read config file"
         INFO_FileTimeComparison = "Local file time:[{0}] Backup file time:[{1}]"
         WARNING_BothMissing = "Both local save and backup files are missing, skipping"
         WARNING_LocalMissing = "Local save file is missing, restoring from backup"
@@ -156,7 +163,7 @@ $topPanel.Controls.Add($configLabel)
 
 # 配置文件文本框 - 使用 Anchor 实现自适应
 $configTextBox = New-Object System.Windows.Forms.TextBox
-$configTextBox.Location = New-Object System.Drawing.Point(90, 18)
+$configTextBox.Location = New-Object System.Drawing.Point(95, 18)
 $configTextBox.Size = New-Object System.Drawing.Size(800, 50)
 $configTextBox.Anchor = [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 $configTextBox.ReadOnly = $true
@@ -222,7 +229,7 @@ $gameDataGridView = New-Object System.Windows.Forms.DataGridView
 $gameDataGridView.ReadOnly = $true
 $gameDataGridView.AllowUserToAddRows = $false
 $gameDataGridView.AllowUserToDeleteRows = $false
-$gameDataGridView.ScrollBars = [System.Windows.Forms.ScrollBars]::Vertical
+$gameDataGridView.ScrollBars = [System.Windows.Forms.ScrollBars]::Both
 $gameDataGridView.BorderStyle = [System.Windows.Forms.BorderStyle]::None
 $gameDataGridView.BackgroundColor = [System.Drawing.Color]::White
 $gameDataGridView.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::LightGray
@@ -235,9 +242,9 @@ $gameDataGridView.ColumnCount = 3
 $gameDataGridView.Columns[0].Name = $script:ui.ColumnIndex
 $gameDataGridView.Columns[0].Width = 60
 $gameDataGridView.Columns[1].Name = $script:ui.ColumnGameName
-$gameDataGridView.Columns[1].Width = 200
+$gameDataGridView.Columns[1].Width = 320
 $gameDataGridView.Columns[2].Name = $script:ui.ColumnSavePath
-$gameDataGridView.Columns[2].Width = 920
+$gameDataGridView.Columns[2].Width = 780
 $gameListTabPage.Controls.Add($gameDataGridView)
 
 # 底部进度条
@@ -348,14 +355,7 @@ function Find-AndLoadJsonFile {
         $scriptDir = [System.IO.Directory]::GetCurrentDirectory()
     }
 
-    # 根据语言目录查找 json 文件
-    $langPath = Join-Path $scriptDir $script:langDir
-    if (Test-Path $langPath) {
-        $jsonFiles = Get-ChildItem -Path $langPath -Filter "*.json" -File -ErrorAction SilentlyContinue
-    } else {
-        # 如果语言目录不存在，则在根目录查找
-        $jsonFiles = Get-ChildItem -Path $scriptDir -Filter "*.json" -File -ErrorAction SilentlyContinue
-    }
+    $jsonFiles = Get-ChildItem -Path $scriptDir -Filter "*.json" -File -ErrorAction SilentlyContinue
 
     if ($jsonFiles.Count -eq 0) {
         Write-Log $script:ui.ConfigNotFound "Warning"
@@ -472,7 +472,7 @@ $startButton.Add_Click({
         Push-Location $configDir
 
         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        $logQueue.Add("[$timestamp] [Info] 当前工作目录：" + (Get-Location).Path)
+        $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_CurrentWorkingDir + ": " + (Get-Location).Path)
 
         # 检查 Git
         $gitExe = Get-Command git -ErrorAction SilentlyContinue
@@ -501,7 +501,7 @@ $startButton.Add_Click({
         }
         catch {
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $logQueue.Add("[$timestamp] [ERROR] 读取配置文件失败：" + $_)
+            $logQueue.Add("[$timestamp] [ERROR] " + $uiResources.ERROR_ConfigReadFailed + ": " + $_)
             return
         }
 
@@ -597,7 +597,7 @@ $startButton.Add_Click({
             Push-Location $backupDir
 
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $logQueue.Add("[$timestamp] [Info] 进入备份目录：" + (Get-Location).Path)
+            $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_EnteringBackupDir + ": " + (Get-Location).Path)
 
             # 判断备份策略
             if ($null -eq $maxLocalTime) {
