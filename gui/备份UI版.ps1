@@ -16,7 +16,7 @@ try {
     }
 
     # DEBUG 测试国际化使用，勿删
-    $script:uiLang = 'en'
+    # $script:uiLang = 'en'
 } catch {
     $script:uiLang = 'en'
 }
@@ -619,7 +619,7 @@ $startButton.Add_Click({
                     $sh.Namespace(10).MoveHere($saveExpanded)
                     $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs
                     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_RobocopyReturn + ": " + $result)
+                    $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_RobocopyReturn + ": `r`n" + $result)
                 }
             }
             elseif ($null -eq $maxBackupTime) {
@@ -633,7 +633,7 @@ $startButton.Add_Click({
                 }
                 $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_RobocopyReturn + ": " + $result)
+                $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_RobocopyReturn + ": `r`n" + $result)
                 & git add .
                 if (-not (& git diff --cached --quiet)) {
                     & git commit -m ("Update - " + $name + " on " + $machineName + " by " + $userName)
@@ -648,14 +648,14 @@ $startButton.Add_Click({
                 $sh.Namespace(10).MoveHere($saveExpanded)
                 $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_RobocopyReturn + ": " + $result)
+                $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_RobocopyReturn + ": `r`n" + $result)
             }
             elseif ($maxLocalTime -gt $maxBackupTime) {
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_LocalNewer)
                 $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_RobocopyReturn + ": " + $result)
+                $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_RobocopyReturn + ": `r`n" + $result)
                 & git add .
                 if (-not (& git diff --cached --quiet)) {
                     & git commit -m ("Update - " + $name + " on " + $machineName + " by " + $userName)
