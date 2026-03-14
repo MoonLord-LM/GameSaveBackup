@@ -68,7 +68,9 @@ $script:resources = @{
         WARNING_LocalOlder = "本地存档文件修改时间较旧，删除到回收站，并使用备份文件更新"
         INFO_LocalNewer = "本地存档文件修改时间较新，进行备份"
         INFO_SameTime = "本地存档文件与备份文件修改时间相同，跳过操作"
-        INFO_RobocopyReturn = "Robocopy 返回信息"
+        INFO_RobocopyReturn = "Robocopy 输出信息"
+        INFO_GitExecuting = "正在执行 Git 命令"
+        INFO_GitOutput = "Git 输出信息"
         SUCCESS_GitCommit = "Git 提交完成"
         SUCCESS_FinalCommit = "最终 Git 提交完成"
         SUCCESS_BackupComplete = "备份完成"
@@ -114,7 +116,9 @@ $script:resources = @{
         WARNING_LocalOlder = "Local save file is older, deleting to recycle bin and updating from backup"
         INFO_LocalNewer = "Local save file is newer, performing backup"
         INFO_SameTime = "Local and backup files have the same modification time, skipping"
-        INFO_RobocopyReturn = "Robocopy return info"
+        INFO_RobocopyReturn = "Robocopy output info"
+        INFO_GitExecuting = "Executing Git command"
+        INFO_GitOutput = "Git output"
         SUCCESS_GitCommit = "Git commit completed"
         SUCCESS_FinalCommit = "Final Git commit completed"
         SUCCESS_BackupComplete = "Backup completed successfully"
@@ -309,6 +313,7 @@ function Write-Log {
         "Warning" { $logTextBox.SelectionColor = [System.Drawing.Color]::Orange }
         "Error" { $logTextBox.SelectionColor = [System.Drawing.Color]::Red }
         "Progress" { $logTextBox.SelectionColor = [System.Drawing.Color]::Blue }
+        "Debug" { $logTextBox.SelectionColor = [System.Drawing.Color]::Gray }
     }
 
     $logTextBox.AppendText($logLine)
@@ -478,6 +483,42 @@ $startButton.Add_Click({
     $psInstance.AddScript({
         param($configPath, $machineName, $userName, $logQueue, $uiResources)
 
+        # Git 命令执行函数（带错误处理和日志记录）
+        function Invoke-GitCommand {
+            param(
+                [string]$Arguments,
+                [string]$ErrorMessage,
+                [System.Collections.Concurrent.ConcurrentBag[string]]$LogQueue,
+                [hashtable]$UiResources
+            )
+            
+            try {
+                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                $logQueue.Add("[$timestamp] [Info] " + $UiResources.INFO_GitExecuting + ": git $Arguments")
+                
+                # 执行 Git 命令并捕获所有输出
+                $output = & git $Arguments.Split(' ') 2>&1 | Out-String
+                $exitCode = $LASTEXITCODE
+                
+                # 记录 Git 输出
+                if ($output -and $output.Trim()) {
+                    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                    $logQueue.Add("[$timestamp] [Debug] " + $UiResources.INFO_GitOutput + ":`r`n" + $output)
+                }
+                
+                if ($exitCode -ne 0) {
+                    throw "$ErrorMessage (Exit Code: $exitCode): $output"
+                }
+                
+                return $output
+            }
+            catch {
+                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                $logQueue.Add("[$timestamp] [Error] $_")
+                throw
+            }
+        }
+
         # 切换到配置目录
         $configDir = Split-Path -Parent $configPath
         Push-Location $configDir
@@ -521,13 +562,22 @@ $startButton.Add_Click({
 
         # 初始化 Git
         if (-not (Test-Path ".git")) {
-            & git init
-            & git config --local core.autocrlf false
-            & git config --local core.safecrlf false
-            & git config --local core.ignorecase false
-            & git config --local core.quotepath false
-            & git config --local i18n.logoutputencoding utf-8
-            & git config --local i18n.commitencoding utf-8
+            try {
+                $null = & git init 2>&1 | Out-String
+                $null = & git config --local core.autocrlf false 2>&1 | Out-String
+                $null = & git config --local core.safecrlf false 2>&1 | Out-String
+                $null = & git config --local core.ignorecase false 2>&1 | Out-String
+                $null = & git config --local core.quotepath false 2>&1 | Out-String
+                $null = & git config --local i18n.logoutputencoding utf-8 2>&1 | Out-String
+                $null = & git config --local i18n.commitencoding utf-8 2>&1 | Out-String
+                
+                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                $logQueue.Add("[$timestamp] [Success] Git repository initialized and configured")
+            }
+            catch {
+                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                $logQueue.Add("[$timestamp] [Error] Failed to initialize Git repository: $_")
+            }
         }
 
         $gameIndex = 0
@@ -623,7 +673,7 @@ $startButton.Add_Click({
                     $sh.Namespace(10).MoveHere($saveExpanded)
                     $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
                     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_RobocopyReturn + ":" + $result)
+                    $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyReturn + ":`r`n" + $result)
                 }
             }
             elseif ($null -eq $maxBackupTime) {
@@ -637,12 +687,22 @@ $startButton.Add_Click({
                 }
                 $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_RobocopyReturn + ":" + $result)
-                & git add .
-                if (-not (& git diff --cached --quiet)) {
-                    & git commit -m ("Update - " + $name + " on " + $machineName + " by " + $userName)
+                $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyReturn + ":`r`n" + $result)
+                
+                try {
+                    $null = Invoke-GitCommand -Arguments "add ." -ErrorMessage "Git add failed" -LogQueue $logQueue -UiResources $uiResources
+                    
+                    $diffResult = & git diff --cached --quiet 2>&1
+                    if ($LASTEXITCODE -ne 0) {
+                        $commitMsg = "Update - " + $name + " on " + $machineName + " by " + $userName
+                        $null = Invoke-GitCommand -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed" -LogQueue $logQueue -UiResources $uiResources
+                        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                        $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_GitCommit)
+                    }
+                }
+                catch {
                     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_GitCommit)
+                    $logQueue.Add("[$timestamp] [Error] Git operation failed: $_")
                 }
             }
             elseif ($maxLocalTime -lt $maxBackupTime) {
@@ -652,19 +712,29 @@ $startButton.Add_Click({
                 $sh.Namespace(10).MoveHere($saveExpanded)
                 $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_RobocopyReturn + ":" + $result)
+                $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyReturn + ":`r`n" + $result)
             }
             elseif ($maxLocalTime -gt $maxBackupTime) {
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_LocalNewer)
                 $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_RobocopyReturn + ":" + $result)
-                & git add .
-                if (-not (& git diff --cached --quiet)) {
-                    & git commit -m ("Update - " + $name + " on " + $machineName + " by " + $userName)
+                $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyReturn + ":`r`n" + $result)
+                
+                try {
+                    $null = Invoke-GitCommand -Arguments "add ." -ErrorMessage "Git add failed" -LogQueue $logQueue -UiResources $uiResources
+                    
+                    $diffResult = & git diff --cached --quiet 2>&1
+                    if ($LASTEXITCODE -ne 0) {
+                        $commitMsg = "Update - " + $name + " on " + $machineName + " by " + $userName
+                        $null = Invoke-GitCommand -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed" -LogQueue $logQueue -UiResources $uiResources
+                        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                        $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_GitCommit)
+                    }
+                }
+                catch {
                     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_GitCommit)
+                    $logQueue.Add("[$timestamp] [Error] Git operation failed: $_")
                 }
             }
             else {
@@ -681,17 +751,37 @@ $startButton.Add_Click({
         }
 
         # 最终 Git 提交
-        & git add .
-        if (-not (& git diff --cached --quiet)) {
-            & git commit -m ("Update - on " + $machineName + " by " + $userName)
+        try {
+            $null = Invoke-GitCommand -Arguments "add ." -ErrorMessage "Final Git add failed" -LogQueue $logQueue -UiResources $uiResources
+            
+            $diffResult = & git diff --cached --quiet 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                $commitMsg = "Update - on " + $machineName + " by " + $userName
+                $null = Invoke-GitCommand -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Final Git commit failed" -LogQueue $logQueue -UiResources $uiResources
+                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_FinalCommit)
+            }
+        }
+        catch {
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_FinalCommit)
+            $logQueue.Add("[$timestamp] [Error] Final Git operation failed: $_")
+        }
+        
+        # Git clean 操作
+        try {
+            $cleanOutput = & git clean -df 2>&1 | Out-String
+            if ($cleanOutput -and $cleanOutput.Trim()) {
+                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                $logQueue.Add("[$timestamp] [Debug] Git clean output: " + $cleanOutput)
+            }
+        }
+        catch {
+            $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            $logQueue.Add("[$timestamp] [Warning] Git clean failed: $_")
         }
 
-        & git clean -df *>$null
-
         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_BackupComplete)
+        $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_BackupComplete + "`r`n")
 
         # 恢复至脚本启动时的工作目录
         Pop-Location
@@ -742,10 +832,10 @@ $startButton.Add_Click({
                             $level = "Info"
 
                             # 检查是否有级别标记 [Level]
-                            if ($message -match "^\[(Info|Error|Warning|Success|Progress)\] ") {
+                            if ($message -match "^\[(Error|Warning|Success|Info|Progress|Debug)\] ") {
                                 $level = $matches[1]
                                 # 移除级别标记，只保留实际消息
-                                $message = $message -replace "^\[(Info|Error|Warning|Success|Progress)\] ", ""
+                                $message = $message -replace "^\[(Error|Warning|Success|Info|Progress|Debug)\] ", ""
                             }
 
                             Write-Log $message $level
@@ -778,10 +868,10 @@ $startButton.Add_Click({
                                 $level = "Info"
 
                                 # 检查是否有级别标记 [Level]
-                                if ($message -match "^\[(Info|Error|Warning|Success|Progress)\] ") {
+                                if ($message -match "^\[(Error|Warning|Success|Info|Progress|Debug)\] ") {
                                     $level = $matches[1]
                                     # 移除级别标记，只保留实际消息
-                                    $message = $message -replace "^\[(Info|Error|Warning|Success|Progress)\] ", ""
+                                    $message = $message -replace "^\[(Error|Warning|Success|Info|Progress|Debug)\] ", ""
                                 }
 
                                 Write-Log $message $level
