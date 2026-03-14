@@ -274,6 +274,16 @@ $logTextBox.BackColor = [System.Drawing.Color]::White
 $logTextBox.Dock = "Fill"
 $logTabPage.Controls.Add($logTextBox)
 
+# 隐藏的 RichTextBox（用于折叠/展开时的离屏渲染）
+$logTextBoxHidden = New-Object System.Windows.Forms.RichTextBox
+$logTextBoxHidden.ReadOnly = $true
+$logTextBoxHidden.ScrollBars = [System.Windows.Forms.RichTextBoxScrollBars]::Vertical
+$logTextBoxHidden.BorderStyle = [System.Windows.Forms.BorderStyle]::None
+$logTextBoxHidden.BackColor = [System.Drawing.Color]::White
+$logTextBoxHidden.Size = New-Object System.Drawing.Size(10, 10)  # 小尺寸，放在角落
+$logTextBoxHidden.Location = New-Object System.Drawing.Point(-1000, -1000)  # 放在屏幕外
+$form.Controls.Add($logTextBoxHidden)
+
 # 游戏信息显示表格
 $gameDataGridView = New-Object System.Windows.Forms.DataGridView
 $gameDataGridView.ReadOnly = $true
@@ -578,10 +588,6 @@ $logTextBox.Add_MouseClick({
                             $savedSelectionLength = $logTextBox.SelectionLength
                             Write-Host "DEBUG: 保存的选中状态 SelectionStart=$savedSelectionStart, SelectionLength=$savedSelectionLength" -ForegroundColor Cyan
                             
-                            # 暂时移动到屏幕外（避免焦点转移和闪烁）
-                            $originalLeft = $logTextBox.Left
-                            $logTextBox.Left = 10000
-                            
                             # 使用 RichTextBox 的文本操作方法替换内容（保持格式）
                             $startCharIndex = $logTextBox.GetFirstCharIndexFromLine($lineIndex)
                             $endCharIndex = $logTextBox.GetFirstCharIndexFromLine($lineIndex + 1)
@@ -590,42 +596,23 @@ $logTextBox.Add_MouseClick({
                             # 计算要替换的长度
                             $replaceLength = $endCharIndex - $startCharIndex
                             
-                            # 选中要替换的行
+                            # 选中原来的折叠行
                             $logTextBox.Select($startCharIndex, $replaceLength)
                             
-                            # 插入新文本
-                            $logTextBox.SelectedText = $resultText
-                                                
-                            # 保持颜色一致：从展开的起始位置开始，逐行设置颜色
-                            # 计算展开后的行数（通过计算换行符数量）
-                            $newlineCount = ([regex]::Matches($resultText, "`r?`n")).Count
-                            $expandedLineCount = $newlineCount  # 不需要 +1，因为 resultText 末尾有换行符
+                            # 先设置颜色，再插入文本（这样新文本会继承当前颜色）
+                            $logTextBox.SelectionColor = $color
                             
-                            for ($i = 0; $i -lt $expandedLineCount; $i++) {
-                                $currentLineIndex = $lineIndex + $i
-                                if ($currentLineIndex -lt $logTextBox.Lines.Count) {
-                                    $lineStartIndex = $logTextBox.GetFirstCharIndexFromLine($currentLineIndex)
-                                    $lineLength = $logTextBox.Lines[$currentLineIndex].Length
-                                    # 使用 Select 方法设置颜色
-                                    $logTextBox.Select($lineStartIndex, $lineLength)
-                                    $logTextBox.SelectionColor = $color
-                                }
-                            }
+                            # 插入新文本（所有行都会是灰色）
+                            $logTextBox.SelectedText = $resultText
 
                             # 更新状态为已展开
                             $global:debugFullLogs[$key].IsExpanded = $true
-
-                            # 恢复位置
-                            $logTextBox.Left = $originalLeft
                             
                             # 恢复当前的选中状态
                             $logTextBox.SelectionStart = $savedSelectionStart
                             $logTextBox.SelectionLength = $savedSelectionLength
                             Write-Host "DEBUG: 恢复的选中状态 SelectionStart=$savedSelectionStart, SelectionLength=$savedSelectionLength" -ForegroundColor Cyan
 
-                            # 重新显示文本框并恢复焦点
-                            $logTextBox.Visible = $true
-                            $logTextBox.Focus()
                             break
                         }
                     }
@@ -653,10 +640,6 @@ $logTextBox.Add_MouseClick({
                                 $savedSelectionStart = $logTextBox.SelectionStart
                                 $savedSelectionLength = $logTextBox.SelectionLength
                                 
-                                # 暂时移动到屏幕外（避免焦点转移和闪烁）
-                                $originalLeft = $logTextBox.Left
-                                $logTextBox.Left = 10000
-                                
                                 # 计算实际展开的行数（使用存储的完整文本）
                                 $fullExpandedLines = $storedData.FullText -split "`r?`n"
                                 $actualExpandedLineCount = ($fullExpandedLines | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count
@@ -671,29 +654,20 @@ $logTextBox.Add_MouseClick({
                                 # 选中展开的所有内容
                                 $logTextBox.Select($startCharIndex, $endCharIndex - $startCharIndex)
                                 
+                                # 先设置颜色，再替换文本（这样新文本会继承当前颜色）
+                                $logTextBox.SelectionColor = $storedData.Color
+                                
                                 # 替换为折叠文本
                                 $foldedText = "[" + $storedData.Timestamp + "] " + $firstLineOfStored + " [...]`r`n"
                                 $logTextBox.SelectedText = $foldedText
                                 
-                                # 设置折叠行的颜色
-                                $foldedLineStartIndex = $logTextBox.GetFirstCharIndexFromLine($lineIndex)
-                                $foldedLineLength = $foldedText.Length
-                                $logTextBox.Select($foldedLineStartIndex, $foldedLineLength)
-                                $logTextBox.SelectionColor = $storedData.Color
-                                
                                 # 更新状态为未展开
                                 $global:debugFullLogs[$key].IsExpanded = $false
-                                
-                                # 恢复位置
-                                $logTextBox.Left = $originalLeft
                                 
                                 # 恢复当前的选中状态
                                 $logTextBox.SelectionStart = $savedSelectionStart
                                 $logTextBox.SelectionLength = $savedSelectionLength
                                 
-                                # 重新显示文本框并恢复焦点
-                                $logTextBox.Visible = $true
-                                $logTextBox.Focus()
                                 break
                             }
                         }
