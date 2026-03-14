@@ -160,9 +160,14 @@ $form.StartPosition = "CenterScreen"
 $form.Font = New-Object System.Drawing.Font("Microsoft YaHei", 10)
 $form.MinimumSize = New-Object System.Drawing.Size(1000, 600)
 # 启用双缓冲减少闪烁
+$prop = [System.Windows.Forms.Control].GetProperty("DoubleBuffered", [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Instance)
+$defaultValue = $prop.GetValue($form)
+Write-Host "Form DoubleBuffered default value: $defaultValue"
 [System.Reflection.BindingFlags]$flags = "NonPublic, Instance"
 $prop = [System.Windows.Forms.Control].GetProperty("DoubleBuffered", $flags)
 $prop.SetValue($form, $true)
+$currentValue = $prop.GetValue($form)
+Write-Host "Form DoubleBuffered current value: $currentValue"
 
 # 创建顶部面板（操作区）
 $topPanel = New-Object System.Windows.Forms.Panel
@@ -573,8 +578,9 @@ $logTextBox.Add_MouseClick({
                             $savedSelectionLength = $logTextBox.SelectionLength
                             Write-Host "DEBUG: 保存的选中状态 SelectionStart=$savedSelectionStart, SelectionLength=$savedSelectionLength" -ForegroundColor Cyan
                             
-                            # 暂时隐藏文本框，避免用户看到修改过程
-                            $logTextBox.Visible = $false
+                            # 暂时移动到屏幕外（避免焦点转移和闪烁）
+                            $originalLeft = $logTextBox.Left
+                            $logTextBox.Left = 10000
                             
                             # 使用 RichTextBox 的文本操作方法替换内容（保持格式）
                             $startCharIndex = $logTextBox.GetFirstCharIndexFromLine($lineIndex)
@@ -609,6 +615,9 @@ $logTextBox.Add_MouseClick({
                             # 更新状态为已展开
                             $global:debugFullLogs[$key].IsExpanded = $true
 
+                            # 恢复位置
+                            $logTextBox.Left = $originalLeft
+                            
                             # 恢复当前的选中状态
                             $logTextBox.SelectionStart = $savedSelectionStart
                             $logTextBox.SelectionLength = $savedSelectionLength
@@ -644,8 +653,9 @@ $logTextBox.Add_MouseClick({
                                 $savedSelectionStart = $logTextBox.SelectionStart
                                 $savedSelectionLength = $logTextBox.SelectionLength
                                 
-                                # 暂时隐藏文本框
-                                $logTextBox.Visible = $false
+                                # 暂时移动到屏幕外（避免焦点转移和闪烁）
+                                $originalLeft = $logTextBox.Left
+                                $logTextBox.Left = 10000
                                 
                                 # 计算实际展开的行数（使用存储的完整文本）
                                 $fullExpandedLines = $storedData.FullText -split "`r?`n"
@@ -673,6 +683,9 @@ $logTextBox.Add_MouseClick({
                                 
                                 # 更新状态为未展开
                                 $global:debugFullLogs[$key].IsExpanded = $false
+                                
+                                # 恢复位置
+                                $logTextBox.Left = $originalLeft
                                 
                                 # 恢复当前的选中状态
                                 $logTextBox.SelectionStart = $savedSelectionStart
