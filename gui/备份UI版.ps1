@@ -85,6 +85,7 @@ $script:resources = @{
         SUCCESS_GitCommit = "Git 提交完成"
         SUCCESS_FinalCommit = "最终 Git 提交完成"
         SUCCESS_BackupComplete = "备份完成"
+        SUCCESS_GitInitialized = "Git 仓库已初始化并配置"
     }
     'en' = @{
         FormTitle = "Game Save Backup Tool"
@@ -144,6 +145,7 @@ $script:resources = @{
         SUCCESS_GitCommit = "Git commit completed"
         SUCCESS_FinalCommit = "Final Git commit completed"
         SUCCESS_BackupComplete = "Backup completed successfully"
+        SUCCESS_GitInitialized = "Git repository initialized and configured"
     }
 }
 
@@ -302,6 +304,8 @@ $global:psInstance = $null
 $global:runspacePool = $null
 # 使用同步集合来存储实时日志
 $global:logQueue = [System.Collections.Concurrent.ConcurrentBag[string]]::new()
+# 用于存储完整 debug 内容的字典（使用起始行号作为 key）
+$global:debugFullLogs = @{}
 # 使用 hostname 命令获取完整机器名（与备份.bat 保持一致）
 try {
     $hostnameOutput = & cmd /c hostname
@@ -325,21 +329,48 @@ function Write-Log {
     )
 
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    $logLine = "[" + $timestamp + "] " + $Message + "`r`n"
-
-    $logTextBox.SelectionStart = $logTextBox.TextLength
-
+    
+    # 根据日志等级设置颜色
     switch ($Level) {
-        "Info" { $logTextBox.SelectionColor = [System.Drawing.Color]::Black }
-        "Success" { $logTextBox.SelectionColor = [System.Drawing.Color]::Green }
-        "Warning" { $logTextBox.SelectionColor = [System.Drawing.Color]::Orange }
-        "Error" { $logTextBox.SelectionColor = [System.Drawing.Color]::Red }
-        "Progress" { $logTextBox.SelectionColor = [System.Drawing.Color]::Blue }
-        "Debug" { $logTextBox.SelectionColor = [System.Drawing.Color]::Gray }
+        "Info"    { $color = [System.Drawing.Color]::Black }
+        "Success" { $color = [System.Drawing.Color]::Green }
+        "Warning" { $color = [System.Drawing.Color]::Orange }
+        "Error"   { $color = [System.Drawing.Color]::Red }
+        "Progress" { $color = [System.Drawing.Color]::Blue }
+        "Debug"   { $color = [System.Drawing.Color]::Gray }
+        default   { $color = [System.Drawing.Color]::Black }
     }
 
-    $logTextBox.AppendText($logLine)
-    $logTextBox.ScrollToCaret()
+    # 如果是 Debug 且有多行
+    if ($Level -eq "Debug" -and $Message -match "`r?`n") {
+        $lines = $Message -split "`r?`n"
+        $firstLine = $lines[0]
+        
+        # 先添加到 RichTextBox
+        $displayText = "[" + $timestamp + "] " + $firstLine + " [...]`r`n"
+        $logTextBox.SelectionStart = $logTextBox.TextLength
+        $logTextBox.SelectionColor = $color
+        $logTextBox.AppendText($displayText)
+        $logTextBox.ScrollToCaret()
+        
+        # 添加后再获取实际的行号（此时 TextLength 已经更新）
+        $startLineIndex = $logTextBox.GetLineFromCharIndex($logTextBox.TextLength - 1)
+        
+        # 保存完整内容（使用实际行号作为 key）
+        $global:debugFullLogs[$startLineIndex] = @{
+            FullText = $Message
+            Timestamp = $timestamp
+            Color = $color
+            FirstLine = $firstLine  # 保存第一行用于匹配
+        }
+    } else {
+        # 普通单行日志直接显示
+        $logLine = "[" + $timestamp + "] " + $Message + "`r`n"
+        $logTextBox.SelectionStart = $logTextBox.TextLength
+        $logTextBox.SelectionColor = $color
+        $logTextBox.AppendText($logLine)
+        $logTextBox.ScrollToCaret()
+    }
 }
 
 # 加载并显示游戏列表函数
@@ -472,6 +503,118 @@ $copyLogButton.Add_Click({
 # 窗口加载时自动查找并加载 JSON 文件
 Write-Log $script:ui.ScanningConfig "Info"
 Find-AndLoadJsonFile | Out-Null
+
+# 点击事件展开 debug 日志
+$logTextBox.Add_MouseClick({
+    try {
+        $clickPoint = $logTextBox.PointToClient([System.Windows.Forms.Cursor]::Position)
+        $charIndex = $logTextBox.GetCharIndexFromPosition($clickPoint)
+        
+        # 如果点击在有效区域
+        if ($charIndex -ge 0) {
+            $lineIndex = $logTextBox.GetLineFromCharIndex($charIndex)
+            
+            if ($lineIndex -ge 0 -and $lineIndex -lt $logTextBox.Lines.Count) {
+                $lineText = $logTextBox.Lines[$lineIndex]
+                
+                # DEBUG: 输出点击信息
+                Write-Host "DEBUG: 点击行号=$lineIndex, 内容='$lineText'" -ForegroundColor Cyan
+                Write-Host "DEBUG: 字典 Keys 数量=$($global:debugFullLogs.Keys.Count)" -ForegroundColor Cyan
+                
+                # 检查是否为折叠行（包含 [...] 标记）- 使用简单字符串包含
+                if ($lineText -like "*...*") {
+                    Write-Host "DEBUG: 检测到折叠行标记" -ForegroundColor Cyan
+                    
+                    # 在字典中查找所有 key，找到包含该行的记录
+                    foreach ($key in $global:debugFullLogs.Keys) {
+                        $storedData = $global:debugFullLogs[$key]
+                        $firstLineOfStored = ($storedData.FullText -split "`r?`n")[0]
+                        
+                        # 构建期望的折叠行文本
+                        $expectedFoldedText = "[" + $storedData.Timestamp + "] " + $firstLineOfStored + " [...]"
+                        
+                        Write-Host "DEBUG: Key=$key, 期望文本='$expectedFoldedText'" -ForegroundColor Cyan
+                        Write-Host "DEBUG: 实际文本='$lineText'" -ForegroundColor Cyan
+                        Write-Host "DEBUG: 匹配结果？ $($lineText.Trim() -eq $expectedFoldedText.Trim())" -ForegroundColor Cyan
+                        
+                        # 检查是否匹配
+                        if ($lineText.Trim() -eq $expectedFoldedText.Trim()) {
+                            Write-Host "DEBUG: 匹配成功！开始展开..." -ForegroundColor Green
+                            
+                            # 找到匹配项，展开
+                            $fullText = $storedData.FullText
+                            $timestamp = $storedData.Timestamp
+                            $color = $storedData.Color
+                            
+                            # 构建展开后的文本（带时间戳）
+                            $expandedLines = $fullText -split "`r?`n"
+                            $resultText = ""
+                            foreach ($line in $expandedLines) {
+                                if (-not [string]::IsNullOrWhiteSpace($line)) {
+                                    $resultText += "[$timestamp] $line`r`n"
+                                }
+                            }
+                            
+                            Write-Host "DEBUG: 展开后文本长度=${resultText.Length}" -ForegroundColor Green
+                            
+                            # 保存当前的选中状态
+                            $savedSelectionStart = $logTextBox.SelectionStart
+                            $savedSelectionLength = $logTextBox.SelectionLength
+                            Write-Host "DEBUG: 保存的选中状态 SelectionStart=$savedSelectionStart, SelectionLength=$savedSelectionLength" -ForegroundColor Cyan
+                            
+                            # 暂时隐藏文本框，避免用户看到修改过程
+                            $logTextBox.Visible = $false
+                            
+                            # 使用 RichTextBox 的文本操作方法替换内容（保持格式）
+                            $startCharIndex = $logTextBox.GetFirstCharIndexFromLine($lineIndex)
+                            $endCharIndex = $logTextBox.GetFirstCharIndexFromLine($lineIndex + 1)
+                            if ($endCharIndex -le 0) { $endCharIndex = $logTextBox.TextLength }
+                            
+                            # 计算要替换的长度
+                            $replaceLength = $endCharIndex - $startCharIndex
+                            
+                            # 选中要替换的行
+                            $logTextBox.Select($startCharIndex, $replaceLength)
+                            
+                            # 插入新文本
+                            $logTextBox.SelectedText = $resultText
+                                                
+                            # 保持颜色一致：从展开的起始位置开始，逐行设置颜色
+                            # 计算展开后的行数（通过计算换行符数量）
+                            $newlineCount = ([regex]::Matches($resultText, "`r?`n")).Count
+                            $expandedLineCount = $newlineCount  # 不需要 +1，因为 resultText 末尾有换行符
+                            
+                            for ($i = 0; $i -lt $expandedLineCount; $i++) {
+                                $currentLineIndex = $lineIndex + $i
+                                if ($currentLineIndex -lt $logTextBox.Lines.Count) {
+                                    $lineStartIndex = $logTextBox.GetFirstCharIndexFromLine($currentLineIndex)
+                                    $lineLength = $logTextBox.Lines[$currentLineIndex].Length
+                                    # 使用 Select 方法设置颜色
+                                    $logTextBox.Select($lineStartIndex, $lineLength)
+                                    $logTextBox.SelectionColor = $color
+                                }
+                            }
+
+                            # 恢复当前的选中状态
+                            $logTextBox.SelectionStart = $savedSelectionStart - 6
+                            $logTextBox.SelectionLength = $savedSelectionLength
+                            Write-Host "DEBUG: 恢复的选中状态 SelectionStart=$savedSelectionStart, SelectionLength=$savedSelectionLength" -ForegroundColor Cyan
+
+                            # 重新显示文本框并恢复焦点
+                            $logTextBox.Visible = $true
+                            $logTextBox.Focus()
+                            break
+                        }
+                    }
+                } else {
+                    Write-Host "DEBUG: 不是折叠行，跳过" -ForegroundColor Yellow
+                }
+            }
+        }
+    } catch {
+        Write-Host "DEBUG ERROR: $_" -ForegroundColor Red
+    }
+})
 
 # 开始备份按钮点击事件
 $startButton.Add_Click({
@@ -667,7 +810,7 @@ $startButton.Add_Click({
                 $null = & git config --local i18n.commitencoding utf-8 2>&1 | Out-String
                 
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [Success] Git repository initialized and configured")
+                $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_GitInitialized)
             }
             catch {
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
