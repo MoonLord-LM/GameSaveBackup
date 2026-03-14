@@ -159,6 +159,10 @@ $form.Size = New-Object System.Drawing.Size(1280, 720)
 $form.StartPosition = "CenterScreen"
 $form.Font = New-Object System.Drawing.Font("Microsoft YaHei", 10)
 $form.MinimumSize = New-Object System.Drawing.Size(1000, 600)
+# 启用双缓冲减少闪烁
+[System.Reflection.BindingFlags]$flags = "NonPublic, Instance"
+$prop = [System.Windows.Forms.Control].GetProperty("DoubleBuffered", $flags)
+$prop.SetValue($form, $true)
 
 # 创建顶部面板（操作区）
 $topPanel = New-Object System.Windows.Forms.Panel
@@ -362,6 +366,7 @@ function Write-Log {
             Timestamp = $timestamp
             Color = $color
             FirstLine = $firstLine  # 保存第一行用于匹配
+            IsExpanded = $false     # 标记是否已展开
         }
     } else {
         # 普通单行日志直接显示
@@ -549,9 +554,15 @@ $logTextBox.Add_MouseClick({
                             # 构建展开后的文本（带时间戳）
                             $expandedLines = $fullText -split "`r?`n"
                             $resultText = ""
-                            foreach ($line in $expandedLines) {
+                            for ($i = 0; $i -lt $expandedLines.Count; $i++) {
+                                $line = $expandedLines[$i]
                                 if (-not [string]::IsNullOrWhiteSpace($line)) {
-                                    $resultText += "[$timestamp] $line`r`n"
+                                    # 第一行显示 [---]，其他行正常显示
+                                    if ($i -eq 0) {
+                                        $resultText += "[" + $timestamp + "] " + $line + " [---]`r`n"
+                                    } else {
+                                        $resultText += "[" + $timestamp + "] " + $line + "`r`n"
+                                    }
                                 }
                             }
                             
@@ -595,8 +606,11 @@ $logTextBox.Add_MouseClick({
                                 }
                             }
 
+                            # 更新状态为已展开
+                            $global:debugFullLogs[$key].IsExpanded = $true
+
                             # 恢复当前的选中状态
-                            $logTextBox.SelectionStart = $savedSelectionStart - 6
+                            $logTextBox.SelectionStart = $savedSelectionStart
                             $logTextBox.SelectionLength = $savedSelectionLength
                             Write-Host "DEBUG: 恢复的选中状态 SelectionStart=$savedSelectionStart, SelectionLength=$savedSelectionLength" -ForegroundColor Cyan
 
@@ -604,6 +618,71 @@ $logTextBox.Add_MouseClick({
                             $logTextBox.Visible = $true
                             $logTextBox.Focus()
                             break
+                        }
+                    }
+                } elseif ($lineText -like "*---*") {
+                    Write-Host "DEBUG: 检测到展开行标记 [---]" -ForegroundColor Cyan
+                    
+                    # 需要折叠：找到对应的 key
+                    foreach ($key in $global:debugFullLogs.Keys) {
+                        $storedData = $global:debugFullLogs[$key]
+                        
+                        # 只有已展开的记录才处理
+                        if ($storedData.IsExpanded) {
+                            $firstLineOfStored = ($storedData.FullText -split "`r?`n")[0]
+                            
+                            # 检查当前行是否是展开的第一行（带 [---] 标记）
+                            $expectedFirstLine = "[" + $storedData.Timestamp + "] " + $firstLineOfStored + " [---]"
+                            
+                            Write-Host "DEBUG: Key=$key, 检查第一行='$expectedFirstLine'" -ForegroundColor Cyan
+                            Write-Host "DEBUG: 实际文本='$lineText'" -ForegroundColor Cyan
+                            
+                            if ($lineText.Trim() -eq $expectedFirstLine.Trim()) {
+                                Write-Host "DEBUG: 匹配成功！开始折叠..." -ForegroundColor Green
+                                
+                                # 保存当前的选中状态
+                                $savedSelectionStart = $logTextBox.SelectionStart
+                                $savedSelectionLength = $logTextBox.SelectionLength
+                                
+                                # 暂时隐藏文本框
+                                $logTextBox.Visible = $false
+                                
+                                # 计算实际展开的行数（使用存储的完整文本）
+                                $fullExpandedLines = $storedData.FullText -split "`r?`n"
+                                $actualExpandedLineCount = ($fullExpandedLines | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count
+                                
+                                # 获取展开内容的起始位置
+                                $startCharIndex = $logTextBox.GetFirstCharIndexFromLine($lineIndex)
+                                
+                                # 计算结束位置（展开内容的最后一行的下一个字符）
+                                $endCharIndex = $logTextBox.GetFirstCharIndexFromLine($lineIndex + $actualExpandedLineCount)
+                                if ($endCharIndex -le 0) { $endCharIndex = $logTextBox.TextLength }
+                                
+                                # 选中展开的所有内容
+                                $logTextBox.Select($startCharIndex, $endCharIndex - $startCharIndex)
+                                
+                                # 替换为折叠文本
+                                $foldedText = "[" + $storedData.Timestamp + "] " + $firstLineOfStored + " [...]`r`n"
+                                $logTextBox.SelectedText = $foldedText
+                                
+                                # 设置折叠行的颜色
+                                $foldedLineStartIndex = $logTextBox.GetFirstCharIndexFromLine($lineIndex)
+                                $foldedLineLength = $foldedText.Length
+                                $logTextBox.Select($foldedLineStartIndex, $foldedLineLength)
+                                $logTextBox.SelectionColor = $storedData.Color
+                                
+                                # 更新状态为未展开
+                                $global:debugFullLogs[$key].IsExpanded = $false
+                                
+                                # 恢复当前的选中状态
+                                $logTextBox.SelectionStart = $savedSelectionStart
+                                $logTextBox.SelectionLength = $savedSelectionLength
+                                
+                                # 重新显示文本框并恢复焦点
+                                $logTextBox.Visible = $true
+                                $logTextBox.Focus()
+                                break
+                            }
                         }
                     }
                 } else {
