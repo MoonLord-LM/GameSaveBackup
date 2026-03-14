@@ -54,7 +54,16 @@ $script:resources = @{
         ERROR_GitMissing = "错误：缺少 git.exe 组件"
         ERROR_GitDownload = "请从 https://git-scm.com/install/windows 下载"
         ERROR_ConfigNotFound = "错误：选定的配置文件不存在"
+        ERROR_ConfigInvalid = "配置文件格式错误"
+        ERROR_ConfigMissingProperty = "配置文件缺少必需字段"
+        ERROR_ConfigNotArray = "配置文件必须是 JSON 数组"
+        ERROR_ConfigEmptyArray = "配置文件数组为空"
+        ERROR_ConfigInvalidObject = "配置项不是有效对象"
+        ERROR_ConfigEmptyName = "配置项名称为空"
+        ERROR_ConfigEmptyPath = "配置项路径为空"
         INFO_UsingConfig = "使用配置文件"
+        INFO_GitCommand = "Git 命令"
+        INFO_RobocopyCommand = "Robocopy 命令"
         INFO_GamesFound = "找到游戏配置数量"
         PROGRESS_Processing = "处理"
         INFO_IgnoreItem = "忽略项"
@@ -69,6 +78,8 @@ $script:resources = @{
         INFO_LocalNewer = "本地存档文件修改时间较新，进行备份"
         INFO_SameTime = "本地存档文件与备份文件修改时间相同，跳过操作"
         INFO_RobocopyReturn = "Robocopy 输出信息"
+        INFO_RobocopySuccess = "Robocopy 执行成功（返回码 {0}）"
+        INFO_RobocopyFailed = "Robocopy 执行失败（返回码 {0}）"
         INFO_GitExecuting = "正在执行 Git 命令"
         INFO_GitOutput = "Git 输出信息"
         SUCCESS_GitCommit = "Git 提交完成"
@@ -102,7 +113,16 @@ $script:resources = @{
         ERROR_GitMissing = "Error: git.exe component is missing"
         ERROR_GitDownload = "Please download from https://git-scm.com/install/windows"
         ERROR_ConfigNotFound = "Error: Selected config file does not exist"
+        ERROR_ConfigInvalid = "Invalid configuration file format"
+        ERROR_ConfigMissingProperty = "Configuration missing required field"
+        ERROR_ConfigNotArray = "Configuration must be a JSON array"
+        ERROR_ConfigEmptyArray = "Configuration array is empty"
+        ERROR_ConfigInvalidObject = "Configuration entry is not a valid object"
+        ERROR_ConfigEmptyName = "Configuration entry name is empty"
+        ERROR_ConfigEmptyPath = "Configuration entry path is empty"
         INFO_UsingConfig = "Using config file"
+        INFO_GitCommand = "Git command"
+        INFO_RobocopyCommand = "Robocopy command"
         INFO_GamesFound = "game(s) found in configuration"
         PROGRESS_Processing = "Processing"
         INFO_IgnoreItem = "Ignore item"
@@ -117,6 +137,8 @@ $script:resources = @{
         INFO_LocalNewer = "Local save file is newer, performing backup"
         INFO_SameTime = "Local and backup files have the same modification time, skipping"
         INFO_RobocopyReturn = "Robocopy output info"
+        INFO_RobocopySuccess = "Robocopy executed successfully (exit code {0})"
+        INFO_RobocopyFailed = "Robocopy execution failed (exit code {0})"
         INFO_GitExecuting = "Executing Git command"
         INFO_GitOutput = "Git output"
         SUCCESS_GitCommit = "Git commit completed"
@@ -483,7 +505,74 @@ $startButton.Add_Click({
     $psInstance.AddScript({
         param($configPath, $machineName, $userName, $logQueue, $uiResources)
 
-        # Git 命令执行函数（带错误处理和日志记录）
+        function Test-GameConfig {
+            param(
+                [object]$Config,
+                [System.Collections.Concurrent.ConcurrentBag[string]]$LogQueue,
+                [hashtable]$UiResources
+            )
+            
+            try {
+                # 验证是否为数组
+                if (-not ($Config -is [Array])) {
+                    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                    $logQueue.Add("[$timestamp] [Error] " + $UiResources.ERROR_ConfigNotArray)
+                    return $false
+                }
+                
+                if ($Config.Count -eq 0) {
+                    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                    $logQueue.Add("[$timestamp] [Error] " + $UiResources.ERROR_ConfigEmptyArray)
+                    return $false
+                }
+                
+                # 验证每个游戏配置
+                for ($i = 0; $i -lt $Config.Count; $i++) {
+                    $game = $Config[$i]
+                    
+                    # 验证是否为对象
+                    if (-not ($game -is [PSCustomObject])) {
+                        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                        $logQueue.Add("[$timestamp] [Error] " + $UiResources.ERROR_ConfigInvalidObject + " (index: $i)")
+                        return $false
+                    }
+                    
+                    # 验证必需字段：name
+                    if (-not $game.PSObject.Properties['name']) {
+                        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                        $logQueue.Add("[$timestamp] [Error] " + $UiResources.ERROR_ConfigMissingProperty + ": name (index: $i)")
+                        return $false
+                    }
+                    
+                    if ([string]::IsNullOrWhiteSpace($game.name)) {
+                        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                        $logQueue.Add("[$timestamp] [Error] " + $UiResources.ERROR_ConfigEmptyName + " (index: $i)")
+                        return $false
+                    }
+                    
+                    # 验证必需字段：save
+                    if (-not $game.PSObject.Properties['save']) {
+                        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                        $logQueue.Add("[$timestamp] [Error] " + $UiResources.ERROR_ConfigMissingProperty + ": save (index: $i)")
+                        return $false
+                    }
+                    
+                    if ([string]::IsNullOrWhiteSpace($game.save)) {
+                        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                        $logQueue.Add("[$timestamp] [Error] " + $UiResources.ERROR_ConfigEmptyPath + " (index: $i)")
+                        return $false
+                    }
+                }
+                
+                return $true
+            }
+            catch {
+                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                $logQueue.Add("[$timestamp] [Error] " + $UiResources.ERROR_ConfigInvalid + ": $_")
+                return $false
+            }
+        }
+
         function Invoke-GitCommand {
             param(
                 [string]$Arguments,
@@ -494,7 +583,7 @@ $startButton.Add_Click({
             
             try {
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [Info] " + $UiResources.INFO_GitExecuting + ": git $Arguments")
+                $logQueue.Add("[$timestamp] [Debug] " + $UiResources.INFO_GitCommand + ": git $Arguments")
                 
                 # 执行 Git 命令并捕获所有输出
                 $output = & git $Arguments.Split(' ') 2>&1 | Out-String
@@ -545,10 +634,16 @@ $startButton.Add_Click({
         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
         $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_UsingConfig + ": " + (Split-Path -Leaf $configPath))
 
-        # 读取配置文件
+        # 读取配置文件并验证
         try {
             $configContent = Get-Content -Path $configPath -Raw -Encoding UTF8
             $configArray = $configContent | ConvertFrom-Json
+            
+            # 验证配置文件格式
+            if (-not (Test-GameConfig -Config $configArray -LogQueue $logQueue -UiResources $uiResources)) {
+                return
+            }
+            
             $totalGames = $configArray.Count
         }
         catch {
@@ -671,7 +766,22 @@ $startButton.Add_Click({
                     $logQueue.Add("[$timestamp] [Warning] " + $uiResources.WARNING_LocalMissing)
                     $sh = New-Object -ComObject Shell.Application
                     $sh.Namespace(10).MoveHere($saveExpanded)
+                    
+                    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                    $robocopyCommand = "robocopy . `"$saveExpanded`" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
+                    $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyCommand + ": $robocopyCommand")
+                    
                     $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
+                    $robocopyExitCode = $LASTEXITCODE
+                    
+                    # 记录 Robocopy 状态（包含返回码）
+                    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                    if ($robocopyExitCode -ge 8) {
+                        $logQueue.Add("[$timestamp] [Debug] " + ($uiResources.INFO_RobocopyFailed -f $robocopyExitCode))
+                    } else {
+                        $logQueue.Add("[$timestamp] [Debug] " + ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode))
+                    }
+                    
                     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                     $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyReturn + ":`r`n" + $result)
                 }
@@ -685,7 +795,22 @@ $startButton.Add_Click({
                     Set-Content -Path "存档位置.bat" -Value $batContent -Encoding UTF8
                     (Get-Item "存档位置.bat").LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime
                 }
+                
+                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                $robocopyCommand = "robocopy `"$saveExpanded`" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
+                $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyCommand + ": $robocopyCommand")
+                
                 $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
+                $robocopyExitCode = $LASTEXITCODE
+                
+                # 记录 Robocopy 状态（包含返回码）
+                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                if ($robocopyExitCode -ge 8) {
+                    $logQueue.Add("[$timestamp] [Debug] " + ($uiResources.INFO_RobocopyFailed -f $robocopyExitCode))
+                } else {
+                    $logQueue.Add("[$timestamp] [Debug] " + ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode))
+                }
+                
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyReturn + ":`r`n" + $result)
                 
@@ -710,14 +835,44 @@ $startButton.Add_Click({
                 $logQueue.Add("[$timestamp] [Warning] " + $uiResources.WARNING_LocalOlder)
                 $sh = New-Object -ComObject Shell.Application
                 $sh.Namespace(10).MoveHere($saveExpanded)
+                
+                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                $robocopyCommand = "robocopy . `"$saveExpanded`" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
+                $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyCommand + ": $robocopyCommand")
+                
                 $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
+                $robocopyExitCode = $LASTEXITCODE
+                
+                # 记录 Robocopy 状态（包含返回码）
+                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                if ($robocopyExitCode -ge 8) {
+                    $logQueue.Add("[$timestamp] [Debug] " + ($uiResources.INFO_RobocopyFailed -f $robocopyExitCode))
+                } else {
+                    $logQueue.Add("[$timestamp] [Debug] " + ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode))
+                }
+                
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyReturn + ":`r`n" + $result)
             }
             elseif ($maxLocalTime -gt $maxBackupTime) {
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_LocalNewer)
+                
+                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                $robocopyCommand = "robocopy `"$saveExpanded`" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
+                $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyCommand + ": $robocopyCommand")
+                
                 $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
+                $robocopyExitCode = $LASTEXITCODE
+                
+                # 记录 Robocopy 状态（包含返回码）
+                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                if ($robocopyExitCode -ge 8) {
+                    $logQueue.Add("[$timestamp] [Debug] " + ($uiResources.INFO_RobocopyFailed -f $robocopyExitCode))
+                } else {
+                    $logQueue.Add("[$timestamp] [Debug] " + ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode))
+                }
+                
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyReturn + ":`r`n" + $result)
                 
@@ -781,7 +936,7 @@ $startButton.Add_Click({
         }
 
         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_BackupComplete + "`r`n")
+        $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_BackupComplete)
 
         # 恢复至脚本启动时的工作目录
         Pop-Location
