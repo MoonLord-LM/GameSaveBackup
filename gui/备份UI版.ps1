@@ -443,6 +443,7 @@ function Find-AndLoadJsonFile {
     } catch {
         $scriptDir = [System.IO.Directory]::GetCurrentDirectory()
     }
+    Write-Host "DEBUG: scriptDir = $scriptDir"
 
     $jsonFiles = Get-ChildItem -Path $scriptDir -Filter "*.json" -File -ErrorAction SilentlyContinue
 
@@ -460,10 +461,10 @@ function Find-AndLoadJsonFile {
     $global:configPath = $jsonFiles.FullName
     $configTextBox.Text = $global:configPath
 
-    Write-Log ($script:ui.ConfigSelected + "$((Split-Path -Leaf $script:configPath))") "Info"
+    Write-Log ($script:ui.ConfigSelected + "$((Split-Path -Leaf $global:configPath))") "Info"
 
     # 加载游戏列表
-    Load-GameList -ConfigPath $script:configPath
+    Load-GameList -ConfigPath $global:configPath
 
     # 如果加载成功，启用开始按钮
     if ($null -ne $script:configArray) {
@@ -491,6 +492,7 @@ $browseButton.Add_Click({
         $scriptDir = [System.IO.Directory]::GetCurrentDirectory()
     }
     $fileDialog.InitialDirectory = $scriptDir
+    Write-Host "DEBUG: scriptDir = $scriptDir"
 
     if ($fileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
         $global:configPath = $fileDialog.FileName
