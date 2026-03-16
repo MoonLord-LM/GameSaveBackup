@@ -10,8 +10,8 @@ if not exist "Backup.ps1" (
     exit /b 1
 )
 
-set "BEGIN_MARKER=-----BEGIN POWERSHELL SCRIPT-----"
-set "END_MARKER=-----END POWERSHELL SCRIPT-----"
+set "BEGIN_MARKER=-----BEGIN POWERSHELL GZIP-----"
+set "END_MARKER=-----END POWERSHELL GZIP-----"
 
 (
     echo @echo off
