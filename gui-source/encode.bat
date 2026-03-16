@@ -69,18 +69,30 @@ set "END_MARKER=-----END POWERSHELL SCRIPT-----"
     echo exit /b %%exitcode%%
     echo.
     echo !BEGIN_MARKER!
-    powershell -NoProfile -Command ^
-        "$bytes = [System.IO.File]::ReadAllBytes(\""Backup.ps1\"");" ^
-        "$ms = New-Object System.IO.MemoryStream;" ^
-        "$gzip = New-Object System.IO.Compression.GzipStream($ms, [System.IO.Compression.CompressionMode]::Compress);" ^
-        "$gzip.Write($bytes, 0, $bytes.Length);" ^
-        "$gzip.Close();" ^
-        "$compressed = $ms.ToArray();" ^
-        "$ms.Close();" ^
-        "$base64 = [Convert]::ToBase64String($compressed);" ^
-        "for ($i = 0; $i -lt $base64.Length; $i += 64) {" ^
-        "    $base64.Substring($i, [Math]::Min(64, $base64.Length - $i));" ^
-        "}"
+    set "temp_file=%temp%\MyBatch_%random%_%random%_%random%_%random%.ps1"
+    set "exe_7z=C:\Program Files\7-Zip\7z.exe"
+    if exist "!exe_7z!" (
+        "!exe_7z!" a -tgzip -mx=9 "!temp_file!" "Backup.ps1" >nul
+        powershell -NoProfile -Command ^
+            "$bytes = [System.IO.File]::ReadAllBytes(\""!temp_file!\"");" ^
+            "$base64 = [Convert]::ToBase64String($bytes);" ^
+            "for ($i = 0; $i -lt $base64.Length; $i += 64) {" ^
+            "    $base64.Substring($i, [Math]::Min(64, $base64.Length - $i));" ^
+            "}"
+    ) else (
+        powershell -NoProfile -Command ^
+            "$bytes = [System.IO.File]::ReadAllBytes(\""Backup.ps1\"");" ^
+            "$ms = New-Object System.IO.MemoryStream;" ^
+            "$gzip = New-Object System.IO.Compression.GzipStream($ms, [System.IO.Compression.CompressionMode]::Compress);" ^
+            "$gzip.Write($bytes, 0, $bytes.Length);" ^
+            "$gzip.Close();" ^
+            "$compressed = $ms.ToArray();" ^
+            "$ms.Close();" ^
+            "$base64 = [Convert]::ToBase64String($compressed);" ^
+            "for ($i = 0; $i -lt $base64.Length; $i += 64) {" ^
+            "    $base64.Substring($i, [Math]::Min(64, $base64.Length - $i));" ^
+            "}"
+    )
     echo !END_MARKER!
 ) > "Backup.enc.bat"
 
