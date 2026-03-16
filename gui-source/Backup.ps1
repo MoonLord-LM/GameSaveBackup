@@ -11,23 +11,23 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
 # 根据系统语言自动选择界面语言
+Write-Host "DEBUG: CurrentCulture = [ $([System.Globalization.CultureInfo]::CurrentCulture.Name) ]"
 try {
-    $systemLang = [System.Globalization.CultureInfo]::CurrentUICulture.TwoLetterISOLanguageName
-    if ($systemLang -eq 'zh') {
-        $script:uiLang = 'zh'
-    } else {
-        $script:uiLang = 'en'
+    $script:uiLang = [System.Globalization.CultureInfo]::CurrentCulture.Name
+    if ($script:uiLang -ne 'zh-CN') {
+        $script:uiLang = 'en-US'
     }
 
     # DEBUG 测试国际化使用，勿删
-    # $script:uiLang = 'en'
+    # $script:uiLang = 'en-US'
 } catch {
-    $script:uiLang = 'en'
+    $script:uiLang = 'en-US'
 }
+Write-Host "DEBUG: `$script:uiLang = [ $script:uiLang ]"
 
 # 定义多语言资源
 $script:resources = @{
-    'zh' = @{
+    'zh-CN' = @{
         FormTitle = "游戏存档备份工具"
         ConfigLabel = "配置文件:"
         BrowseButton = "选择配置"
@@ -77,7 +77,7 @@ $script:resources = @{
         WARNING_LocalOlder = "本地存档文件修改时间较旧，删除到回收站，并使用备份文件更新"
         INFO_LocalNewer = "本地存档文件修改时间较新，进行备份"
         INFO_SameTime = "本地存档文件与备份文件修改时间相同，跳过操作"
-        INFO_RobocopyReturn = "Robocopy 输出信息"
+        INFO_RobocopyReturn = "详细信息"
         INFO_RobocopySuccess = "Robocopy 执行成功（返回码 {0}）"
         INFO_RobocopyFailed = "Robocopy 执行失败（返回码 {0}）"
         INFO_GitExecuting = "正在执行 Git 命令"
@@ -87,7 +87,7 @@ $script:resources = @{
         SUCCESS_BackupComplete = "备份完成"
         SUCCESS_GitInitialized = "Git 仓库已初始化并配置"
     }
-    'en' = @{
+    'en-US' = @{
         FormTitle = "Game Save Backup Tool"
         ConfigLabel = "Config File:"
         BrowseButton = "Browse Config"
@@ -137,7 +137,7 @@ $script:resources = @{
         WARNING_LocalOlder = "Local save file is older, deleting to recycle bin and updating from backup"
         INFO_LocalNewer = "Local save file is newer, performing backup"
         INFO_SameTime = "Local and backup files have the same modification time, skipping"
-        INFO_RobocopyReturn = "Robocopy output info"
+        INFO_RobocopyReturn = "Details"
         INFO_RobocopySuccess = "Robocopy executed successfully (exit code {0})"
         INFO_RobocopyFailed = "Robocopy execution failed (exit code {0})"
         INFO_GitExecuting = "Executing Git command"
@@ -151,6 +151,9 @@ $script:resources = @{
 
 # 获取当前语言的 UI 文本
 $script:ui = $script:resources[$script:uiLang]
+Write-Host "DEBUG: `$script:resources = [ $script:resources ]"
+Write-Host "DEBUG: `$script:uiLang = [ $script:uiLang ]"
+Write-Host "DEBUG: `$script:ui = [ $script:ui ]"
 
 # 创建主窗口
 $form = New-Object System.Windows.Forms.Form

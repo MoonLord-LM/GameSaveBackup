@@ -1,8 +1,8 @@
 # GameSaveBackup
 
 A simple file backup tool that can be used for game saves and other purposes.  
-Just download the entire [`en-us`](https://github.com/MoonLord-LM/GameSaveBackup/tree/master/en-us) directory and double-click [`Backup.bat`](https://github.com/MoonLord-LM/GameSaveBackup/blob/master/en-us/Backup.bat) to run.  
-You can modify the [`config.json`](https://github.com/MoonLord-LM/GameSaveBackup/blob/master/en-us/config.json) file to support more games.  
+Just download the entire [`cli-en`](https://github.com/MoonLord-LM/GameSaveBackup/tree/master/cli-en) directory and double-click [`Backup.bat`](https://github.com/MoonLord-LM/GameSaveBackup/blob/master/cli-en/Backup.bat) to run.  
+You can modify the [`config.json`](https://github.com/MoonLord-LM/GameSaveBackup/blob/master/cli-en/config.json) file to support more games.  
 
 Features:  
 100% pure batch script.  
@@ -12,8 +12,8 @@ Using [`git`](https://github.com/git/git) for file version control.
 # 游戏存档备份
 
 一个简单的文件备份工具，可用于游戏存档或其他用途。  
-只需下载整个 [`zh-cn`](https://github.com/MoonLord-LM/GameSaveBackup/tree/master/zh-cn) 目录，然后双击 [`备份.bat`](https://github.com/MoonLord-LM/GameSaveBackup/blob/master/zh-cn/备份.bat) 即可运行。  
-可以修改 [`配置.json`](https://github.com/MoonLord-LM/GameSaveBackup/blob/master/zh-cn/配置.json) 文件，适配更多游戏。  
+只需下载整个 [`cli-zh`](https://github.com/MoonLord-LM/GameSaveBackup/tree/master/cli-zh) 目录，然后双击 [`备份.bat`](https://github.com/MoonLord-LM/GameSaveBackup/blob/master/cli-zh/备份.bat) 即可运行。  
+可以修改 [`配置.json`](https://github.com/MoonLord-LM/GameSaveBackup/blob/master/cli-zh/配置.json) 文件，适配更多游戏。  
 
 说明：  
 100% 纯批处理脚本。  
