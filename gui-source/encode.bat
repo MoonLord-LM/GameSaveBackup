@@ -69,19 +69,37 @@ set "END_MARKER=-----END POWERSHELL GZIP-----"
     echo exit /b %%exitcode%%
     echo.
     echo !BEGIN_MARKER!
-    set "temp_file=%temp%\MyBatch_%random%_%random%_%random%_%random%.ps1"
+
+    set "temp_file1=%temp%\MyBatch_%random%_%random%_%random%_%random%.ps1"
+    powershell -NoProfile -Command ^
+        "$lines = Get-Content -LiteralPath 'Backup.ps1' -Encoding utf8;" ^
+        "$out = New-Object System.Collections.Generic.List[string];" ^
+        "$prevEmpty = $false;" ^
+        "foreach ($line in $lines) {" ^
+        "    $l = $line.Trim();" ^
+        "    if ($l.StartsWith('#')) { continue; }" ^
+        "    if ($l -eq '') { continue; }" ^
+        "    if ($out.Count -gt 0 -and $out[$out.Count-1].Contains('#') -eq $false) {" ^
+        "        if ($out[$out.Count-1].EndsWith('{')) { $out[$out.Count-1] += $l; continue; }" ^
+        "        if ($l.StartsWith('}')) { $out[$out.Count-1] += $l; continue; }" ^
+        "    }" ^
+        "    $out.Add($l);" ^
+        "}" ^
+        "[System.IO.File]::WriteAllLines(\""!temp_file1!\"", $out, [System.Text.Encoding]::UTF8);"
+
     set "exe_7z=C:\Program Files\7-Zip\7z.exe"
     if exist "!exe_7z!" (
-        "!exe_7z!" a -tgzip -mx=9 "!temp_file!" "Backup.ps1" >nul
+        set "temp_file2=%temp%\MyBatch_%random%_%random%_%random%_%random%.ps1"
+        "!exe_7z!" a -tgzip -mx=9 "!temp_file2!" "!temp_file1!" >nul
         powershell -NoProfile -Command ^
-            "$bytes = [System.IO.File]::ReadAllBytes(\""!temp_file!\"");" ^
+            "$bytes = [System.IO.File]::ReadAllBytes(\""!temp_file2!\"");" ^
             "$base64 = [Convert]::ToBase64String($bytes);" ^
             "for ($i = 0; $i -lt $base64.Length; $i += 64) {" ^
             "    $base64.Substring($i, [Math]::Min(64, $base64.Length - $i));" ^
             "}"
     ) else (
         powershell -NoProfile -Command ^
-            "$bytes = [System.IO.File]::ReadAllBytes(\""Backup.ps1\"");" ^
+            "$bytes = [System.IO.File]::ReadAllBytes(\""!temp_file1!\"");" ^
             "$ms = New-Object System.IO.MemoryStream;" ^
             "$gzip = New-Object System.IO.Compression.GzipStream($ms, [System.IO.Compression.CompressionMode]::Compress);" ^
             "$gzip.Write($bytes, 0, $bytes.Length);" ^
