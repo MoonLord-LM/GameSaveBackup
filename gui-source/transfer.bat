@@ -2,6 +2,8 @@
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 
+
+
 if not exist "Backup.ps1" (
     echo Error: "Backup.ps1" file not found
     pause
@@ -23,6 +25,8 @@ if not exist "Backup.ps1" (
 ) > "Backup.bat"
 
 echo Success: "Backup.bat" has been generated
+
+
 
 echo.
 pause

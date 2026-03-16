@@ -2,14 +2,16 @@
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 
+
+
 if not exist "Backup.ps1" (
     echo Error: "Backup.ps1" file not found
     pause
     exit /b 1
 )
 
-SET "BEGIN_MARKER=-----BEGIN POWERSHELL SCRIPT-----"
-SET "END_MARKER=-----END POWERSHELL SCRIPT-----"
+set "BEGIN_MARKER=-----BEGIN POWERSHELL SCRIPT-----"
+set "END_MARKER=-----END POWERSHELL SCRIPT-----"
 
 (
     echo @echo off
@@ -20,33 +22,53 @@ SET "END_MARKER=-----END POWERSHELL SCRIPT-----"
     echo.
     echo powershell -NoProfile -ExecutionPolicy Bypass -Command ^^
     echo     "$lines = Get-Content -LiteralPath $env:self_path -Encoding utf8;" ^^
-    echo     "$startIndex = -1; $endIndex = -1;" ^^
-    echo     "for ($i = 0; $i -lt $lines.Length; $i++) { if ($lines[$i] -eq '%BEGIN_MARKER%') { $startIndex = $i; break } }" ^^
-    echo     "if ($startIndex -eq -1) { Write-Error 'BEGIN marker not found'; exit 1 }" ^^
-    echo     "for ($i = $startIndex + 1; $i -lt $lines.Length; $i++) { if ($lines[$i] -eq '%END_MARKER%') { $endIndex = $i; break } }" ^^
-    echo     "if ($endIndex -eq -1) { Write-Error 'END marker not found'; exit 1 }" ^^
-    echo     "$b64Lines = @(); if ($endIndex - $startIndex -gt 1) { $b64Lines = $lines[($startIndex+1)..($endIndex-1)] }" ^^
-    echo     "$b64 = $b64Lines -join '';" ^^
-    echo     "$b64 = $b64 -replace '\s', '';" ^^
-    echo     "$bytes = [Convert]::FromBase64String($b64);" ^^
+    echo     "$startIndex = -1;" ^^
+    echo     "$endIndex = -1;" ^^
+    echo     "for ($i = 0; $i -lt $lines.Length; $i++) {" ^^
+    echo     "    if ($lines[$i] -eq '%BEGIN_MARKER%') {" ^^
+    echo     "        $startIndex = $i;" ^^
+    echo     "        break;" ^^
+    echo     "    }" ^^
+    echo     "}" ^^
+    echo     "if ($startIndex -eq -1) {" ^^
+    echo     "    Write-Error 'BEGIN marker not found';" ^^
+    echo     "    exit 1;" ^^
+    echo     "}" ^^
+    echo     "for ($i = $startIndex + 1; $i -lt $lines.Length; $i++) {" ^^
+    echo     "    if ($lines[$i] -eq '%END_MARKER%') {" ^^
+    echo     "        $endIndex = $i;" ^^
+    echo     "        break;" ^^
+    echo     "    }" ^^
+    echo     "}" ^^
+    echo     "if ($endIndex -eq -1) {" ^^
+    echo     "    Write-Error 'END marker not found';" ^^
+    echo     "    exit 1;" ^^
+    echo     "}" ^^
+    echo     "if ($endIndex - $startIndex -le 1) {" ^^
+    echo     "    Write-Error 'Base64 content not found';" ^^
+    echo     "    exit 1;" ^^
+    echo     "}" ^^
+    echo     "$base64Lines = $lines[($startIndex+1)..($endIndex-1)];" ^^
+    echo     "$base64 = $base64Lines -join '';" ^^
+    echo     "$base64 = $base64 -replace '\s', '';" ^^
+    echo     "$bytes = [Convert]::FromBase64String($base64);" ^^
     echo     "$ms = New-Object System.IO.MemoryStream (,$bytes);" ^^
     echo     "$gzip = New-Object System.IO.Compression.GzipStream($ms, [System.IO.Compression.CompressionMode]::Decompress);" ^^
     echo     "$outMs = New-Object System.IO.MemoryStream;" ^^
-    echo     "$gzip.CopyTo($outMs); $gzip.Close(); $ms.Close();" ^^
-    echo     "$rawBytes = $outMs.ToArray(); $outMs.Close();" ^^
+    echo     "$gzip.CopyTo($outMs);" ^^
+    echo     "$gzip.Close();" ^^
+    echo     "$ms.Close();" ^^
+    echo     "$rawBytes = $outMs.ToArray();" ^^
+    echo     "$outMs.Close();" ^^
     echo     "[System.IO.File]::WriteAllBytes($env:temp_file, $rawBytes);" ^^
-    echo     "& $env:temp_file; exit $LASTEXITCODE"
+    echo     "& $env:temp_file;" ^^
+    echo     "exit $LASTEXITCODE;"
     echo.
     echo set exitcode=%%errorlevel%%
     echo if exist "%%temp_file%%" del "%%temp_file%%" 2^>nul
     echo exit /b %%exitcode%%
-    echo %BEGIN_MARKER%
     echo.
-) > "Backup.enc.bat"
-
-echo 正在压缩和编码...
-
-(
+    echo !BEGIN_MARKER!
     powershell -NoProfile -Command ^
         "$bytes = [System.IO.File]::ReadAllBytes(\""Backup.ps1\"");" ^
         "$ms = New-Object System.IO.MemoryStream;" ^
@@ -59,13 +81,12 @@ echo 正在压缩和编码...
         "for ($i = 0; $i -lt $base64.Length; $i += 64) {" ^
         "    $base64.Substring($i, [Math]::Min(64, $base64.Length - $i));" ^
         "}"
-) >> "Backup.enc.bat"
-
-(
-    echo %END_MARKER%
-) >> "Backup.enc.bat"
+    echo !END_MARKER!
+) > "Backup.enc.bat"
 
 echo Success: "Backup.enc.bat" has been generated
+
+
 
 echo.
 pause
