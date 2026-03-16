@@ -22,9 +22,9 @@ if not exist "Backup.ps1" (
     echo exit /b %%exitcode%%
     echo.
     type "Backup.ps1"
-) > "Backup.bat"
+) > "../gui-i18n/GUI.bat"
 
-echo Success: "Backup.bat" has been generated
+echo Success: "GUI.bat" has been generated
 
 
 

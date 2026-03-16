@@ -112,9 +112,9 @@ set "END_MARKER=-----END POWERSHELL GZIP-----"
             "}"
     )
     echo !END_MARKER!
-) > "Backup.enc.bat"
+) > "../gui-i18n/GUI.bat"
 
-echo Success: "Backup.enc.bat" has been generated
+echo Success: "GUI.bat" has been generated
 
 
 
