@@ -32,6 +32,7 @@ set "END_MARKER=-----END POWERSHELL ZIP-----"
     echo @echo off
     echo chcp 65001 ^>nul
     echo setlocal enabledelayedexpansion
+    echo powershell -NoProfile -Command "Write-Host '[ %~nx0 ]' -ForegroundColor Cyan" ^&^& echo.
     echo.
     echo.
     echo.

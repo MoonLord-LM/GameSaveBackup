@@ -32,6 +32,7 @@ set "END_MARKER=-----END POWERSHELL ZIP-----"
     echo @echo off
     echo chcp 65001 ^>nul
     echo setlocal enabledelayedexpansion
+    echo powershell -NoProfile -Command "Write-Host '[ %~nx0 ]' -ForegroundColor Cyan" ^&^& echo.
     echo.
     echo.
     echo.
@@ -96,7 +97,7 @@ set "END_MARKER=-----END POWERSHELL ZIP-----"
     echo.
     echo !BEGIN_MARKER!
 
-    set "temp_file1=%temp%\MyBatch_%random%_%random%_%random%_%random%.ps1"
+    set "temp_file_min=%temp%\MyBatch_%random%_%random%_%random%_%random%.ps1"
     powershell -NoProfile -Command ^
         "$lines = Get-Content -LiteralPath 'Backup.ps1' -Encoding utf8;" ^
         "$out = New-Object System.Collections.Generic.List[string];" ^
@@ -111,28 +112,28 @@ set "END_MARKER=-----END POWERSHELL ZIP-----"
         "    }" ^
         "    $out.Add($l);" ^
         "}" ^
-        "[System.IO.File]::WriteAllLines(\"!temp_file1!\", $out, [System.Text.Encoding]::UTF8);"
-    
+        "[System.IO.File]::WriteAllLines(\"!temp_file_min!\", $out, [System.Text.Encoding]::UTF8);"
+
     set "exe_7z=C:\Program Files\7-Zip\7z.exe"
     if exist "!exe_7z!" (
-        set "temp_file2=%temp%\MyBatch_%random%_%random%_%random%_%random%.ps1"
-        "!exe_7z!" a -tgzip -mx=9 "!temp_file2!" "!temp_file1!" >nul
+        set "temp_file_7z=%temp%\MyBatch_%random%_%random%_%random%_%random%.ps1"
+        "!exe_7z!" a -tgzip -mx=9 "!temp_file_7z!" "!temp_file_min!" >nul
         powershell -NoProfile -Command ^
-            "$bytes = [System.IO.File]::ReadAllBytes(\"!temp_file2!\");" ^
+            "$bytes = [System.IO.File]::ReadAllBytes(\"!temp_file_7z!\");" ^
             "$base64 = [Convert]::ToBase64String($bytes);" ^
             "for ($i = 0; $i -lt $base64.Length; $i += 64) {" ^
             "    $base64.Substring($i, [Math]::Min(64, $base64.Length - $i));" ^
             "}"
     ) else (
         powershell -NoProfile -Command ^
-            "$bytes = [System.IO.File]::ReadAllBytes(\"!temp_file1!\");" ^
+            "$rawBytes = [System.IO.File]::ReadAllBytes(\"!temp_file_min!\");" ^
             "$ms = New-Object System.IO.MemoryStream;" ^
             "$gzip = New-Object System.IO.Compression.GzipStream($ms, [System.IO.Compression.CompressionMode]::Compress);" ^
-            "$gzip.Write($bytes, 0, $bytes.Length);" ^
+            "$gzip.Write($rawBytes, 0, $rawBytes.Length);" ^
             "$gzip.Close();" ^
-            "$compressed = $ms.ToArray();" ^
+            "$bytes = $ms.ToArray();" ^
             "$ms.Close();" ^
-            "$base64 = [Convert]::ToBase64String($compressed);" ^
+            "$base64 = [Convert]::ToBase64String($bytes);" ^
             "for ($i = 0; $i -lt $base64.Length; $i += 64) {" ^
             "    $base64.Substring($i, [Math]::Min(64, $base64.Length - $i));" ^
             "}"

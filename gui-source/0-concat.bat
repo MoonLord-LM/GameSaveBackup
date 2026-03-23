@@ -39,9 +39,12 @@ set "new_file=GUI-0-concat.bat"
     echo set "temp_file=%%temp%%\MyBatch_%%random%%_%%random%%_%%random%%_%%random%%.ps1"
     echo more +20 "%%~f0" ^> "^!temp_file^!"
     echo powershell -NoProfile -ExecutionPolicy Bypass -File "^!temp_file^!"
-    echo set exitcode=%%errorlevel%%
+    echo.
+    echo.
+    echo.
+    echo set "exitcode=^!errorlevel^!"
     echo del "^!temp_file^!" 2^>nul
-    echo exit /b %%exitcode%%
+    echo exit /b ^!exitcode^!
     echo.
     echo.
     echo.
