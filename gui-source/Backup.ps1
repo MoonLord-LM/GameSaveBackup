@@ -88,6 +88,7 @@ $script:resources = @{
         INFO_IgnoreItem = "忽略项"
         INFO_CurrentWorkingDir = "当前工作目录"
         INFO_EnteringBackupDir = "进入备份目录"
+        INFO_BackupRootDir = "备份根目录"
         ERROR_ConfigReadFailed = "读取配置文件失败"
         INFO_FileTimeComparison = "本地文件修改时间:[{0}] 备份文件修改时间:[{1}]"
         WARNING_BothMissing = "本地存档文件与备份文件都不存在，跳过操作"
@@ -156,6 +157,7 @@ $script:resources = @{
         INFO_IgnoreItem = "Ignore item"
         INFO_CurrentWorkingDir = "Current working directory"
         INFO_EnteringBackupDir = "Entering backup directory"
+        INFO_BackupRootDir = "Backup root directory"
         ERROR_ConfigReadFailed = "Failed to read config file"
         INFO_FileTimeComparison = "Local file time:[{0}] Backup file time:[{1}]"
         WARNING_BothMissing = "Both local save and backup files are missing, skipping"
@@ -795,6 +797,15 @@ function Load-DefaultConfig {
             Set-Content -Path $tempConfigPath -Value $defaultConfigJson -Encoding UTF8
             $global:configPath = $tempConfigPath
             
+            # 获取脚本所在目录并显示备份根目录
+            try {
+                $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+                Write-Log ($script:ui.INFO_BackupRootDir + ": " + $scriptDir) "Info"
+            } catch {
+                $scriptDir = [System.IO.Directory]::GetCurrentDirectory()
+                Write-Log ($script:ui.INFO_BackupRootDir + ": " + $scriptDir) "Info"
+            }
+            
             # 使用国际化的配置显示文本
             $configTextBox.Text = $script:ui.BuiltInConfigDisplay -f $script:configArray.Count
             
@@ -1248,12 +1259,12 @@ $startButton.Add_Click({
             }
         }
 
-        # 切换到配置目录
-        $configDir = Split-Path -Parent $configPath
-        Push-Location $configDir
-
+        # 获取脚本所在目录作为备份根目录
+        $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_CurrentWorkingDir + ": " + (Get-Location).Path)
+        $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_CurrentWorkingDir + ": " + $scriptDir)
+        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_BackupRootDir + ": " + $scriptDir)
 
         # 检查 Git
         $gitExe = Get-Command git -ErrorAction SilentlyContinue
@@ -1350,6 +1361,9 @@ $startButton.Add_Click({
                 }
             }
 
+            # 构建备份目录（在脚本所在目录下）
+            $backupDir = Join-Path $scriptDir $name
+
             # 获取本地文件修改时间
             $maxLocalTime = $null
             $maxLocalTimeString = ""
@@ -1368,7 +1382,6 @@ $startButton.Add_Click({
             # 获取备份文件修改时间
             $maxBackupTime = $null
             $maxBackupTimeString = ""
-            $backupDir = $name
             if (Test-Path $backupDir) {
                 try {
                     $files = Get-ChildItem -Recurse -Path $backupDir -File -ErrorAction SilentlyContinue
@@ -1394,6 +1407,11 @@ $startButton.Add_Click({
 
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
             $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_EnteringBackupDir + ": " + (Get-Location).Path)
+
+            # 创建备份目录
+            if (-not (Test-Path $backupDir)) {
+                New-Item -ItemType Directory -Path $backupDir | Out-Null
+            }
 
             # 判断备份策略
             if ($null -eq $maxLocalTime) {
@@ -1577,9 +1595,6 @@ $startButton.Add_Click({
 
         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
         $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_BackupComplete)
-
-        # 恢复至脚本启动时的工作目录
-        Pop-Location
     })
 
     $psInstance.AddParameter('configPath', $global:configPath)
