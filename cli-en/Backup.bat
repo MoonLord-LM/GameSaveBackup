@@ -19,6 +19,7 @@ if errorlevel 1 (
     echo Error: Missing git.exe component
     echo Please download from https://git-scm.com/install/windows
     "explorer.exe" "https://git-scm.com/install/windows"
+    echo.
     pause
     exit /b 1
 )
@@ -46,12 +47,14 @@ for %%f in (*.json) do (
 if !json_count! equ 0 (
     echo Error: No [.json] configuration file found in the current directory
     echo Please ensure there is [.json] configuration file in this directory
+    echo.
     pause
     exit /b 1
 )
 if !json_count! gtr 1 (
     echo Error: Multiple [.json] configuration files found in the current directory, total: !json_count!
     echo Please keep only one [.json] configuration file
+    echo.
     pause
     exit /b 1
 )

@@ -4,11 +4,17 @@ setlocal enabledelayedexpansion
 
 
 
+
+
+
+
 if not exist "Backup.ps1" (
     echo Error: "Backup.ps1" file not found
     pause
     exit /b 1
 )
+
+
 
 set "BEGIN_MARKER=-----BEGIN POWERSHELL GZIP-----"
 set "END_MARKER=-----END POWERSHELL GZIP-----"
