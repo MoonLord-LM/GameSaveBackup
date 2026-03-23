@@ -100,7 +100,7 @@ set "END_MARKER=-----END POWERSHELL ZIP-----"
 
     if exist "!exe_7z!" (
         set "temp_file_7z=%temp%\MyBatch_%random%_%random%_%random%_%random%.ps1"
-        "!exe_7z!" a -tgzip -mx=9 "!temp_file_7z!" "Backup.ps1" >nul
+        "!exe_7z!" a -tgzip -mx=9 -mtc=off -mtm=off -mta=off -siBackup.ps1 "!temp_file_7z!" < "Backup.ps1" >nul
         powershell -NoProfile -Command ^
             "$bytes = [System.IO.File]::ReadAllBytes(\"!temp_file_7z!\");" ^
             "$base64 = [Convert]::ToBase64String($bytes);" ^
