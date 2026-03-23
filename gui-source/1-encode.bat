@@ -43,7 +43,7 @@ set "END_MARKER=-----END POWERSHELL-----"
     echo set "temp_file=%%temp%%\MyBatch_%%random%%_%%random%%_%%random%%_%%random%%.ps1"
     echo set "self_path=%%~f0"
     echo.
-    echo powershell -NoProfile -ExecutionPolicy Bypass -Command ^^
+    echo powershell -NoProfile -Command ^^
     echo     "$lines = Get-Content -LiteralPath $env:self_path -Encoding utf8;" ^^
     echo     "$startIndex = -1;" ^^
     echo     "$endIndex = -1;" ^^
