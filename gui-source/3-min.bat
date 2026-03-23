@@ -129,7 +129,7 @@ set "END_MARKER=-----END POWERSHELL ZIP-----"
         "}" ^
         "[System.IO.File]::WriteAllLines(\"!temp_file_min!\", $out, [System.Text.Encoding]::UTF8);"
 
-    set "exe_7z=C:\Program Files\7-Zip\7z.exe"
+    set "exe_7z=%ProgramFiles%\7-Zip\7z.exe"
     if exist "!exe_7z!" (
         set "temp_file_7z=%temp%\MyBatch_%random%_%random%_%random%_%random%.ps1"
         "!exe_7z!" a -tgzip -mx=9 "!temp_file_7z!" "!temp_file_min!" >nul
