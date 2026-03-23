@@ -99,19 +99,33 @@ set "END_MARKER=-----END POWERSHELL ZIP-----"
 
     set "temp_file_min=%temp%\MyBatch_%random%_%random%_%random%_%random%.ps1"
     powershell -NoProfile -Command ^
-        "$lines = Get-Content -LiteralPath 'Backup.ps1' -Encoding utf8;" ^
+        "$input = Get-Content -LiteralPath 'Backup.ps1' -Encoding utf8;" ^
         "$aliases = @{ 'Get-Content'='gc'; 'Set-Content'='sc'; 'ForEach-Object'='%' };" ^
         "$out = New-Object System.Collections.Generic.List[string];" ^
-        "foreach ($line in $lines) {" ^
-        "    $l = $line.Trim();" ^
-        "    if ($l.StartsWith('#')) { continue; }" ^
-        "    if ($l -eq '') { continue; }" ^
-        "    foreach ($k in $aliases.Keys) { $l = $l -replace \"\b$k\b\", $aliases[$k]; }" ^
-        "    if ($out.Count -gt 0 -and $out[$out.Count-1].Contains('#') -eq $false) {" ^
-        "        if ($out[$out.Count-1].EndsWith('{')) { $out[$out.Count-1] += ''+$l; continue; }" ^
-        "        if ($l.StartsWith('}')) { $out[$out.Count-1] += ''+$l; continue; }" ^
+        "foreach ($i in $input) {" ^
+        "    $line = $i.Trim();" ^
+        "    if ($line.StartsWith('#')) {" ^
+        "        continue;" ^
         "    }" ^
-        "    $out.Add($l);" ^
+        "    if ($line -eq '') {" ^
+        "        continue;" ^
+        "    }" ^
+        "    if ($out.Count -gt 0) {" ^
+        "        if ($out[$out.Count-1].Contains('#') -eq $false) {" ^
+        "            if ($out[$out.Count-1].EndsWith('{')) {" ^
+        "                $out[$out.Count-1] += ''+$line;" ^
+        "                continue;" ^
+        "            }" ^
+        "            if ($line.StartsWith('}')) {" ^
+        "                $out[$out.Count-1] += ''+$line;" ^
+        "                continue;" ^
+        "            }" ^
+        "        }" ^
+        "    }" ^
+        "    foreach ($k in $aliases.Keys) {" ^
+        "        $line = $line -replace \"\b$k\b\", $aliases[$k];" ^
+        "    }" ^
+        "    $out.Add($line);" ^
         "}" ^
         "[System.IO.File]::WriteAllLines(\"!temp_file_min!\", $out, [System.Text.Encoding]::UTF8);"
 
