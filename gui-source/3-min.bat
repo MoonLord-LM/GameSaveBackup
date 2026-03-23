@@ -141,6 +141,7 @@ set "END_MARKER=-----END POWERSHELL ZIP-----"
             "}"
         if exist "!temp_file_7z!" ( del /f /q "!temp_file_7z!" )
     ) else (
+        powershell -NoProfile -Command ^
             "$rawBytes = [System.IO.File]::ReadAllBytes(\"!temp_file_min!\");" ^
             "$ms = New-Object System.IO.MemoryStream;" ^
             "$gzip = New-Object System.IO.Compression.GzipStream($ms, [System.IO.Compression.CompressionMode]::Compress);" ^
