@@ -88,25 +88,8 @@ set "END_MARKER=-----END POWERSHELL-----"
     echo.
     echo !BEGIN_MARKER!
 
-    set "temp_file1=%temp%\MyBatch_%random%_%random%_%random%_%random%.ps1"
     powershell -NoProfile -Command ^
-        "$lines = Get-Content -LiteralPath 'Backup.ps1' -Encoding utf8;" ^
-        "$out = New-Object System.Collections.Generic.List[string];" ^
-        "$prevEmpty = $false;" ^
-        "foreach ($line in $lines) {" ^
-        "    $l = $line.Trim();" ^
-        "    if ($l.StartsWith('#')) { continue; }" ^
-        "    if ($l -eq '') { continue; }" ^
-        "    if ($out.Count -gt 0 -and $out[$out.Count-1].Contains('#') -eq $false) {" ^
-        "        if ($out[$out.Count-1].EndsWith('{')) { $out[$out.Count-1] += $l; continue; }" ^
-        "        if ($l.StartsWith('}')) { $out[$out.Count-1] += $l; continue; }" ^
-        "    }" ^
-        "    $out.Add($l);" ^
-        "}" ^
-        "[System.IO.File]::WriteAllLines(\"!temp_file1!\", $out, [System.Text.Encoding]::UTF8);"
-    
-    powershell -NoProfile -Command ^
-        "$bytes = [System.IO.File]::ReadAllBytes(\"!temp_file1!\");" ^
+        "$bytes = [System.IO.File]::ReadAllBytes(\"Backup.ps1\");" ^
         "$base64 = [Convert]::ToBase64String($bytes);" ^
         "for ($i = 0; $i -lt $base64.Length; $i += 64) {" ^
         "    $base64.Substring($i, [Math]::Min(64, $base64.Length - $i));" ^
