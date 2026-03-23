@@ -13,14 +13,25 @@ Add-Type -AssemblyName System.Drawing
 # 根据系统语言自动选择界面语言
 Write-Host "DEBUG: CurrentCulture = [ $([System.Globalization.CultureInfo]::CurrentCulture.Name) ]"
 try {
-    $script:uiLang = [System.Globalization.CultureInfo]::CurrentCulture.Name
-    if ($script:uiLang -ne 'zh-CN') {
+    # 获取当前系统文化
+    $currentCulture = [System.Globalization.CultureInfo]::CurrentCulture.Name
+    
+    # 根据 CurrentCulture 设置 CurrentUICulture
+    if ($currentCulture -eq 'zh-CN' -or $currentCulture -like 'zh-*') {
+        # 中文环境
+        [System.Globalization.CultureInfo]::CurrentUICulture = [System.Globalization.CultureInfo]::CreateSpecificCulture("zh-CN")
+        $script:uiLang = 'zh-CN'
+    } else {
+        # 其他语言环境（默认英文）
+        [System.Globalization.CultureInfo]::CurrentUICulture = [System.Globalization.CultureInfo]::CreateSpecificCulture("en-US")
         $script:uiLang = 'en-US'
     }
-
+    
     # DEBUG 测试国际化使用，勿删
     # $script:uiLang = 'en-US'
 } catch {
+    # 如果设置失败，回退到英文
+    [System.Globalization.CultureInfo]::CurrentUICulture = [System.Globalization.CultureInfo]::CreateSpecificCulture("en-US")
     $script:uiLang = 'en-US'
 }
 Write-Host "DEBUG: `$script:uiLang = [ $script:uiLang ]"
@@ -50,6 +61,14 @@ $script:resources = @{
         ColumnSavePath = "存档路径"
         FileFilter = "JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*"
         FileDialogTitle = "选择配置文件"
+        DefaultConfigLoaded = "已加载内嵌的默认配置文件（{0} 个游戏）"
+        OpenSaveLocation = "打开存档位置"
+        BuiltInConfigDisplay = "内置配置 ({0} 个游戏)"
+        OpeningSaveLocation = "正在打开存档位置：{0} - {1}"
+        SaveLocationNotFound = "存档路径不存在，打开父目录：{0} - {1}"
+        SaveLocationNotExist = "存档路径不存在：{0} - {1}"
+        DirectoryCreated = "目录已创建：{0} - {1}"
+        FailedToCreateDirectory = "创建目录失败：{0} - {1}"
         # 备份任务日志
         ERROR_GitMissing = "错误：缺少 git.exe 组件"
         ERROR_GitDownload = "请从 https://git-scm.com/install/windows 下载"
@@ -110,6 +129,14 @@ $script:resources = @{
         ColumnSavePath = "Save Path"
         FileFilter = "JSON Files (*.json)|*.json|All Files (*.*)|*.*"
         FileDialogTitle = "Select Config File"
+        DefaultConfigLoaded = "Embedded default config loaded ({0} games)"
+        OpenSaveLocation = "Open Save Location"
+        BuiltInConfigDisplay = "Built-in Config ({0} games)"
+        OpeningSaveLocation = "Opening save location: {0} - {1}"
+        SaveLocationNotFound = "Save path not found, opening parent directory: {0} - {1}"
+        SaveLocationNotExist = "Save location does not exist: {0} - {1}"
+        DirectoryCreated = "Directory created: {0} - {1}"
+        FailedToCreateDirectory = "Failed to create directory: {0} - {1}"
         # Backup Task Logs
         ERROR_GitMissing = "Error: git.exe component is missing"
         ERROR_GitDownload = "Please download from https://git-scm.com/install/windows"
@@ -149,11 +176,203 @@ $script:resources = @{
     }
 }
 
+# 内嵌的多语言默认配置数据
+$script:defaultConfigs = @{
+    'zh-CN' = @'
+[
+  {
+    "name": "艾尔登法环",
+    "save": "%USERPROFILE%\\AppData\\Roaming\\EldenRing"
+  },
+  {
+    "name": "幻兽帕鲁",
+    "save": "%USERPROFILE%\\AppData\\Local\\Pal\\Saved\\SaveGames"
+  },
+  {
+    "name": "部落幸存者",
+    "save": "%USERPROFILE%\\AppData\\LocalLow\\SZSS INTERACTIVE\\Settlement Survival"
+  },
+  {
+    "name": "最后纪元",
+    "save": "%USERPROFILE%\\AppData\\LocalLow\\Eleventh Hour Games\\Last Epoch"
+  },
+  {
+    "name": "虐杀原形",
+    "save": "%USERPROFILE%\\Documents\\Prototype"
+  },
+  {
+    "name": "尼尔：机械纪元",
+    "save": "%USERPROFILE%\\Documents\\My Games\\NieR_Automata"
+  },
+  {
+    "name": "真三国无双 8：帝国",
+    "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\Dynasty Warriors 9 Empires"
+  },
+  {
+    "name": "无双大蛇 3",
+    "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\WARRIORS OROCHI 4"
+  },
+  {
+    "name": "真三国无双 5",
+    "save": "%USERPROFILE%\\Documents\\KOEI\\Shin Sangokumusou 5"
+  },
+  {
+    "name": "亿万僵尸",
+    "save": "%USERPROFILE%\\Documents\\My Games\\They Are Billions"
+  },
+  {
+    "name": "星球基地",
+    "save": "%USERPROFILE%\\Documents\\Planetbase"
+  },
+  {
+    "name": "缺氧",
+    "save": "%USERPROFILE%\\Documents\\Klei\\OxygenNotIncluded",
+    "ignore": [
+        "%USERPROFILE%\\Documents\\Klei\\OxygenNotIncluded\\RetiredColonies"
+    ]
+  },
+  {
+    "name": "饥荒联机版",
+    "save": "%USERPROFILE%\\Documents\\Klei\\DoNotStarveTogether"
+  },
+  {
+    "name": "博德之门 3",
+    "save": "%USERPROFILE%\\AppData\\Local\\Larian Studios\\Baldur's Gate 3"
+  },
+  {
+    "name": "三国志 8：重制版",
+    "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\SAN8R"
+  },
+  {
+    "name": "光与影：33 号远征队",
+    "save": "%USERPROFILE%\\AppData\\Local\\Sandfall\\Saved"
+  },
+  {
+    "name": "对马岛之魂",
+    "save": "%USERPROFILE%\\Documents\\Ghost of Tsushima DIRECTOR'S CUT"
+  },
+  {
+    "name": "纪念碑谷",
+    "save": "%USERPROFILE%\\AppData\\LocalLow\\ustwo games\\Monument Valley"
+  },
+  {
+    "name": "虫虫大作战",
+    "save": "%PROGRAMDATA%\\AlderGames\\BugBits"
+  },
+  {
+    "name": "棋弈无限：围棋",
+    "save": "%USERPROFILE%\\AppData\\LocalLow\\Studio Amateur\\JustGo"
+  }
+]
+'@
+    'en-US' = @'
+[
+  {
+    "name": "Elden Ring",
+    "save": "%USERPROFILE%\\AppData\\Roaming\\EldenRing"
+  },
+  {
+    "name": "Palworld",
+    "save": "%USERPROFILE%\\AppData\\Local\\Pal\\Saved\\SaveGames"
+  },
+  {
+    "name": "Settlement Survival",
+    "save": "%USERPROFILE%\\AppData\\LocalLow\\SZSS INTERACTIVE\\Settlement Survival"
+  },
+  {
+    "name": "Last Epoch",
+    "save": "%USERPROFILE%\\AppData\\LocalLow\\Eleventh Hour Games\\Last Epoch"
+  },
+  {
+    "name": "Prototype",
+    "save": "%USERPROFILE%\\Documents\\Prototype"
+  },
+  {
+    "name": "NieR Automata",
+    "save": "%USERPROFILE%\\Documents\\My Games\\NieR_Automata"
+  },
+  {
+    "name": "Dynasty Warriors 9 Empires",
+    "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\Dynasty Warriors 9 Empires"
+  },
+  {
+    "name": "Warriors Orochi 4",
+    "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\WARRIORS OROCHI 4"
+  },
+  {
+    "name": "Shin Sangokumusou 5",
+    "save": "%USERPROFILE%\\Documents\\KOEI\\Shin Sangokumusou 5"
+  },
+  {
+    "name": "They Are Billions",
+    "save": "%USERPROFILE%\\Documents\\My Games\\They Are Billions"
+  },
+  {
+    "name": "Planetbase",
+    "save": "%USERPROFILE%\\Documents\\Planetbase"
+  },
+  {
+    "name": "Oxygen Not Included",
+    "save": "%USERPROFILE%\\Documents\\Klei\\OxygenNotIncluded",
+    "ignore": [
+        "%USERPROFILE%\\Documents\\Klei\\OxygenNotIncluded\\RetiredColonies"
+    ]
+  },
+  {
+    "name": "Don't Starve Together",
+    "save": "%USERPROFILE%\\Documents\\Klei\\DoNotStarveTogether"
+  },
+  {
+    "name": "Baldur's Gate 3",
+    "save": "%USERPROFILE%\\AppData\\Local\\Larian Studios\\Baldur's Gate 3"
+  },
+  {
+    "name": "Romance Of The Three Kingdoms 8 Remake",
+    "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\SAN8R"
+  },
+  {
+    "name": "Clair Obscur Expedition 33",
+    "save": "%USERPROFILE%\\AppData\\Local\\Sandfall\\Saved"
+  },
+  {
+    "name": "Ghost Of Tsushima",
+    "save": "%USERPROFILE%\\Documents\\Ghost of Tsushima DIRECTOR'S CUT"
+  },
+  {
+    "name": "Monument Valley",
+    "save": "%USERPROFILE%\\AppData\\LocalLow\\ustwo games\\Monument Valley"
+  },
+  {
+    "name": "BugBits",
+    "save": "%PROGRAMDATA%\\AlderGames\\BugBits"
+  },
+  {
+    "name": "JustGo",
+    "save": "%USERPROFILE%\\AppData\\LocalLow\\Studio Amateur\\JustGo"
+  }
+]
+'@
+}
+
 # 获取当前语言的 UI 文本
 $script:ui = $script:resources[$script:uiLang]
 Write-Host "DEBUG: `$script:resources = [ $script:resources ]"
 Write-Host "DEBUG: `$script:uiLang = [ $script:uiLang ]"
 Write-Host "DEBUG: `$script:ui = [ $script:ui ]"
+
+# 创建语言相关的数据（使用 $script:ui 统一访问）
+$script:uiLangData = @{
+    ArchivePathNotExist = if ($script:uiLang -eq 'zh-CN') {
+        "存档路径不存在：`n{0}`n`n是否要创建此目录？"
+    } else {
+        "Archive path does not exist:`n{0}`n`nDo you want to create this directory?"
+    }
+    ConfirmTitle = if ($script:uiLang -eq 'zh-CN') {
+        "提示"
+    } else {
+        "Confirm"
+    }
+}
 
 # 创建主窗口
 $form = New-Object System.Windows.Forms.Form
@@ -306,7 +525,129 @@ $gameDataGridView.Columns[1].Name = $script:ui.ColumnGameName
 $gameDataGridView.Columns[1].Width = 320
 $gameDataGridView.Columns[2].Name = $script:ui.ColumnSavePath
 $gameDataGridView.Columns[2].Width = 780
+# 启用整行选择
+$gameDataGridView.SelectionMode = [System.Windows.Forms.DataGridViewSelectionMode]::FullRowSelect
+$gameDataGridView.MultiSelect = $false
+# 鼠标按下时自动选中整行（包括左键和右键）
+$gameDataGridView.Add_CellMouseDown({
+    param($sender, $e)
+    if ($e.RowIndex -ge 0) {
+        $gameDataGridView.ClearSelection()
+        $gameDataGridView.Rows[$e.RowIndex].Selected = $true
+        $gameDataGridView.CurrentCell = $gameDataGridView.Rows[$e.RowIndex].Cells[0]
+    }
+})
 $gameListTabPage.Controls.Add($gameDataGridView)
+
+# 创建右键菜单（打开存档位置）
+$contextMenu = New-Object System.Windows.Forms.ContextMenuStrip
+$openLocationMenuItem = New-Object System.Windows.Forms.ToolStripMenuItem
+$openLocationMenuItem.Text = $script:ui.OpenSaveLocation
+$contextMenu.Items.Add($openLocationMenuItem) | Out-Null
+$gameDataGridView.ContextMenuStrip = $contextMenu
+
+# 右键菜单打开前的事件：动态启用/禁用菜单项
+$contextMenu.Add_Opening({
+    try {
+        # 检查是否有选中的行
+        if ($gameDataGridView.SelectedRows.Count -eq 0) {
+            $openLocationMenuItem.Enabled = $false
+            return
+        }
+        
+        $selectedRow = $gameDataGridView.SelectedRows[0]
+        $savePath = $selectedRow.Cells[2].Value
+        
+        # 还原环境变量显示
+        $realPath = $savePath -replace '\$env:USERPROFILE', $env:USERPROFILE
+        $realPath = $realPath -replace '\$env:PROGRAMDATA', $env:PROGRAMDATA
+        
+        # 只有当路径存在时才启用菜单项
+        if (Test-Path $realPath) {
+            $openLocationMenuItem.Enabled = $true
+        } else {
+            $openLocationMenuItem.Enabled = $false
+        }
+    }
+    catch {
+        # 出现错误时禁用菜单项
+        $openLocationMenuItem.Enabled = $false
+    }
+})
+
+# 右键菜单点击事件：打开存档位置
+$openLocationMenuItem.Add_Click({
+    try {
+        Write-Host "DEBUG: 右键菜单被点击" -ForegroundColor Cyan
+        
+        # 获取选中的行
+        if ($gameDataGridView.SelectedRows.Count -eq 0) {
+            Write-Host "DEBUG: 没有选中的行" -ForegroundColor Yellow
+            return
+        }
+        
+        Write-Host "DEBUG: 选中的行数：$($gameDataGridView.SelectedRows.Count)" -ForegroundColor Cyan
+        $selectedRow = $gameDataGridView.SelectedRows[0]
+        $gameName = $selectedRow.Cells[1].Value
+        $savePath = $selectedRow.Cells[2].Value
+        
+        Write-Host "DEBUG: 游戏名称：$gameName, 存档路径：$savePath" -ForegroundColor Cyan
+        
+        # 还原环境变量显示
+        $realPath = $savePath -replace '\$env:USERPROFILE', $env:USERPROFILE
+        $realPath = $realPath -replace '\$env:PROGRAMDATA', $env:PROGRAMDATA
+        
+        Write-Host "DEBUG: 实际路径：$realPath" -ForegroundColor Cyan
+        
+        # 检查路径是否存在
+        if (Test-Path $realPath) {
+            Write-Host "DEBUG: 路径存在，准备打开" -ForegroundColor Green
+            # 打开文件夹
+            Start-Process "explorer.exe" -ArgumentList $realPath
+            Write-Log ($script:ui.OpeningSaveLocation -f $gameName, $realPath) "Info"
+        } else {
+            Write-Host "DEBUG: 路径不存在" -ForegroundColor Red
+            # 路径不存在，尝试打开父目录
+            $parentDir = Split-Path -Parent $realPath
+            if (Test-Path $parentDir) {
+                Start-Process "explorer.exe" -ArgumentList $parentDir
+                Write-Log ($script:ui.SaveLocationNotFound -f $gameName, $parentDir) "Warning"
+            } else {
+                Write-Log ($script:ui.SaveLocationNotExist -f $gameName, $realPath) "Error"
+                
+                # 根据语言设置对话框文本
+                $messageText = if ($script:uiLang -eq 'zh-CN') {
+                    $script:uiLangData.ArchivePathNotExist -f $realPath
+                } else {
+                    $script:uiLangData.ArchivePathNotExist -f $realPath
+                }
+                $captionText = $script:uiLangData.ConfirmTitle
+                
+                $result = [System.Windows.Forms.MessageBox]::Show(
+                    $messageText,
+                    $captionText,
+                    [System.Windows.Forms.MessageBoxButtons]::YesNo,
+                    [System.Windows.Forms.MessageBoxIcon]::Question
+                )
+                
+                if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
+                    try {
+                        New-Item -ItemType Directory -Path $realPath -Force | Out-Null
+                        Start-Process "explorer.exe" -ArgumentList $realPath
+                        Write-Log ($script:ui.DirectoryCreated -f $gameName, $realPath) "Success"
+                    }
+                    catch {
+                        Write-Log ($script:ui.FailedToCreateDirectory -f $gameName, $_) "Error"
+                    }
+                }
+            }
+        }
+    }
+    catch {
+        Write-Host "DEBUG ERROR: $_" -ForegroundColor Red
+        Write-Log "Failed to open save location: $_" "Error"
+    }
+})
 
 # 底部进度条
 $progressBar = New-Object System.Windows.Forms.ProgressBar
@@ -438,8 +779,93 @@ function Load-GameList {
     }
 }
 
-# 自动查找并加载 JSON 配置文件
+# 加载内嵌的默认配置（根据系统语言选择）
+function Load-DefaultConfig {
+    try {
+        $defaultConfigJson = $script:defaultConfigs[$script:uiLang]
+        if ($defaultConfigJson) {
+            # 将内嵌的 JSON 字符串解析为对象
+            $script:configArray = $defaultConfigJson | ConvertFrom-Json
+            
+            # 在日志中给出提示
+            Write-Log ($script:ui.DefaultConfigLoaded -f $script:configArray.Count) "Success"
+            
+            # 创建临时文件用于存储内嵌配置（保持与外部文件兼容）
+            $tempConfigPath = [System.IO.Path]::GetTempFileName() + ".json"
+            Set-Content -Path $tempConfigPath -Value $defaultConfigJson -Encoding UTF8
+            $global:configPath = $tempConfigPath
+            
+            # 使用国际化的配置显示文本
+            $configTextBox.Text = $script:ui.BuiltInConfigDisplay -f $script:configArray.Count
+            
+            # 加载游戏列表
+            Load-GameListFromObject -ConfigObject $script:configArray
+            
+            # 如果加载成功，启用开始按钮
+            if ($null -ne $script:configArray) {
+                $startButton.Enabled = $true
+            }
+            
+            return $true
+        }
+    }
+    catch {
+        Write-Log "Failed to load default config: $_" "Error"
+    }
+    
+    return $false
+}
+
+# 从对象加载游戏列表（不读取文件）
+function Load-GameListFromObject {
+    param([object]$ConfigObject)
+
+    try {
+        # 清空现有的游戏数据
+        $gameDataGridView.Rows.Clear()
+
+        $totalGames = $ConfigObject.Count
+
+        # 为每个游戏添加表格行
+        for ($i = 0; $i -lt $totalGames; $i++) {
+            $game = $ConfigObject[$i]
+            $gameName = $game.name
+            $savePath = $game.save
+
+            # 替换环境变量显示
+            $displayPath = $savePath -replace "%USERPROFILE%", '$env:USERPROFILE'
+            $displayPath = $displayPath -replace "%PROGRAMDATA%", '$env:PROGRAMDATA'
+
+            # 添加行到表格
+            $gameDataGridView.Rows.Add(($i + 1), $gameName, $displayPath) | Out-Null
+        }
+
+        Write-Log $script:ui.GameListUpdated "Info"
+
+        # 仅在成功加载时才添加游戏列表标签页并切换
+        if ($tabControl.TabPages.Contains($gameListTabPage) -eq $false) {
+            $tabControl.Controls.Add($gameListTabPage)
+        }
+        $tabControl.SelectedTab = $gameListTabPage
+
+    } catch {
+        Write-Log ($script:ui.GameListUpdated + ": $_") "Error"
+        $script:configArray = $null
+    }
+}
+
+# 自动查找并加载 JSON 配置文件（优先使用内嵌配置）
 function Find-AndLoadJsonFile {
+    # 首先尝试加载内嵌的默认配置
+    Write-Host "DEBUG: Attempting to load embedded default config..."
+    if (Load-DefaultConfig) {
+        Write-Host "DEBUG: Embedded default config loaded successfully"
+        return $true
+    }
+    
+    # 如果内嵌配置加载失败，则尝试查找外部 JSON 文件
+    Write-Host "DEBUG: Embedded config failed, trying to find external JSON files..."
+    
     # 获取脚本所在目录
     try {
         $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
