@@ -32,9 +32,15 @@ set "END_MARKER=-----END POWERSHELL-----"
     echo @echo off
     echo chcp 65001 ^>nul
     echo setlocal enabledelayedexpansion
+    echo.
+    echo.
+    echo.
+    echo REM Open source address: https://github.com/MoonLord-LM/GameSaveBackup
+    echo.
+    echo.
+    echo.
     echo set "temp_file=%%temp%%\MyBatch_%%random%%_%%random%%_%%random%%_%%random%%.ps1"
     echo set "self_path=%%~f0"
-    echo.
     echo.
     echo powershell -NoProfile -ExecutionPolicy Bypass -Command ^^
     echo     "$lines = Get-Content -LiteralPath $env:self_path -Encoding utf8;" ^^
@@ -72,9 +78,13 @@ set "END_MARKER=-----END POWERSHELL-----"
     echo     "& $env:temp_file;" ^^
     echo     "exit $LASTEXITCODE;"
     echo.
+    echo.
+    echo.
     echo set exitcode=%%errorlevel%%
     echo del "%%temp_file%%" 2^>nul
     echo exit /b %%exitcode%%
+    echo.
+    echo.
     echo.
     echo !BEGIN_MARKER!
 

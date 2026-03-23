@@ -4,17 +4,26 @@ setlocal enabledelayedexpansion
 
 
 
+REM Use this script to compress [ Backup.ps1 ] into [ GUI-2-compress.bat ] with BASE64 and GZIP
+REM When you run [ GUI-2-compress.bat ], it will generate [ Backup.ps1 ] into a temp file and run it automatically
 
 
 
+if /i "%cd%"=="%SystemRoot%\System32" (
+    echo Use "Run as administrator" from right-click menu, switching to script directory & echo.
+    cd /d "%~dp0"
+)
 
 if not exist "Backup.ps1" (
     echo Error: "Backup.ps1" file not found
+    echo.
     pause
     exit /b 1
 )
 
 
+
+set "new_file=GUI-2-compress.bat"
 
 set "BEGIN_MARKER=-----BEGIN POWERSHELL GZIP-----"
 set "END_MARKER=-----END POWERSHELL GZIP-----"
@@ -71,7 +80,7 @@ set "END_MARKER=-----END POWERSHELL GZIP-----"
     echo     "exit $LASTEXITCODE;"
     echo.
     echo set exitcode=%%errorlevel%%
-    echo if exist "%%temp_file%%" del "%%temp_file%%" 2^>nul
+    echo del "%%temp_file%%" 2^>nul
     echo exit /b %%exitcode%%
     echo.
     echo !BEGIN_MARKER!
@@ -91,21 +100,21 @@ set "END_MARKER=-----END POWERSHELL GZIP-----"
         "    }" ^
         "    $out.Add($l);" ^
         "}" ^
-        "[System.IO.File]::WriteAllLines(\""!temp_file1!\"", $out, [System.Text.Encoding]::UTF8);"
-
+        "[System.IO.File]::WriteAllLines(\"!temp_file1!\", $out, [System.Text.Encoding]::UTF8);"
+    
     set "exe_7z=C:\Program Files\7-Zip\7z.exe"
     if exist "!exe_7z!" (
         set "temp_file2=%temp%\MyBatch_%random%_%random%_%random%_%random%.ps1"
         "!exe_7z!" a -tgzip -mx=9 "!temp_file2!" "!temp_file1!" >nul
         powershell -NoProfile -Command ^
-            "$bytes = [System.IO.File]::ReadAllBytes(\""!temp_file2!\"");" ^
+            "$bytes = [System.IO.File]::ReadAllBytes(\"!temp_file2!\");" ^
             "$base64 = [Convert]::ToBase64String($bytes);" ^
             "for ($i = 0; $i -lt $base64.Length; $i += 64) {" ^
             "    $base64.Substring($i, [Math]::Min(64, $base64.Length - $i));" ^
             "}"
     ) else (
         powershell -NoProfile -Command ^
-            "$bytes = [System.IO.File]::ReadAllBytes(\""!temp_file1!\"");" ^
+            "$bytes = [System.IO.File]::ReadAllBytes(\"!temp_file1!\");" ^
             "$ms = New-Object System.IO.MemoryStream;" ^
             "$gzip = New-Object System.IO.Compression.GzipStream($ms, [System.IO.Compression.CompressionMode]::Compress);" ^
             "$gzip.Write($bytes, 0, $bytes.Length);" ^
@@ -118,9 +127,9 @@ set "END_MARKER=-----END POWERSHELL GZIP-----"
             "}"
     )
     echo !END_MARKER!
-) > "../gui-i18n/GUI.bat"
+) > "!new_file!"
 
-echo Success: "GUI.bat" has been generated
+echo Success: file [ !new_file! ] has been generated
 
 
 
