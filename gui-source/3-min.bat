@@ -102,7 +102,6 @@ set "END_MARKER=-----END POWERSHELL ZIP-----"
         "$lines = Get-Content -LiteralPath 'Backup.ps1' -Encoding utf8;" ^
         "$aliases = @{ 'Get-Content'='gc'; 'Set-Content'='sc'; 'ForEach-Object'='%' };" ^
         "$out = New-Object System.Collections.Generic.List[string];" ^
-        "$prevEmpty = $false;" ^
         "foreach ($line in $lines) {" ^
         "    $l = $line.Trim();" ^
         "    if ($l.StartsWith('#')) { continue; }" ^
