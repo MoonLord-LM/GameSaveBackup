@@ -108,8 +108,8 @@ set "END_MARKER=-----END POWERSHELL ZIP-----"
         "    if ($l -eq '') { continue; }" ^
         "    foreach ($k in $aliases.Keys) { $l = $l -replace \"\b$k\b\", $aliases[$k]; }" ^
         "    if ($out.Count -gt 0 -and $out[$out.Count-1].Contains('#') -eq $false) {" ^
-        "        if ($out[$out.Count-1].EndsWith('{')) { $out[$out.Count-1] += ' '+$l; continue; }" ^
-        "        if ($l.StartsWith('}')) { $out[$out.Count-1] += ' '+$l; continue; }" ^
+        "        if ($out[$out.Count-1].EndsWith('{')) { $out[$out.Count-1] += ''+$l; continue; }" ^
+        "        if ($l.StartsWith('}')) { $out[$out.Count-1] += ''+$l; continue; }" ^
         "    }" ^
         "    $out.Add($l);" ^
         "}" ^
