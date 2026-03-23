@@ -28,7 +28,7 @@ set "new_file=GUI-0-concat.bat"
     echo @echo off
     echo chcp 65001 ^>nul
     echo setlocal enabledelayedexpansion
-    echo powershell -NoProfile -Command "Write-Host '[ %~nx0 ]' -ForegroundColor Cyan" ^&^& echo.
+    echo powershell -NoProfile -Command "Write-Host '[ %%~nx0 ]' -ForegroundColor Cyan" ^&^& echo.
     echo.
     echo.
     echo.
@@ -37,7 +37,7 @@ set "new_file=GUI-0-concat.bat"
     echo.
     echo.
     echo set "temp_file=%%temp%%\MyBatch_%%random%%_%%random%%_%%random%%_%%random%%.ps1"
-    echo more +20 "%%~f0" ^> "^!temp_file^!"
+    echo more +23 "%%~f0" ^> "^!temp_file^!"
     echo powershell -NoProfile -ExecutionPolicy Bypass -File "^!temp_file^!"
     echo.
     echo.
