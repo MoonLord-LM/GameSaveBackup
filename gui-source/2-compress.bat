@@ -4,7 +4,7 @@ setlocal enabledelayedexpansion
 
 
 
-REM Use this script to compress [ Backup.ps1 ] into [ GUI-2-compress.bat ] with BASE64 and GZIP
+REM Use this script to compress [ Backup.ps1 ] into [ GUI-2-compress.bat ]
 REM When you run [ GUI-2-compress.bat ], it will generate [ Backup.ps1 ] into a temp file and run it automatically
 
 
@@ -25,13 +25,20 @@ if not exist "Backup.ps1" (
 
 set "new_file=GUI-2-compress.bat"
 
-set "BEGIN_MARKER=-----BEGIN POWERSHELL GZIP-----"
-set "END_MARKER=-----END POWERSHELL GZIP-----"
+set "BEGIN_MARKER=-----BEGIN POWERSHELL ZIP-----"
+set "END_MARKER=-----END POWERSHELL ZIP-----"
 
 (
     echo @echo off
     echo chcp 65001 ^>nul
     echo setlocal enabledelayedexpansion
+    echo.
+    echo.
+    echo.
+    echo REM Open source address: https://github.com/MoonLord-LM/GameSaveBackup
+    echo.
+    echo.
+    echo.
     echo set "temp_file=%%temp%%\MyBatch_%%random%%_%%random%%_%%random%%_%%random%%.ps1"
     echo set "self_path=%%~f0"
     echo.
