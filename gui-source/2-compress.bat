@@ -24,6 +24,7 @@ if not exist "Backup.ps1" (
 
 
 set "new_file=GUI-2-compress.bat"
+set "exe_7z=%ProgramFiles%\7-Zip\7z.exe"
 
 set "BEGIN_MARKER=-----BEGIN POWERSHELL ZIP-----"
 set "END_MARKER=-----END POWERSHELL ZIP-----"
@@ -97,7 +98,6 @@ set "END_MARKER=-----END POWERSHELL ZIP-----"
     echo.
     echo !BEGIN_MARKER!
 
-    set "exe_7z=C:\Program Files\7-Zip\7z.exe"
     if exist "!exe_7z!" (
         set "temp_file_7z=%temp%\MyBatch_%random%_%random%_%random%_%random%.ps1"
         "!exe_7z!" a -tgzip -mx=9 "!temp_file_7z!" "Backup.ps1" >nul
@@ -124,6 +124,14 @@ set "END_MARKER=-----END POWERSHELL ZIP-----"
     )
     echo !END_MARKER!
 ) > "!new_file!"
+
+if exist "!exe_7z!" (
+    echo Use 7zip to compress the file
+    echo.
+) else (
+    echo Use PowerShell to compress the file
+    echo.
+)
 
 echo Success: file [ !new_file! ] has been generated
 
