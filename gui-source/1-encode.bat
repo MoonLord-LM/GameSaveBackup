@@ -80,9 +80,9 @@ set "END_MARKER=-----END POWERSHELL-----"
     echo.
     echo.
     echo.
-    echo set exitcode=%%errorlevel%%
-    echo del "%%temp_file%%" 2^>nul
-    echo exit /b %%exitcode%%
+    echo set "exitcode=^!errorlevel^!"
+    echo del "^!temp_file^!" 2^>nul
+    echo exit /b ^!exitcode^!
     echo.
     echo.
     echo.
