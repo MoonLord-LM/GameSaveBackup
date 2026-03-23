@@ -90,7 +90,7 @@ set "END_MARKER=-----END POWERSHELL ZIP-----"
     echo.
     echo.
     echo set "exitcode=^!errorlevel^!"
-    echo del "^!temp_file^!" 2^>nul
+    echo if exist "^!temp_file^!" ^( del /f /q "^!temp_file^!" ^)
     echo exit /b ^!exitcode^!
     echo.
     echo.
@@ -100,15 +100,17 @@ set "END_MARKER=-----END POWERSHELL ZIP-----"
     set "temp_file_min=%temp%\MyBatch_%random%_%random%_%random%_%random%.ps1"
     powershell -NoProfile -Command ^
         "$lines = Get-Content -LiteralPath 'Backup.ps1' -Encoding utf8;" ^
+        "$aliases = @{ 'Get-Content'='gc'; 'Set-Content'='sc'; 'ForEach-Object'='%' };" ^
         "$out = New-Object System.Collections.Generic.List[string];" ^
         "$prevEmpty = $false;" ^
         "foreach ($line in $lines) {" ^
         "    $l = $line.Trim();" ^
         "    if ($l.StartsWith('#')) { continue; }" ^
         "    if ($l -eq '') { continue; }" ^
+        "    foreach ($k in $aliases.Keys) { $l = $l -replace \"\b$k\b\", $aliases[$k]; }" ^
         "    if ($out.Count -gt 0 -and $out[$out.Count-1].Contains('#') -eq $false) {" ^
-        "        if ($out[$out.Count-1].EndsWith('{')) { $out[$out.Count-1] += $l; continue; }" ^
-        "        if ($l.StartsWith('}')) { $out[$out.Count-1] += $l; continue; }" ^
+        "        if ($out[$out.Count-1].EndsWith('{')) { $out[$out.Count-1] += ' '+$l; continue; }" ^
+        "        if ($l.StartsWith('}')) { $out[$out.Count-1] += ' '+$l; continue; }" ^
         "    }" ^
         "    $out.Add($l);" ^
         "}" ^
@@ -124,8 +126,8 @@ set "END_MARKER=-----END POWERSHELL ZIP-----"
             "for ($i = 0; $i -lt $base64.Length; $i += 64) {" ^
             "    $base64.Substring($i, [Math]::Min(64, $base64.Length - $i));" ^
             "}"
+        if exist "!temp_file_7z!" ( del /f /q "!temp_file_7z!" )
     ) else (
-        powershell -NoProfile -Command ^
             "$rawBytes = [System.IO.File]::ReadAllBytes(\"!temp_file_min!\");" ^
             "$ms = New-Object System.IO.MemoryStream;" ^
             "$gzip = New-Object System.IO.Compression.GzipStream($ms, [System.IO.Compression.CompressionMode]::Compress);" ^
@@ -138,6 +140,7 @@ set "END_MARKER=-----END POWERSHELL ZIP-----"
             "    $base64.Substring($i, [Math]::Min(64, $base64.Length - $i));" ^
             "}"
     )
+    if exist "!temp_file_min!" ( del /f /q "!temp_file_min!" )
     echo !END_MARKER!
 ) > "!new_file!"
 

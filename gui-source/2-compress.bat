@@ -90,7 +90,7 @@ set "END_MARKER=-----END POWERSHELL ZIP-----"
     echo.
     echo.
     echo set "exitcode=^!errorlevel^!"
-    echo del "^!temp_file^!" 2^>nul
+    echo if exist "^!temp_file^!" ^( del /f /q "^!temp_file^!" ^)
     echo exit /b ^!exitcode^!
     echo.
     echo.
@@ -107,8 +107,8 @@ set "END_MARKER=-----END POWERSHELL ZIP-----"
             "for ($i = 0; $i -lt $base64.Length; $i += 64) {" ^
             "    $base64.Substring($i, [Math]::Min(64, $base64.Length - $i));" ^
             "}"
+        if exist "!temp_file_7z!" ( del /f /q "!temp_file_7z!" )
     ) else (
-        powershell -NoProfile -Command ^
             "$rawBytes = [System.IO.File]::ReadAllBytes(\"Backup.ps1\");" ^
             "$ms = New-Object System.IO.MemoryStream;" ^
             "$gzip = New-Object System.IO.Compression.GzipStream($ms, [System.IO.Compression.CompressionMode]::Compress);" ^

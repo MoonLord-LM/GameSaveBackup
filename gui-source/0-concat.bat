@@ -43,7 +43,7 @@ set "new_file=GUI-0-concat.bat"
     echo.
     echo.
     echo set "exitcode=^!errorlevel^!"
-    echo del "^!temp_file^!" 2^>nul
+    echo if exist "^!temp_file^!" ^( del /f /q "^!temp_file^!" ^)
     echo exit /b ^!exitcode^!
     echo.
     echo.
