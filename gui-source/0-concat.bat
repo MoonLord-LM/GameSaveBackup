@@ -40,7 +40,7 @@ set "new_file=GUI-0-concat.bat"
     echo more +20 "%%~f0" ^> "^!temp_file^!"
     echo powershell -NoProfile -ExecutionPolicy Bypass -File "^!temp_file^!"
     echo set exitcode=%%errorlevel%%
-    echo REM del "^!temp_file^!" 2^>nul
+    echo del "^!temp_file^!" 2^>nul
     echo exit /b %%exitcode%%
     echo.
     echo.
