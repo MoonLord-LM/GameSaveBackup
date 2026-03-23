@@ -4,29 +4,20 @@ setlocal enabledelayedexpansion
 
 
 
-REM Use this script to encode [ Backup.ps1 ] into [ GUI-1-encode.bat ]
-REM When you run [ GUI-1-encode.bat ], it will generate [ Backup.ps1 ] into a temp file and run it automatically
 
 
 
-if /i "%cd%"=="%SystemRoot%\System32" (
-    echo Use "Run as administrator" from right-click menu, switching to script directory & echo.
-    cd /d "%~dp0"
-)
 
 if not exist "Backup.ps1" (
     echo Error: "Backup.ps1" file not found
-    echo.
     pause
     exit /b 1
 )
 
 
 
-set "new_file=GUI-1-encode.bat"
-
-set "BEGIN_MARKER=-----BEGIN POWERSHELL-----"
-set "END_MARKER=-----END POWERSHELL-----"
+set "BEGIN_MARKER=-----BEGIN POWERSHELL GZIP-----"
+set "END_MARKER=-----END POWERSHELL GZIP-----"
 
 (
     echo @echo off
@@ -34,7 +25,6 @@ set "END_MARKER=-----END POWERSHELL-----"
     echo setlocal enabledelayedexpansion
     echo set "temp_file=%%temp%%\MyBatch_%%random%%_%%random%%_%%random%%_%%random%%.ps1"
     echo set "self_path=%%~f0"
-    echo.
     echo.
     echo powershell -NoProfile -ExecutionPolicy Bypass -Command ^^
     echo     "$lines = Get-Content -LiteralPath $env:self_path -Encoding utf8;" ^^
@@ -68,12 +58,20 @@ set "END_MARKER=-----END POWERSHELL-----"
     echo     "$base64 = $base64Lines -join '';" ^^
     echo     "$base64 = $base64 -replace '\s', '';" ^^
     echo     "$bytes = [Convert]::FromBase64String($base64);" ^^
-    echo     "[System.IO.File]::WriteAllBytes($env:temp_file, $bytes);" ^^
+    echo     "$ms = New-Object System.IO.MemoryStream (,$bytes);" ^^
+    echo     "$gzip = New-Object System.IO.Compression.GzipStream($ms, [System.IO.Compression.CompressionMode]::Decompress);" ^^
+    echo     "$outMs = New-Object System.IO.MemoryStream;" ^^
+    echo     "$gzip.CopyTo($outMs);" ^^
+    echo     "$gzip.Close();" ^^
+    echo     "$ms.Close();" ^^
+    echo     "$rawBytes = $outMs.ToArray();" ^^
+    echo     "$outMs.Close();" ^^
+    echo     "[System.IO.File]::WriteAllBytes($env:temp_file, $rawBytes);" ^^
     echo     "& $env:temp_file;" ^^
     echo     "exit $LASTEXITCODE;"
     echo.
     echo set exitcode=%%errorlevel%%
-    echo del "%%temp_file%%" 2^>nul
+    echo if exist "%%temp_file%%" del "%%temp_file%%" 2^>nul
     echo exit /b %%exitcode%%
     echo.
     echo !BEGIN_MARKER!
@@ -93,18 +91,36 @@ set "END_MARKER=-----END POWERSHELL-----"
         "    }" ^
         "    $out.Add($l);" ^
         "}" ^
-        "[System.IO.File]::WriteAllLines(\"!temp_file1!\", $out, [System.Text.Encoding]::UTF8);"
-    
-    powershell -NoProfile -Command ^
-        "$bytes = [System.IO.File]::ReadAllBytes(\"!temp_file1!\");" ^
-        "$base64 = [Convert]::ToBase64String($bytes);" ^
-        "for ($i = 0; $i -lt $base64.Length; $i += 64) {" ^
-        "    $base64.Substring($i, [Math]::Min(64, $base64.Length - $i));" ^
-        "}"
-    echo !END_MARKER!
-) > "!new_file!"
+        "[System.IO.File]::WriteAllLines(\""!temp_file1!\"", $out, [System.Text.Encoding]::UTF8);"
 
-echo Success: file [ !new_file! ] has been generated
+    set "exe_7z=C:\Program Files\7-Zip\7z.exe"
+    if exist "!exe_7z!" (
+        set "temp_file2=%temp%\MyBatch_%random%_%random%_%random%_%random%.ps1"
+        "!exe_7z!" a -tgzip -mx=9 "!temp_file2!" "!temp_file1!" >nul
+        powershell -NoProfile -Command ^
+            "$bytes = [System.IO.File]::ReadAllBytes(\""!temp_file2!\"");" ^
+            "$base64 = [Convert]::ToBase64String($bytes);" ^
+            "for ($i = 0; $i -lt $base64.Length; $i += 64) {" ^
+            "    $base64.Substring($i, [Math]::Min(64, $base64.Length - $i));" ^
+            "}"
+    ) else (
+        powershell -NoProfile -Command ^
+            "$bytes = [System.IO.File]::ReadAllBytes(\""!temp_file1!\"");" ^
+            "$ms = New-Object System.IO.MemoryStream;" ^
+            "$gzip = New-Object System.IO.Compression.GzipStream($ms, [System.IO.Compression.CompressionMode]::Compress);" ^
+            "$gzip.Write($bytes, 0, $bytes.Length);" ^
+            "$gzip.Close();" ^
+            "$compressed = $ms.ToArray();" ^
+            "$ms.Close();" ^
+            "$base64 = [Convert]::ToBase64String($compressed);" ^
+            "for ($i = 0; $i -lt $base64.Length; $i += 64) {" ^
+            "    $base64.Substring($i, [Math]::Min(64, $base64.Length - $i));" ^
+            "}"
+    )
+    echo !END_MARKER!
+) > "../gui-i18n/GUI.bat"
+
+echo Success: "GUI.bat" has been generated
 
 
 
