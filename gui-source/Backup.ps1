@@ -637,43 +637,32 @@ function Load-DefaultConfig {
         $script:configPath = ""
         $defaultConfigJson = $script:defaultJsonConfigs[$script:uiLang]
         $script:configJsonArray = $defaultConfigJson | ConvertFrom-Json
-        Write-Log ($script:ui.DefaultConfigLoaded -f $script:configJsonArray.Count) "Success"
 
-        # 显示备份根目录（使用当前工作目录）
+        $configTextBox.Text = $script:ui.BuiltInConfigDisplay -f $script:configJsonArray.Count
+        Write-Log ($script:ui.DefaultConfigLoaded -f $script:configJsonArray.Count) "Success"
         $cd = [System.IO.Directory]::GetCurrentDirectory()
         Write-Log ($script:ui.INFO_BackupRootDir + ": " + $cd) "Info"
 
-        # 使用国际化的配置显示文本
-        $configTextBox.Text = $script:ui.BuiltInConfigDisplay -f $script:configJsonArray.Count
-
-        # 清空现有的游戏数据
         $gameDataGridView.Rows.Clear()
-
-        # 为每个游戏添加表格行
         for ($i = 0; $i -lt $script:configJsonArray.Count; $i++) {
             $game = $script:configJsonArray[$i]
             $gameName = $game.name
             $savePath = $game.save
-
-            # 替换环境变量显示
-            $displayPath = $savePath -replace "%USERPROFILE%", '$env:USERPROFILE'
-            $displayPath = $displayPath -replace "%PROGRAMDATA%", '$env:PROGRAMDATA'
-
-            # 添加行到表格（抑制输出）
-            $gameDataGridView.Rows.Add(($i + 1), $gameName, $displayPath) | Out-Null
+            $gameDataGridView.Rows.Add(($i + 1), $gameName, $savePath) | Out-Null
         }
-
         Write-Log $script:ui.GameListUpdated "Info"
 
-        # 仅在成功加载时才添加游戏列表标签页并切换
+        # 仅在成功加载时，才添加游戏列表标签页并切换
         if ($tabControl.TabPages.Contains($gameListTabPage) -eq $false) {
             $tabControl.Controls.Add($gameListTabPage)
         }
         $tabControl.SelectedTab = $gameListTabPage
 
-        # 如果加载成功，启用开始按钮
-        if ($null -ne $script:configJsonArray) {
+        # 至少有 1 个游戏，才启用开始按钮
+        if ($script:configJsonArray.Count -ge 1) {
             $startButton.Enabled = $true
+        } else {
+            $startButton.Enabled = $false
         }
     }
     catch {
@@ -704,13 +693,9 @@ function Load-GameList {
             $game = $script:configJsonArray[$i]
             $gameName = $game.name
             $savePath = $game.save
-
-            # 替换环境变量显示
-            $displayPath = $savePath -replace "%USERPROFILE%", '$env:USERPROFILE'
-            $displayPath = $displayPath -replace "%PROGRAMDATA%", '$env:PROGRAMDATA'
-
+            
             # 添加行到表格（抑制输出）
-            $gameDataGridView.Rows.Add(($i + 1), $gameName, $displayPath) | Out-Null
+            $gameDataGridView.Rows.Add(($i + 1), $gameName, $savePath) | Out-Null
         }
 
         Write-Log $script:ui.GameListUpdated "Info"
