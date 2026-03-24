@@ -645,32 +645,32 @@ function Load-DefaultConfig {
 
         # 使用国际化的配置显示文本
         $configTextBox.Text = $script:ui.BuiltInConfigDisplay -f $script:configJsonArray.Count
-        
+
         # 清空现有的游戏数据
         $gameDataGridView.Rows.Clear()
-        
+
         # 为每个游戏添加表格行
         for ($i = 0; $i -lt $script:configJsonArray.Count; $i++) {
             $game = $script:configJsonArray[$i]
             $gameName = $game.name
             $savePath = $game.save
-            
+
             # 替换环境变量显示
             $displayPath = $savePath -replace "%USERPROFILE%", '$env:USERPROFILE'
             $displayPath = $displayPath -replace "%PROGRAMDATA%", '$env:PROGRAMDATA'
-            
+
             # 添加行到表格（抑制输出）
             $gameDataGridView.Rows.Add(($i + 1), $gameName, $displayPath) | Out-Null
         }
-        
+
         Write-Log $script:ui.GameListUpdated "Info"
-        
+
         # 仅在成功加载时才添加游戏列表标签页并切换
         if ($tabControl.TabPages.Contains($gameListTabPage) -eq $false) {
             $tabControl.Controls.Add($gameListTabPage)
         }
         $tabControl.SelectedTab = $gameListTabPage
-        
+
         # 如果加载成功，启用开始按钮
         if ($null -ne $script:configJsonArray) {
             $startButton.Enabled = $true
@@ -790,14 +790,14 @@ $contextMenu.Add_Opening({
             $openLocationMenuItem.Enabled = $false
             return
         }
-        
+
         $selectedRow = $gameDataGridView.SelectedRows[0]
         $savePath = $selectedRow.Cells[2].Value
-        
+
         # 还原环境变量显示
         $realPath = $savePath -replace '\$env:USERPROFILE', $env:USERPROFILE
         $realPath = $realPath -replace '\$env:PROGRAMDATA', $env:PROGRAMDATA
-        
+
         # 只有当路径存在时才启用菜单项
         if (Test-Path $realPath) {
             $openLocationMenuItem.Enabled = $true
@@ -818,15 +818,15 @@ $openLocationMenuItem.Add_Click({
         if ($gameDataGridView.SelectedRows.Count -eq 0) {
             return
         }
-        
+
         $selectedRow = $gameDataGridView.SelectedRows[0]
         $gameName = $selectedRow.Cells[1].Value
         $savePath = $selectedRow.Cells[2].Value
-        
+
         # 还原环境变量显示
         $realPath = $savePath -replace '\$env:USERPROFILE', $env:USERPROFILE
         $realPath = $realPath -replace '\$env:PROGRAMDATA', $env:PROGRAMDATA
-        
+
         # 检查路径是否存在
         if (Test-Path $realPath) {
             # 打开文件夹
@@ -840,7 +840,7 @@ $openLocationMenuItem.Add_Click({
                 Write-Log ($script:ui.SaveLocationNotFound -f $gameName, $parentDir) "Warning"
             } else {
                 Write-Log ($script:ui.SaveLocationNotExist -f $gameName, $realPath) "Error"
-                
+
                 # 根据语言设置对话框文本
                 $messageText = if ($script:uiLang -eq 'zh-CN') {
                     "存档路径不存在：`n$realPath`n`n是否要创建此目录？"
@@ -848,14 +848,14 @@ $openLocationMenuItem.Add_Click({
                     "Archive path does not exist:`n$realPath`n`nDo you want to create this directory?"
                 }
                 $captionText = if ($script:uiLang -eq 'zh-CN') { "提示" } else { "Confirm" }
-                
+
                 $result = [MessageBox]::Show(
                     $messageText,
                     $captionText,
                     [MessageBoxButtons]::YesNo,
                     [MessageBoxIcon]::Question
                 )
-                
+
                 if ($result -eq [DialogResult]::Yes) {
                     try {
                         New-Item -ItemType Directory -Path $realPath -Force | Out-Null
@@ -954,7 +954,7 @@ $startButton.Add_Click({
                 [System.Collections.Concurrent.ConcurrentBag[string]]$LogQueue,
                 [hashtable]$UiResources
             )
-            
+
             try {
                 # 验证是否为数组
                 if (-not ($Config -is [Array])) {
@@ -962,51 +962,51 @@ $startButton.Add_Click({
                     $logQueue.Add("[$timestamp] [Error] " + $UiResources.ERROR_ConfigNotArray)
                     return $false
                 }
-                
+
                 if ($Config.Count -eq 0) {
                     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                     $logQueue.Add("[$timestamp] [Error] " + $UiResources.ERROR_ConfigEmptyArray)
                     return $false
                 }
-                
+
                 # 验证每个游戏配置
                 for ($i = 0; $i -lt $Config.Count; $i++) {
                     $game = $Config[$i]
-                    
+
                     # 验证是否为对象
                     if (-not ($game -is [PSCustomObject])) {
                         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                         $logQueue.Add("[$timestamp] [Error] " + $UiResources.ERROR_ConfigInvalidObject + " (index: $i)")
                         return $false
                     }
-                    
+
                     # 验证必需字段：name
                     if (-not $game.PSObject.Properties['name']) {
                         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                         $logQueue.Add("[$timestamp] [Error] " + $UiResources.ERROR_ConfigMissingProperty + ": name (index: $i)")
                         return $false
                     }
-                    
+
                     if ([string]::IsNullOrWhiteSpace($game.name)) {
                         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                         $logQueue.Add("[$timestamp] [Error] " + $UiResources.ERROR_ConfigEmptyName + " (index: $i)")
                         return $false
                     }
-                    
+
                     # 验证必需字段：save
                     if (-not $game.PSObject.Properties['save']) {
                         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                         $logQueue.Add("[$timestamp] [Error] " + $UiResources.ERROR_ConfigMissingProperty + ": save (index: $i)")
                         return $false
                     }
-                    
+
                     if ([string]::IsNullOrWhiteSpace($game.save)) {
                         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                         $logQueue.Add("[$timestamp] [Error] " + $UiResources.ERROR_ConfigEmptyPath + " (index: $i)")
                         return $false
                     }
                 }
-                
+
                 return $true
             }
             catch {
@@ -1023,25 +1023,25 @@ $startButton.Add_Click({
                 [System.Collections.Concurrent.ConcurrentBag[string]]$LogQueue,
                 [hashtable]$UiResources
             )
-            
+
             try {
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 $logQueue.Add("[$timestamp] [Debug] " + $UiResources.INFO_GitCommand + ": git $Arguments")
-                
+
                 # 执行 Git 命令并捕获所有输出
                 $output = & git $Arguments.Split(' ') 2>&1 | Out-String
                 $exitCode = $LASTEXITCODE
-                
+
                 # 记录 Git 输出
                 if ($output -and $output.Trim()) {
                     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                     $logQueue.Add("[$timestamp] [Debug] " + $UiResources.INFO_GitOutput + ":`r`n" + $output)
                 }
-                
+
                 if ($exitCode -ne 0) {
                     throw "$ErrorMessage (Exit Code: $exitCode): $output"
                 }
-                
+
                 return $output
             }
             catch {
@@ -1081,12 +1081,12 @@ $startButton.Add_Click({
         try {
             $configContent = Get-Content -Path $configPath -Raw -Encoding UTF8
             $configArray = $configContent | ConvertFrom-Json
-            
+
             # 验证配置文件格式
             if (-not (Test-GameConfig -Config $configArray -LogQueue $logQueue -UiResources $uiResources)) {
                 return
             }
-            
+
             $totalGames = $configArray.Count
         }
         catch {
@@ -1108,7 +1108,7 @@ $startButton.Add_Click({
                 $null = & git config --local core.quotepath false 2>&1 | Out-String
                 $null = & git config --local i18n.logoutputencoding utf-8 2>&1 | Out-String
                 $null = & git config --local i18n.commitencoding utf-8 2>&1 | Out-String
-                
+
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_GitInitialized)
             }
@@ -1211,14 +1211,14 @@ $startButton.Add_Click({
                     $logQueue.Add("[$timestamp] [Warning] " + $uiResources.WARNING_LocalMissing)
                     $sh = New-Object -ComObject Shell.Application
                     $sh.Namespace(10).MoveHere($saveExpanded)
-                    
+
                     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                     $robocopyCommand = "robocopy . `"$saveExpanded`" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
                     $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyCommand + ": $robocopyCommand")
-                    
+
                     $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
                     $robocopyExitCode = $LASTEXITCODE
-                    
+
                     # 记录 Robocopy 状态（包含返回码）
                     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                     if ($robocopyExitCode -ge 8) {
@@ -1226,7 +1226,7 @@ $startButton.Add_Click({
                     } else {
                         $logQueue.Add("[$timestamp] [Debug] " + ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode))
                     }
-                    
+
                     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                     $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyReturn + ":`r`n" + $result)
                 }
@@ -1240,14 +1240,14 @@ $startButton.Add_Click({
                     Set-Content -Path "存档位置.bat" -Value $batContent -Encoding UTF8
                     (Get-Item "存档位置.bat").LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime
                 }
-                
+
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 $robocopyCommand = "robocopy `"$saveExpanded`" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
                 $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyCommand + ": $robocopyCommand")
-                
+
                 $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
                 $robocopyExitCode = $LASTEXITCODE
-                
+
                 # 记录 Robocopy 状态（包含返回码）
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 if ($robocopyExitCode -ge 8) {
@@ -1255,13 +1255,13 @@ $startButton.Add_Click({
                 } else {
                     $logQueue.Add("[$timestamp] [Debug] " + ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode))
                 }
-                
+
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyReturn + ":`r`n" + $result)
-                
+
                 try {
                     $null = Invoke-GitCommand -Arguments "add ." -ErrorMessage "Git add failed" -LogQueue $logQueue -UiResources $uiResources
-                    
+
                     $diffResult = & git diff --cached --quiet 2>&1
                     if ($LASTEXITCODE -ne 0) {
                         $commitMsg = "Update - " + $name + " on " + $machineName + " by " + $userName
@@ -1280,14 +1280,14 @@ $startButton.Add_Click({
                 $logQueue.Add("[$timestamp] [Warning] " + $uiResources.WARNING_LocalOlder)
                 $sh = New-Object -ComObject Shell.Application
                 $sh.Namespace(10).MoveHere($saveExpanded)
-                
+
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 $robocopyCommand = "robocopy . `"$saveExpanded`" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
                 $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyCommand + ": $robocopyCommand")
-                
+
                 $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
                 $robocopyExitCode = $LASTEXITCODE
-                
+
                 # 记录 Robocopy 状态（包含返回码）
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 if ($robocopyExitCode -ge 8) {
@@ -1295,21 +1295,21 @@ $startButton.Add_Click({
                 } else {
                     $logQueue.Add("[$timestamp] [Debug] " + ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode))
                 }
-                
+
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyReturn + ":`r`n" + $result)
             }
             elseif ($maxLocalTime -gt $maxBackupTime) {
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_LocalNewer)
-                
+
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 $robocopyCommand = "robocopy `"$saveExpanded`" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
                 $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyCommand + ": $robocopyCommand")
-                
+
                 $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
                 $robocopyExitCode = $LASTEXITCODE
-                
+
                 # 记录 Robocopy 状态（包含返回码）
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 if ($robocopyExitCode -ge 8) {
@@ -1317,13 +1317,13 @@ $startButton.Add_Click({
                 } else {
                     $logQueue.Add("[$timestamp] [Debug] " + ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode))
                 }
-                
+
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyReturn + ":`r`n" + $result)
-                
+
                 try {
                     $null = Invoke-GitCommand -Arguments "add ." -ErrorMessage "Git add failed" -LogQueue $logQueue -UiResources $uiResources
-                    
+
                     $diffResult = & git diff --cached --quiet 2>&1
                     if ($LASTEXITCODE -ne 0) {
                         $commitMsg = "Update - " + $name + " on " + $machineName + " by " + $userName
@@ -1353,7 +1353,7 @@ $startButton.Add_Click({
         # 最终 Git 提交
         try {
             $null = Invoke-GitCommand -Arguments "add ." -ErrorMessage "Final Git add failed" -LogQueue $logQueue -UiResources $uiResources
-            
+
             $diffResult = & git diff --cached --quiet 2>&1
             if ($LASTEXITCODE -ne 0) {
                 $commitMsg = "Update - on " + $machineName + " by " + $userName
@@ -1366,7 +1366,7 @@ $startButton.Add_Click({
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
             $logQueue.Add("[$timestamp] [Error] Final Git operation failed: $_")
         }
-        
+
         # Git clean 操作
         try {
             $cleanOutput = & git clean -df 2>&1 | Out-String
