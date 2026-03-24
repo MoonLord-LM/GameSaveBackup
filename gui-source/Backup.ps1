@@ -548,7 +548,7 @@ $bottomPanel.Controls.Add($progressBar)
 # 定义变量
 $script:configPath = ""
 $script:isRunning = $false
-$script:configArray = $null
+$script:configJsonArray = $null
 $script:job = $null
 $script:timer = $null
 $script:asyncResult = $null
@@ -634,55 +634,46 @@ Write-Log ($script:ui.MachineInfo -f $script:machineName, $script:userName) "Inf
 # 加载内嵌的默认配置，根据系统语言选择
 function Load-DefaultConfig {
     try {
+        $script:configPath = ""
         $defaultConfigJson = $script:defaultJsonConfigs[$script:uiLang]
-        if ($defaultConfigJson) {
-            # 将内嵌的 JSON 字符串解析为对象
-            $script:configArray = $defaultConfigJson | ConvertFrom-Json
+        $script:configJsonArray = $defaultConfigJson | ConvertFrom-Json
+        Write-Log ($script:ui.DefaultConfigLoaded -f $script:configJsonArray.Count) "Success"
+
+        # 显示备份根目录（使用当前工作目录）
+        $cd = [System.IO.Directory]::GetCurrentDirectory()
+        Write-Log ($script:ui.INFO_BackupRootDir + ": " + $cd) "Info"
+
+        # 使用国际化的配置显示文本
+        $configTextBox.Text = $script:ui.BuiltInConfigDisplay -f $script:configJsonArray.Count
+        
+        # 清空现有的游戏数据
+        $gameDataGridView.Rows.Clear()
+        
+        # 为每个游戏添加表格行
+        for ($i = 0; $i -lt $script:configJsonArray.Count; $i++) {
+            $game = $script:configJsonArray[$i]
+            $gameName = $game.name
+            $savePath = $game.save
             
-            # 在日志中给出提示
-            Write-Log ($script:ui.DefaultConfigLoaded -f $script:configArray.Count) "Success"
+            # 替换环境变量显示
+            $displayPath = $savePath -replace "%USERPROFILE%", '$env:USERPROFILE'
+            $displayPath = $displayPath -replace "%PROGRAMDATA%", '$env:PROGRAMDATA'
             
-            # 创建临时文件用于存储内嵌配置（保持与外部文件兼容）
-            $tempConfigPath = [System.IO.Path]::GetTempFileName() + ".json"
-            Set-Content -Path $tempConfigPath -Value $defaultConfigJson -Encoding UTF8
-            $script:configPath = $tempConfigPath
-            
-            # 显示备份根目录（使用当前工作目录）
-            $scriptDir = [System.IO.Directory]::GetCurrentDirectory()
-            Write-Log ($script:ui.INFO_BackupRootDir + ": " + $scriptDir) "Info"
-            
-            # 使用国际化的配置显示文本
-            $configTextBox.Text = $script:ui.BuiltInConfigDisplay -f $script:configArray.Count
-            
-            # 清空现有的游戏数据
-            $gameDataGridView.Rows.Clear()
-            
-            # 为每个游戏添加表格行
-            for ($i = 0; $i -lt $script:configArray.Count; $i++) {
-                $game = $script:configArray[$i]
-                $gameName = $game.name
-                $savePath = $game.save
-                
-                # 替换环境变量显示
-                $displayPath = $savePath -replace "%USERPROFILE%", '$env:USERPROFILE'
-                $displayPath = $displayPath -replace "%PROGRAMDATA%", '$env:PROGRAMDATA'
-                
-                # 添加行到表格（抑制输出）
-                $gameDataGridView.Rows.Add(($i + 1), $gameName, $displayPath) | Out-Null
-            }
-            
-            Write-Log $script:ui.GameListUpdated "Info"
-            
-            # 仅在成功加载时才添加游戏列表标签页并切换
-            if ($tabControl.TabPages.Contains($gameListTabPage) -eq $false) {
-                $tabControl.Controls.Add($gameListTabPage)
-            }
-            $tabControl.SelectedTab = $gameListTabPage
-            
-            # 如果加载成功，启用开始按钮
-            if ($null -ne $script:configArray) {
-                $startButton.Enabled = $true
-            }
+            # 添加行到表格（抑制输出）
+            $gameDataGridView.Rows.Add(($i + 1), $gameName, $displayPath) | Out-Null
+        }
+        
+        Write-Log $script:ui.GameListUpdated "Info"
+        
+        # 仅在成功加载时才添加游戏列表标签页并切换
+        if ($tabControl.TabPages.Contains($gameListTabPage) -eq $false) {
+            $tabControl.Controls.Add($gameListTabPage)
+        }
+        $tabControl.SelectedTab = $gameListTabPage
+        
+        # 如果加载成功，启用开始按钮
+        if ($null -ne $script:configJsonArray) {
+            $startButton.Enabled = $true
         }
     }
     catch {
@@ -703,14 +694,14 @@ function Load-GameList {
         $gameDataGridView.Rows.Clear()
 
         # 读取 JSON 配置
-        $script:configArray = Get-Content -Path $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
-        $totalGames = $script:configArray.Count
+        $script:configJsonArray = Get-Content -Path $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $totalGames = $script:configJsonArray.Count
 
         Write-Log ($script:ui.ConfigLoaded -f $totalGames) "Success"
 
         # 为每个游戏添加表格行
         for ($i = 0; $i -lt $totalGames; $i++) {
-            $game = $script:configArray[$i]
+            $game = $script:configJsonArray[$i]
             $gameName = $game.name
             $savePath = $game.save
 
@@ -737,7 +728,7 @@ function Load-GameList {
     Write-Host "Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
     Write-Host "Message: $($_.Exception.Message)" -ForegroundColor Red
         Write-Log ($script:ui.GameListUpdated + ": $_") "Error"
-        $script:configArray = $null
+        $script:configJsonArray = $null
     }
 }
 
@@ -773,7 +764,7 @@ function Find-AndLoadJsonFile {
     Load-GameList -ConfigPath $script:configPath
 
     # 如果加载成功，启用开始按钮
-    if ($null -ne $script:configArray) {
+    if ($null -ne $script:configJsonArray) {
         $startButton.Enabled = $true
     }
 }
@@ -897,40 +888,18 @@ $browseButton.Add_Click({
     $fileDialog.Filter = $script:ui.FileFilter
     $fileDialog.Title = $script:ui.FileDialogTitle
 
-    # 获取脚本所在目录（使用 PSScriptRoot 更可靠）
-    try {
-        # 优先使用 $PSScriptRoot（更可靠）
-        if ($PSScriptRoot) {
-            $scriptDir = $PSScriptRoot
-        } else {
-            $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-        }
-    } catch {
-        Write-Host ""
-    Write-Host "[ Catch Error ]"
-    Write-Host "Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
-    Write-Host "Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
-    Write-Host "Message: $($_.Exception.Message)" -ForegroundColor Red
-        $scriptDir = [System.IO.Directory]::GetCurrentDirectory()
-    }
-    
-    # 确保 scriptDir 不为空
-    if ([string]::IsNullOrEmpty($scriptDir)) {
-        $scriptDir = [System.IO.Directory]::GetCurrentDirectory()
-    }
-    
-    $fileDialog.InitialDirectory = $scriptDir
+    $fileDialog.InitialDirectory = [System.IO.Directory]::GetCurrentDirectory()
 
     if ($fileDialog.ShowDialog() -eq [DialogResult]::OK) {
-    $script:configPath = $fileDialog.FileName
-    $configTextBox.Text = $script:configPath
-    Write-Log ($script:ui.ConfigSelected + $script:configPath) "Info"
+        $script:configPath = $fileDialog.FileName
+        $configTextBox.Text = $script:configPath
+        Write-Log ($script:ui.ConfigSelected + $script:configPath) "Info"
 
         # 加载游戏列表（Load-GameList 函数内部会在成功后切换到游戏列表标签页）
         Load-GameList -ConfigPath $script:configPath
 
         # 如果加载成功，启用开始按钮
-        if ($null -ne $script:configArray) {
+        if ($null -ne $script:configJsonArray) {
             $startButton.Enabled = $true
         }
     }
@@ -1083,11 +1052,11 @@ $startButton.Add_Click({
         }
 
         # 获取脚本所在目录作为备份根目录
-        $scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
+        $cd = [System.IO.Directory]::GetCurrentDirectory()
         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_CurrentWorkingDir + ": " + $scriptDir)
+        $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_CurrentWorkingDir + ": " + $cd)
         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_BackupRootDir + ": " + $scriptDir)
+        $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_BackupRootDir + ": " + $cd)
 
         # 检查 Git
         $gitExe = Get-Command git -ErrorAction SilentlyContinue
