@@ -1173,7 +1173,7 @@ $startButton.Add_Click({
 
             # 创建备份目录
             if (-not (Test-Path $backupDir)) {
-                New-Item -ItemType Directory -Path $backupDir
+                New-Item -ItemType Directory -Path $backupDir | Out-Null
             }
 
             # 进入备份目录
@@ -1181,11 +1181,6 @@ $startButton.Add_Click({
 
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
             $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_EnteringBackupDir + ": " + (Get-Location).Path)
-
-            # 创建备份目录
-            if (-not (Test-Path $backupDir)) {
-                New-Item -ItemType Directory -Path $backupDir | Out-Null
-            }
 
             # 判断备份策略
             if ($null -eq $maxLocalTime) {
@@ -1451,11 +1446,11 @@ $startButton.Add_Click({
                                 # 默认级别为 Info
                                 $level = "Info"
 
-                                # 检查是否有级别标记 [Level]
-                                if ($message -match "^\[(Error|Warning|Success|Info|Progress|Debug)\] ") {
+                                # 检查是否有级别标记 [Level]（不区分大小写）
+                                if ($message -match "(?i)^\[(Error|Warning|Success|Info|Progress|Debug)\] ") {
                                     $level = $matches[1]
                                     # 移除级别标记，只保留实际消息
-                                    $message = $message -replace "^\[(Error|Warning|Success|Info|Progress|Debug)\] ", ""
+                                    $message = $message -replace "(?i)^\[(Error|Warning|Success|Info|Progress|Debug)\] ", ""
                                 }
 
                                 Write-Log $message $level
@@ -1473,9 +1468,15 @@ $startButton.Add_Click({
             $global:isRunning = $false
 
             # 清理资源
-            $global:psInstance.Dispose()
-            $global:runspacePool.Close()
-            $global:runspacePool.Dispose()
+            if ($global:timer) { $global:timer.Stop(); $global:timer.Dispose() }
+            if ($global:asyncResult) { $global:asyncResult.AsyncWaitHandle.Close() }
+            if ($global:job) { Stop-Job -Job $global:job; Remove-Job -Job $global:job -Force }
+            if ($global:psInstance) { $global:psInstance.Dispose() }
+            if ($global:runspacePool) {
+                $global:runspacePool.Close()
+                $global:runspacePool.Dispose()
+            }
+            [GC]::Collect()
         }
     })
     $global:timer.Start()
