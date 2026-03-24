@@ -831,7 +831,7 @@ else {
 
 # ———————————————————————————————— 4: 事件处理和功能实现 ————————————————————————————————
 
-# 浏览按钮点击事件
+# 配置文件按钮点击事件
 $script:fileDialogInitialDirectory = $script:cd
 $browseButton.Add_Click({
     $fileDialog = [OpenFileDialog]::new()
