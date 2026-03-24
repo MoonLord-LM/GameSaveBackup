@@ -476,6 +476,7 @@ $topButtonGroupPanel.Controls.Add($copyLogButton)
 # 创建中部 TabControl（标签页容器）
 $tabControl = New-Object System.Windows.Forms.TabControl
 $tabControl.Dock = "Fill"
+$tabControl.Padding = New-Object System.Drawing.Point(20, 3)
 $centerPanel.Controls.Add($tabControl)
 
 # 创建日志标签页
