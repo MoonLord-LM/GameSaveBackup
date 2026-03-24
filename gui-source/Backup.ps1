@@ -655,7 +655,7 @@ function Load-GameList {
             $displayPath = $savePath -replace "%USERPROFILE%", '$env:USERPROFILE'
             $displayPath = $displayPath -replace "%PROGRAMDATA%", '$env:PROGRAMDATA'
 
-            # 添加行到表格
+            # 添加行到表格（抑制输出）
             $gameDataGridView.Rows.Add(($i + 1), $gameName, $displayPath) | Out-Null
         }
 
@@ -708,15 +708,11 @@ function Load-DefaultConfig {
             if ($null -ne $script:configArray) {
                 $startButton.Enabled = $true
             }
-            
-            return $true
         }
     }
     catch {
         Write-Log "Failed to load default config: $_" "Error"
     }
-    
-    return $false
 }
 
 # 从对象加载游戏列表（不读取文件）
@@ -739,7 +735,7 @@ function Load-GameListFromObject {
             $displayPath = $savePath -replace "%USERPROFILE%", '$env:USERPROFILE'
             $displayPath = $displayPath -replace "%PROGRAMDATA%", '$env:PROGRAMDATA'
 
-            # 添加行到表格
+            # 添加行到表格（需要使用 Out-Null 抑制输出）
             $gameDataGridView.Rows.Add(($i + 1), $gameName, $displayPath) | Out-Null
         }
 
@@ -776,15 +772,15 @@ function Find-AndLoadJsonFile {
     # 情况 1：没有找到 JSON 文件 → 警告并使用默认配置
     if ($jsonFiles.Count -eq 0) {
         Write-Log $script:ui.ConfigNotFound "Warning"
-        Load-DefaultConfig | Out-Null
-        return $false
+        Load-DefaultConfig
+        return
     }
     
     # 情况 2：找到多个 JSON 文件 → 告警并使用默认配置
     if ($jsonFiles.Count -gt 1) {
         Write-Log ($script:ui.INFO_MultipleConfigFound -f $jsonFiles.Count) "Warning"
-        Load-DefaultConfig | Out-Null
-        return $false
+        Load-DefaultConfig
+        return
     }
     
     # 情况 3：找到唯一一个 JSON 文件 → 自动加载
@@ -800,13 +796,11 @@ function Find-AndLoadJsonFile {
     if ($null -ne $script:configArray) {
         $startButton.Enabled = $true
     }
-    
-    return $true
 }
 
 # 查找并加载 JSON 文件
 Write-Log $script:ui.CheckingConfig "Info"
-Find-AndLoadJsonFile | Out-Null
+Find-AndLoadJsonFile
 
 # 切换回日志标签页函数
 function Show-LogPanel {
