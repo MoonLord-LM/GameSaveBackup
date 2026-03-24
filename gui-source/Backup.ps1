@@ -46,7 +46,7 @@ $script:textResources = @{
         ColumnSavePath = "存档路径"
         FileFilter = "JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*"
         FileDialogTitle = "选择配置文件"
-        DefaultConfigLoaded = "已加载内嵌默认配置文件（{0} 个游戏）"
+        DefaultConfigLoaded = "已加载内嵌默认配置文件，共 {0} 个游戏"
         OpenSaveLocation = "打开存档路径"
         BuiltInConfigDisplay = "内置配置 ({0} 个游戏)"
         OpeningSaveLocation = "正在打开存档位置：{0} - {1}"
@@ -70,6 +70,8 @@ $script:textResources = @{
         INFO_RobocopyCommand = "Robocopy 命令"
         INFO_GamesFound = "找到游戏配置数量"
         INFO_MultipleConfigFound = "当前目录下找到 {0} 个 JSON 配置文件，请删除多余的，只保留一个"
+        ERROR_DefaultConfigFailed = "内嵌默认配置加载失败"
+        ERROR_ConfigLoadFailed = "JSON 配置文件加载失败"
         PROGRESS_Processing = "处理"
         INFO_IgnoreItem = "忽略项"
         INFO_CurrentWorkingDir = "当前工作目录"
@@ -118,7 +120,7 @@ $script:textResources = @{
         ColumnSavePath = "Save Path"
         FileFilter = "JSON Files (*.json)|*.json|All Files (*.*)|*.*"
         FileDialogTitle = "Select Config File"
-        DefaultConfigLoaded = "Embedded default config loaded ({0} games)"
+        DefaultConfigLoaded = "Embedded default config loaded, {0} game(s) found"
         OpenSaveLocation = "Open Save Path"
         BuiltInConfigDisplay = "Built-in Config ({0} games)"
         OpeningSaveLocation = "Opening save location: {0} - {1}"
@@ -142,6 +144,8 @@ $script:textResources = @{
         INFO_RobocopyCommand = "Robocopy command"
         INFO_GamesFound = "game(s) found in configuration"
         INFO_MultipleConfigFound = "Found {0} JSON config files in current directory. Please remove extra files and keep only one"
+        ERROR_DefaultConfigFailed = "Failed to load embedded default config"
+        ERROR_ConfigLoadFailed = "Failed to load JSON config file"
         PROGRESS_Processing = "Processing"
         INFO_IgnoreItem = "Ignore item"
         INFO_CurrentWorkingDir = "Current working directory"
@@ -631,34 +635,35 @@ $script:machineName = & cmd /c hostname
 $script:userName = [Environment]::UserName
 Write-Log ($script:ui.MachineInfo -f $script:machineName, $script:userName) "Info"
 
-# 加载内嵌的默认配置，根据系统语言选择
+# 加载内嵌的默认配置
 function Load-DefaultConfig {
     try {
         $script:configPath = ""
-        $defaultConfigJson = $script:defaultJsonConfigs[$script:uiLang]
-        $script:configJsonArray = $defaultConfigJson | ConvertFrom-Json
+        $script:configJsonArray = $script:defaultJsonConfigs[$script:uiLang] | ConvertFrom-Json
 
         $configTextBox.Text = $script:ui.BuiltInConfigDisplay -f $script:configJsonArray.Count
         Write-Log ($script:ui.DefaultConfigLoaded -f $script:configJsonArray.Count) "Success"
-        $cd = [System.IO.Directory]::GetCurrentDirectory()
-        Write-Log ($script:ui.INFO_BackupRootDir + ": " + $cd) "Info"
 
-        $gameDataGridView.Rows.Clear()
-        for ($i = 0; $i -lt $script:configJsonArray.Count; $i++) {
-            $game = $script:configJsonArray[$i]
-            $gameName = $game.name
-            $savePath = $game.save
-            $gameDataGridView.Rows.Add(($i + 1), $gameName, $savePath) | Out-Null
+        $gameDataGridView.SuspendLayout()
+        try {
+            $gameDataGridView.Rows.Clear()
+            for ($i = 0; $i -lt $script:configJsonArray.Count; $i++) {
+                $game = $script:configJsonArray[$i]
+                $gameName = $game.name
+                $savePath = $game.save
+                $gameDataGridView.Rows.Add(($i + 1), $gameName, $savePath) | Out-Null
+            }
+        }
+        finally {
+            $gameDataGridView.ResumeLayout()
         }
         Write-Log $script:ui.GameListUpdated "Info"
 
-        # 仅在成功加载时，才添加游戏列表标签页并切换
         if ($tabControl.TabPages.Contains($gameListTabPage) -eq $false) {
             $tabControl.Controls.Add($gameListTabPage)
         }
         $tabControl.SelectedTab = $gameListTabPage
 
-        # 至少有 1 个游戏，才启用开始按钮
         if ($script:configJsonArray.Count -ge 1) {
             $startButton.Enabled = $true
         } else {
@@ -671,49 +676,65 @@ function Load-DefaultConfig {
         Write-Host "[ Error ] Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
         Write-Host "[ Error ] Message: $($_.Exception.Message)" -ForegroundColor Red
         Write-Host ""
+
+        Write-Log ($script:ui.ERROR_DefaultConfigFailed + ": $($_.Exception.Message)") "Error"
+        $script:configPath = ""
+        $script:configJsonArray = $null
+        $gameDataGridView.Rows.Clear()
+        $tabControl.Controls.Remove($gameListTabPage)
+        $startButton.Enabled = $false
     }
 }
 
-# 加载并显示游戏列表函数
-function Load-GameList {
+# 加载外部的 JSON 配置
+function Load-JsonConfigFile {
     param([string]$ConfigPath)
 
     try {
-        # 清空现有的游戏数据
-        $gameDataGridView.Rows.Clear()
+        $script:configPath = $ConfigPath
+        $script:configJsonArray = Get-Content -Path $script:configPath -Raw -Encoding UTF8 | ConvertFrom-Json
 
-        # 读取 JSON 配置
-        $script:configJsonArray = Get-Content -Path $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
-        $totalGames = $script:configJsonArray.Count
+        $configTextBox.Text = $script:configPath
+        Write-Log ($script:ui.ConfigLoaded -f $script:configJsonArray.Count) "Success"
 
-        Write-Log ($script:ui.ConfigLoaded -f $totalGames) "Success"
-
-        # 为每个游戏添加表格行
-        for ($i = 0; $i -lt $totalGames; $i++) {
-            $game = $script:configJsonArray[$i]
-            $gameName = $game.name
-            $savePath = $game.save
-            
-            # 添加行到表格（抑制输出）
-            $gameDataGridView.Rows.Add(($i + 1), $gameName, $savePath) | Out-Null
+        $gameDataGridView.SuspendLayout()
+        try {
+            $gameDataGridView.Rows.Clear()
+            for ($i = 0; $i -lt $script:configJsonArray.Count; $i++) {
+                $game = $script:configJsonArray[$i]
+                $gameName = $game.name
+                $savePath = $game.save
+                $gameDataGridView.Rows.Add(($i + 1), $gameName, $savePath) | Out-Null
+            }
         }
-
+        finally {
+            $gameDataGridView.ResumeLayout()
+        }
         Write-Log $script:ui.GameListUpdated "Info"
 
-        # 仅在成功加载时才添加游戏列表标签页并切换
         if ($tabControl.TabPages.Contains($gameListTabPage) -eq $false) {
             $tabControl.Controls.Add($gameListTabPage)
         }
         $tabControl.SelectedTab = $gameListTabPage
 
+        if ($script:configJsonArray.Count -ge 1) {
+            $startButton.Enabled = $true
+        } else {
+            $startButton.Enabled = $false
+        }
     } catch {
         Write-Host ""
-    Write-Host "[ Catch Error ]"
-    Write-Host "Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
-    Write-Host "Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
-    Write-Host "Message: $($_.Exception.Message)" -ForegroundColor Red
-        Write-Log ($script:ui.GameListUpdated + ": $_") "Error"
+        Write-Host "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
+        Write-Host "[ Error ] Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
+        Write-Host "[ Error ] Message: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host ""
+
+        Write-Log ($script:ui.ERROR_ConfigLoadFailed + ": $($_.Exception.Message)") "Error"
+        $script:configPath = ""
         $script:configJsonArray = $null
+        $gameDataGridView.Rows.Clear()
+        $tabControl.Controls.Remove($gameListTabPage)
+        $startButton.Enabled = $false
     }
 }
 
@@ -721,6 +742,7 @@ function Load-GameList {
 function Find-AndLoadJsonFile {
     $cd = [System.IO.Directory]::GetCurrentDirectory()
     Write-Host "[ Debug ] current directory = $cd"
+    Write-Log ($script:ui.INFO_BackupRootDir + ": " + $cd) "Info"
 
     # 查找当前目录下的所有 JSON 文件
     $jsonFiles = Get-ChildItem -Path $cd -Filter "*.json" -File -ErrorAction SilentlyContinue
@@ -740,18 +762,8 @@ function Find-AndLoadJsonFile {
     }
 
     # 情况 3：找到唯一一个 JSON 文件 → 自动加载
-    $script:configPath = $jsonFiles.FullName
-    $configTextBox.Text = $script:configPath
-
-    Write-Log ($script:ui.ConfigSelected + "$((Split-Path -Leaf $script:configPath))") "Info"
-
-    # 加载游戏列表
-    Load-GameList -ConfigPath $script:configPath
-
-    # 如果加载成功，启用开始按钮
-    if ($null -ne $script:configJsonArray) {
-        $startButton.Enabled = $true
-    }
+    Write-Log ($script:ui.ConfigSelected + "$(Split-Path -Leaf $jsonFiles.FullName)") "Info"
+    Load-JsonConfigFile -ConfigPath $jsonFiles.FullName
 }
 
 # 查找并加载 JSON 文件
@@ -880,8 +892,8 @@ $browseButton.Add_Click({
         $configTextBox.Text = $script:configPath
         Write-Log ($script:ui.ConfigSelected + $script:configPath) "Info"
 
-        # 加载游戏列表（Load-GameList 函数内部会在成功后切换到游戏列表标签页）
-        Load-GameList -ConfigPath $script:configPath
+        # 加载游戏列表（Load-JsonConfigFile 函数内部会在成功后切换到游戏列表标签页）
+        Load-JsonConfigFile -ConfigPath $script:configPath
 
         # 如果加载成功，启用开始按钮
         if ($null -ne $script:configJsonArray) {
