@@ -554,60 +554,62 @@ $script:runspacePool = $null
 # 使用同步集合来存储实时日志，可跨线程共享
 $script:logQueue = [System.Collections.Concurrent.ConcurrentBag[string]]::new()
 
-# 获取机器名
-$script:machineName = & cmd /c hostname
-# 获取用户名
-$script:userName = [Environment]::UserName
 
 
-
-# 日志写入函数（依赖 $logTextBox 控件）
+# 运行日志展示，根据日志等级设置颜色
+$script:LogColorMap = @{
+    Info     = [Color]::Black
+    Success  = [Color]::Green
+    Warning  = [Color]::Orange
+    Error    = [Color]::Red
+    Progress = [Color]::Blue
+    Debug    = [Color]::Gray
+}
 function Write-Log {
     param(
-        [string]$Message,
-        [string]$Level = "Info"
+        [string]$Message = '',
+        [string]$Level = 'Info'
     )
 
-    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    
-    # 根据日志等级设置颜色
-    switch ($Level) {
-        "Info"    { $color = [Color]::Black }
-        "Success" { $color = [Color]::Green }
-        "Warning" { $color = [Color]::Orange }
-        "Error"   { $color = [Color]::Red }
-        "Progress" { $color = [Color]::Blue }
-        "Debug"   { $color = [Color]::Gray }
-        default   { $color = [Color]::Black }
+    $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+    $color = if ($script:LogColorMap.ContainsKey($Level)) { 
+        $script:LogColorMap[$Level] 
+    } else { 
+        [Color]::Black 
     }
+    $text = "[{0}] {1}`r`n" -f $timestamp, $Message
 
-    # 普通单行日志直接显示
-    $logLine = "[" + $timestamp + "] " + $Message + "`r`n"
-    $logTextBox.SelectionStart = $logTextBox.TextLength
-    $logTextBox.SelectionColor = $color
-    $logTextBox.AppendText($logLine)
-    $logTextBox.ScrollToCaret()
+    $logTextBox.SuspendLayout()
+    try {
+        $logTextBox.SelectionStart = $logTextBox.TextLength
+        $logTextBox.SelectionLength = 0
+        $logTextBox.SelectionColor = $color
+        $logTextBox.AppendText($text)
+        $logTextBox.ScrollToCaret()
+    }
+    finally {
+        $logTextBox.ResumeLayout()
+    }
 }
 
-# 输出系统版本和 PowerShell 版本信息到日志
+# 展示系统版本和 PowerShell 版本信息
 try {
-    $osInfo = Get-WmiObject Win32_OperatingSystem
-    $releaseId = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction SilentlyContinue
-    
-    $windowsVersion = "$($osInfo.Caption) $($releaseId.DisplayVersion)"
-    $psVersion = "$($PSVersionTable.PSVersion.ToString()) $($PSVersionTable.PSEdition)"
-    
-    Write-Log ($script:ui.INFO_SystemInfo -f $windowsVersion, $psVersion) "Info"
+    $script:osInfo = Get-WmiObject Win32_OperatingSystem
+    $script:releaseId = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction SilentlyContinue
+    $script:windowsVersion = "$($script:osInfo.Caption) $($script:releaseId.DisplayVersion)"
+    $script:psVersion = "$($PSVersionTable.PSVersion.ToString()) $($PSVersionTable.PSEdition)"
+    Write-Log ($script:ui.INFO_SystemInfo -f $script:windowsVersion, $script:psVersion) "Info"
 } catch {
     Write-Host ""
     Write-Host "[ Catch Error ]"
     Write-Host "Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
     Write-Host "Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
     Write-Host "Message: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Log ($script:ui.INFO_SystemInfo -f "Windows NT $([System.Environment]::OSVersion.Version.ToString())", "$($PSVersionTable.PSVersion.ToString()) $($PSVersionTable.PSEdition)") "Info"
 }
 
-# 输出机器名和用户名信息到日志
+# 展示机器名和用户名信息
+$script:machineName = & cmd /c hostname
+$script:userName = [Environment]::UserName
 Write-Log ($script:ui.MachineInfo -f $script:machineName, $script:userName) "Info"
 
 # 加载并显示游戏列表函数
