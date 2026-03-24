@@ -394,9 +394,9 @@ $form.MinimumSize = [Size]::new(1000, 600)
 # 启用双缓冲减少闪烁
 $flags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Instance
 $prop = [Control].GetProperty("DoubleBuffered", $flags)
-Write-Host "[ Debug ] DoubleBuffered default value: $($prop.GetValue($form))"
+Write-Host "[ Debug ] DoubleBuffered default value = $($prop.GetValue($form))"
 $prop.SetValue($form, $true)
-Write-Host "[ Debug ] DoubleBuffered set value: $($prop.GetValue($form))"
+Write-Host "[ Debug ] DoubleBuffered set value = $($prop.GetValue($form))"
 
 # 创建顶部面板（操作区）
 $topPanel = [Panel]::new()
@@ -764,7 +764,7 @@ function Find-AndLoadJsonFile {
     $scriptDir = [System.IO.Directory]::GetCurrentDirectory()
 
     # 打印当前工作目录
-    Write-Host "[ Debug ] Working directory: $scriptDir"
+    Write-Host "[ Debug ] Working directory = $scriptDir"
 
     # 查找当前目录下的所有 JSON 文件
     $jsonFiles = Get-ChildItem -Path $scriptDir -Filter "*.json" -File -ErrorAction SilentlyContinue
