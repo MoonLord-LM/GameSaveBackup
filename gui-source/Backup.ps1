@@ -3,7 +3,7 @@
 
 
 
-# ———————————————————————————————— 基础设置和常量定义部分 ————————————————————————————————
+# ———————————————————————————————— 1：基础设置和常量定义部分 ————————————————————————————————
 
 # 加载窗体程序集
 using assembly System.Windows.Forms
@@ -377,7 +377,7 @@ $script:ui = $script:textResources[$script:uiLang]
 
 
 
-# ———————————————————————————————— 界面绘制部分 ————————————————————————————————
+# ———————————————————————————————— 2：界面绘制部分 ————————————————————————————————
 
 # 创建主窗口
 $form = [Form]::new()
@@ -399,7 +399,6 @@ $topPanel = [Panel]::new()
 $topPanel.Dock = "Top"
 $topPanel.Height = 60
 $topPanel.Padding = [Padding]::new(10, 10, 10, 10)
-# 调试：$topPanel.BorderStyle = [BorderStyle]::FixedSingle
 
 # 创建中部面板（内容区）
 $centerPanel = [Panel]::new()
@@ -420,7 +419,6 @@ $form.Controls.Add($bottomPanel)
 # 顶部：左侧配置文件标签和文本框
 $topInfoPanel = [Panel]::new()
 $topInfoPanel.Dock = "Fill"
-# 调试：$topInfoPanel.BorderStyle = [BorderStyle]::FixedSingle
 $topPanel.Controls.Add($topInfoPanel)
 
 # 顶部：配置文件标签
@@ -442,7 +440,6 @@ $topInfoPanel.Controls.Add($configTextBox)
 $topButtonGroupPanel = [Panel]::new()
 $topButtonGroupPanel.Dock = "Right"
 $topButtonGroupPanel.Width = 360
-# 调试：$topButtonGroupPanel.BorderStyle = [BorderStyle]::FixedSingle
 $topPanel.Controls.Add($topButtonGroupPanel)
 
 # 顶部：选择配置按钮
@@ -512,10 +509,10 @@ $gameDataGridView.Columns[1].Name = $script:ui.ColumnGameName
 $gameDataGridView.Columns[1].Width = 320
 $gameDataGridView.Columns[2].Name = $script:ui.ColumnSavePath
 $gameDataGridView.Columns[2].Width = 780
-# 启用整行选择
+# 只允许单行选择
 $gameDataGridView.SelectionMode = [DataGridViewSelectionMode]::FullRowSelect
 $gameDataGridView.MultiSelect = $false
-# 鼠标按下时自动选中整行（包括左键和右键）
+# 鼠标按下时自动选中一行（包括左键和右键）
 $gameDataGridView.Add_CellMouseDown({
     param($sender, $e)
     if ($e.RowIndex -ge 0) {
@@ -542,38 +539,27 @@ $bottomPanel.Controls.Add($progressBar)
 
 
 
-# ———————————————————————————————— 全局变量定义 ————————————————————————————————
+# ———————————————————————————————— 3：功能实现部分 ————————————————————————————————
 
-# 全局变量
-$global:configPath = ""
-$global:isRunning = $false
-$global:configArray = $null
-$global:job = $null
-$global:timer = $null
-$global:asyncResult = $null
-$global:psInstance = $null
-$global:runspacePool = $null
-# 使用同步集合来存储实时日志
-$global:logQueue = [System.Collections.Concurrent.ConcurrentBag[string]]::new()
+# 定义变量
+$script:configPath = ""
+$script:isRunning = $false
+$script:configArray = $null
+$script:job = $null
+$script:timer = $null
+$script:asyncResult = $null
+$script:psInstance = $null
+$script:runspacePool = $null
 
-# 获取机器名（与备份.bat 保持一致）
-try {
-    $hostnameOutput = & cmd /c hostname
-    if ($hostnameOutput) {
-        $script:machineName = $hostnameOutput.ToString().Trim()
-    } else {
-        $script:machineName = $env:COMPUTERNAME
-    }
-} catch {
-    $script:machineName = $env:COMPUTERNAME
-}
+# 使用同步集合来存储实时日志，可跨线程共享
+$script:logQueue = [System.Collections.Concurrent.ConcurrentBag[string]]::new()
 
+# 获取机器名
+$script:machineName = & cmd /c hostname
 # 获取用户名
 $script:userName = [Environment]::UserName
 
 
-
-# ———————————————————————————————— 辅助函数定义 ————————————————————————————————
 
 # 日志写入函数（依赖 $logTextBox 控件）
 function Write-Log {
@@ -685,7 +671,7 @@ function Load-DefaultConfig {
             # 创建临时文件用于存储内嵌配置（保持与外部文件兼容）
             $tempConfigPath = [System.IO.Path]::GetTempFileName() + ".json"
             Set-Content -Path $tempConfigPath -Value $defaultConfigJson -Encoding UTF8
-            $global:configPath = $tempConfigPath
+            $script:configPath = $tempConfigPath
             
             # 获取脚本所在目录并显示备份根目录
             try {
@@ -814,13 +800,13 @@ function Find-AndLoadJsonFile {
     }
 
     # 只有一个 json 文件，自动加载
-    $global:configPath = $jsonFiles.FullName
-    $configTextBox.Text = $global:configPath
-
-    Write-Log ($script:ui.ConfigSelected + "$((Split-Path -Leaf $global:configPath))") "Info"
-
+    $script:configPath = $jsonFiles.FullName
+    $configTextBox.Text = $script:configPath
+    
+    Write-Log ($script:ui.ConfigSelected + "$((Split-Path -Leaf $script:configPath))") "Info"
+    
     # 加载游戏列表
-    Load-GameList -ConfigPath $global:configPath
+    Load-GameList -ConfigPath $script:configPath
 
     # 如果加载成功，启用开始按钮
     if ($null -ne $script:configArray) {
@@ -970,12 +956,12 @@ $browseButton.Add_Click({
     $fileDialog.InitialDirectory = $scriptDir
 
     if ($fileDialog.ShowDialog() -eq [DialogResult]::OK) {
-        $global:configPath = $fileDialog.FileName
-        $configTextBox.Text = $global:configPath
-        Write-Log ($script:ui.ConfigSelected + $global:configPath) "Info"
+    $script:configPath = $fileDialog.FileName
+    $configTextBox.Text = $script:configPath
+    Write-Log ($script:ui.ConfigSelected + $script:configPath) "Info"
 
         # 加载游戏列表（Load-GameList 函数内部会在成功后切换到游戏列表标签页）
-        Load-GameList -ConfigPath $global:configPath
+        Load-GameList -ConfigPath $script:configPath
 
         # 如果加载成功，启用开始按钮
         if ($null -ne $script:configArray) {
