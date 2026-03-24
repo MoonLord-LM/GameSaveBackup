@@ -71,7 +71,7 @@ $script:textResources = @{
         INFO_GamesFound = "找到游戏配置数量"
         INFO_MultipleConfigFound = "当前目录下找到 {0} 个 JSON 配置文件，请删除多余的，只保留一个"
         ERROR_DefaultConfigFailed = "内嵌默认配置加载失败"
-        ERROR_ConfigLoadFailed = "JSON 配置文件加载失败"
+        ERROR_ConfigLoadFailed = "配置文件加载失败"
         PROGRESS_Processing = "处理"
         INFO_IgnoreItem = "忽略项"
         INFO_CurrentWorkingDir = "当前工作目录"
@@ -145,7 +145,7 @@ $script:textResources = @{
         INFO_GamesFound = "game(s) found in configuration"
         INFO_MultipleConfigFound = "Found {0} JSON config files in current directory. Please remove extra files and keep only one"
         ERROR_DefaultConfigFailed = "Failed to load embedded default config"
-        ERROR_ConfigLoadFailed = "Failed to load JSON config file"
+        ERROR_ConfigLoadFailed = "Config file load failed"
         PROGRESS_Processing = "Processing"
         INFO_IgnoreItem = "Ignore item"
         INFO_CurrentWorkingDir = "Current working directory"
@@ -705,6 +705,7 @@ function Load-DefaultConfig {
         Write-Log ($script:ui.ERROR_DefaultConfigFailed + ": $($_.Exception.Message)") "Error"
         $script:configPath = ""
         $script:configJsonArray = $null
+        $configTextBox.Text = ""
         $gameDataGridView.Rows.Clear()
         $tabControl.Controls.Remove($gameListTabPage)
         $startButton.Enabled = $false
@@ -782,6 +783,7 @@ function Load-JsonConfigFile {
         Write-Log ($script:ui.ERROR_ConfigLoadFailed + ": $($_.Exception.Message)") "Error"
         $script:configPath = ""
         $script:configJsonArray = $null
+        $configTextBox.Text = ""
         $gameDataGridView.Rows.Clear()
         $tabControl.Controls.Remove($gameListTabPage)
         $startButton.Enabled = $false
