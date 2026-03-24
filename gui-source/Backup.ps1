@@ -399,6 +399,7 @@ $topPanel = [Panel]::new()
 $topPanel.Dock = "Top"
 $topPanel.Height = 60
 $topPanel.Padding = [Padding]::new(10, 10, 10, 10)
+# 调试：$topPanel.BorderStyle = [BorderStyle]::FixedSingle
 
 # 创建中部面板（内容区）
 $centerPanel = [Panel]::new()
@@ -416,72 +417,74 @@ $form.Controls.Add($centerPanel)
 $form.Controls.Add($topPanel)
 $form.Controls.Add($bottomPanel)
 
-# 配置文件标签和文本框
+# 顶部：左侧配置文件标签和文本框
 $topInfoPanel = [Panel]::new()
 $topInfoPanel.Dock = "Fill"
+# 调试：$topInfoPanel.BorderStyle = [BorderStyle]::FixedSingle
 $topPanel.Controls.Add($topInfoPanel)
 
-# 配置文件标签
+# 顶部：配置文件标签
 $configLabel = [Label]::new()
 $configLabel.Text = $script:ui.ConfigLabel
-$configLabel.Location = [Point]::new(10, 10)
-$configLabel.Size = [Size]::new(80, 40)
+$configLabel.Location = [Point]::new(10, 8)
+$configLabel.Size = [Size]::new(100, 40)
 $topInfoPanel.Controls.Add($configLabel)
 
-# 配置文件文本框
+# 顶部：配置文件文本框
 $configTextBox = [TextBox]::new()
 $configTextBox.Anchor = "Left, Right"
-$configTextBox.Location = [Point]::new(100, 8)
+$configTextBox.Location = [Point]::new(120, 5)
 $configTextBox.Width = $topInfoPanel.Width - 130
 $configTextBox.ReadOnly = $true
 $topInfoPanel.Controls.Add($configTextBox)
 
-# 按钮组 Panel
+# 顶部：右侧按钮组
 $topButtonGroupPanel = [Panel]::new()
 $topButtonGroupPanel.Dock = "Right"
 $topButtonGroupPanel.Width = 360
+# 调试：$topButtonGroupPanel.BorderStyle = [BorderStyle]::FixedSingle
 $topPanel.Controls.Add($topButtonGroupPanel)
 
-# 选择配置按钮
+# 顶部：选择配置按钮
 $browseButton = [Button]::new()
 $browseButton.Text = $script:ui.BrowseButton
-$browseButton.Location = [Point]::new(5, 5)
-$browseButton.Size = [Size]::new(110, 30)
-$browseButton.BackColor = [Color]::LightBlue
+$browseButton.Location = [Point]::new(5, 0)
+$browseButton.Size = [Size]::new(110, 36)
+$browseButton.BackColor = [Color]::LightGreen
 $topButtonGroupPanel.Controls.Add($browseButton)
 
-# 开始备份按钮
+# 顶部：开始备份按钮
 $startButton = [Button]::new()
 $startButton.Text = $script:ui.StartButton
-$startButton.Location = [Point]::new(125, 5)
-$startButton.Size = [Size]::new(110, 30)
+$startButton.Location = [Point]::new(125, 0)
+$startButton.Size = [Size]::new(110, 36)
 $startButton.BackColor = [Color]::LightBlue
 $startButton.Enabled = $false
 $topButtonGroupPanel.Controls.Add($startButton)
 
-# 复制日志按钮
+# 顶部：复制日志按钮
 $copyLogButton = [Button]::new()
 $copyLogButton.Text = $script:ui.CopyLogButton
-$copyLogButton.Location = [Point]::new(245, 5)
-$copyLogButton.Size = [Size]::new(110, 30)
+$copyLogButton.Location = [Point]::new(245, 0)
+$copyLogButton.Size = [Size]::new(110, 36)
 $topButtonGroupPanel.Controls.Add($copyLogButton)
 
-# 创建中部 TabControl（标签页容器）
+# 中部：标签页容器
 $tabControl = [TabControl]::new()
 $tabControl.Dock = "Fill"
 $tabControl.Padding = [Point]::new(20, 3)
 $centerPanel.Controls.Add($tabControl)
 
-# 创建日志标签页
+# 中部：日志标签页
 $logTabPage = [TabPage]::new()
 $logTabPage.Text = $script:ui.LogTabPage
 $tabControl.Controls.Add($logTabPage)
 
-# 创建游戏列表标签页
+# 中部：游戏标签页
 $gameListTabPage = [TabPage]::new()
 $gameListTabPage.Text = $script:ui.GameListTabPage
 
-# 日志显示区域
+# 中部：日志显示区域
 $logTextBox = [RichTextBox]::new()
 $logTextBox.ReadOnly = $true
 $logTextBox.ScrollBars = [RichTextBoxScrollBars]::Vertical
@@ -490,7 +493,7 @@ $logTextBox.BackColor = [Color]::White
 $logTextBox.Dock = "Fill"
 $logTabPage.Controls.Add($logTextBox)
 
-# 游戏信息显示表格
+# 中部：游戏信息显示表格
 $gameDataGridView = [DataGridView]::new()
 $gameDataGridView.ReadOnly = $true
 $gameDataGridView.AllowUserToAddRows = $false
@@ -530,7 +533,7 @@ $openLocationMenuItem.Text = $script:ui.OpenSaveLocation
 $contextMenu.Items.Add($openLocationMenuItem) | Out-Null
 $gameDataGridView.ContextMenuStrip = $contextMenu
 
-# 底部进度条
+# 底部：进度条
 $progressBar = [ProgressBar]::new()
 $progressBar.Dock = "Fill"
 $progressBar.Visible = $false
