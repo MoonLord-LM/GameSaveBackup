@@ -555,8 +555,10 @@ $gameDataGridView.ContextMenuStrip = $contextMenu
 # 底部: 进度条
 $progressBar = [ProgressBar]::new()
 $progressBar.Dock = "Fill"
-$progressBar.Visible = $false
 $progressBar.Style = [ProgressBarStyle]::Continuous
+$progressBar.Minimum = 0
+$progressBar.Maximum = 100
+$progressBar.Visible = $false
 $bottomPanel.Controls.Add($progressBar)
 
 
@@ -564,7 +566,6 @@ $bottomPanel.Controls.Add($progressBar)
 # ———————————————————————————————— 3: 初始化逻辑 ————————————————————————————————
 
 # 定义变量
-$script:isRunning = $false
 $script:configJsonArray = $null
 $script:job = $null
 $script:timer = $null
@@ -848,21 +849,17 @@ $browseButton.Add_Click({
 })
 
 # 开始备份按钮点击事件
+$script:isBackupRunning = $false
 $startButton.Add_Click({
-    if ($global:isRunning) {
+    if ($script:isBackupRunning) {
         return
     }
+    $script:isBackupRunning = $true
 
-    # 切换回日志面板
-    $tabControl.SelectedTab = $logTabPage
-
-    $global:isRunning = $true
     $startButton.Enabled = $false
     $browseButton.Enabled = $false
+    $tabControl.SelectedTab = $logTabPage
     $progressBar.Visible = $true
-    $progressBar.Style = [ProgressBarStyle]::Continuous
-    $progressBar.Minimum = 0
-    $progressBar.Maximum = 100
     $progressBar.Value = 0
 
     Write-Log $script:ui.BackupStarted "Progress"
