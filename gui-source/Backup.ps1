@@ -326,21 +326,18 @@ $script:defaultConfigs = @{
   }
 ]
 '@
-}  # End of $script:resources
+}
 
 # 根据系统语言自动选择界面语言
 try {
     $currentCulture = [System.Globalization.CultureInfo]::CurrentCulture.Name
     
     if ($currentCulture -eq 'zh-CN' -or $currentCulture -like 'zh-*') {
-        [System.Globalization.CultureInfo]::CurrentUICulture = [System.Globalization.CultureInfo]::CreateSpecificCulture("zh-CN")
         $script:uiLang = 'zh-CN'
     } else {
-        [System.Globalization.CultureInfo]::CurrentUICulture = [System.Globalization.CultureInfo]::CreateSpecificCulture("en-US")
         $script:uiLang = 'en-US'
     }
 } catch {
-    [System.Globalization.CultureInfo]::CurrentUICulture = [System.Globalization.CultureInfo]::CreateSpecificCulture("en-US")
     $script:uiLang = 'en-US'
 }
 
