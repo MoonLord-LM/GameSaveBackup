@@ -1,14 +1,25 @@
-﻿# 设置字符编码 UTF-8
+﻿# 游戏存档备份工具
+# 开源地址：https://github.com/MoonLord-LM/GameSaveBackup
+
+
+
+# ———————————————————————————————— 基础设置和常量定义部分 ————————————————————————————————
+
+# 设置字符编码 UTF-8
 [System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-$OutputEncoding = [System.Text.Encoding]::UTF8
 
 # 加载 Windows Forms 程序集
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-# 定义多语言资源
-$script:resources = @{
+# 设置更现代的窗口样式
+[System.Windows.Forms.Application]::EnableVisualStyles()
+[System.Windows.Forms.Application]::SetCompatibleTextRenderingDefault($false)
+
+# 界面支持中英文，定义多语言文本资源
+$script:textResources = @{
     'zh-CN' = @{
+        # 界面元素使用
         FormTitle = "游戏存档备份工具"
         ConfigLabel = "配置文件:"
         BrowseButton = "选择配置"
@@ -39,7 +50,7 @@ $script:resources = @{
         SaveLocationNotExist = "存档路径不存在：{0} - {1}"
         DirectoryCreated = "目录已创建：{0} - {1}"
         FailedToCreateDirectory = "创建目录失败：{0} - {1}"
-        # 备份任务日志
+        # 运行日志使用
         ERROR_GitMissing = "错误：缺少 git.exe 组件"
         ERROR_GitDownload = "请从 https://git-scm.com/install/windows 下载"
         ERROR_ConfigNotFound = "错误：选定的配置文件不存在"
@@ -79,6 +90,7 @@ $script:resources = @{
         INFO_SystemInfo = "系统版本：[ {0} ]  PowerShell 版本：[ {1} ]"
     }
     'en-US' = @{
+        # 界面元素使用
         FormTitle = "Game Save Backup Tool"
         ConfigLabel = "Config File:"
         BrowseButton = "Browse Config"
@@ -109,7 +121,7 @@ $script:resources = @{
         SaveLocationNotExist = "Save location does not exist: {0} - {1}"
         DirectoryCreated = "Directory created: {0} - {1}"
         FailedToCreateDirectory = "Failed to create directory: {0} - {1}"
-        # Backup Task Logs
+        # 运行日志使用
         ERROR_GitMissing = "Error: git.exe component is missing"
         ERROR_GitDownload = "Please download from https://git-scm.com/install/windows"
         ERROR_ConfigNotFound = "Error: Selected config file does not exist"
@@ -150,9 +162,10 @@ $script:resources = @{
     }
 }
 
-# 内嵌的多语言默认配置数据
-$script:defaultConfigs = @{
-    'zh-CN' = @'
+# 内嵌的中英文默认 JSON 配置
+$script:defaultJsonConfigs = @{
+    'zh-CN' =
+@'
 [
   {
     "name": "艾尔登法环",
@@ -239,7 +252,8 @@ $script:defaultConfigs = @{
   }
 ]
 '@
-    'en-US' = @'
+    'en-US' =
+@'
 [
   {
     "name": "Elden Ring",
@@ -328,63 +342,37 @@ $script:defaultConfigs = @{
 '@
 }
 
-# 根据系统语言自动选择界面语言
+# 根据系统语言，自动选择界面语言的中英文
+$script:uiLang = 'en-US'
 try {
-    $currentCulture = [System.Globalization.CultureInfo]::CurrentCulture.Name
-    
-    if ($currentCulture -eq 'zh-CN' -or $currentCulture -like 'zh-*') {
+    $currentCulture = [System.Globalization.CultureInfo]::CurrentCulture
+    $currentUICulture = [System.Globalization.CultureInfo]::CurrentUICulture
+    $installedUICulture = [System.Globalization.CultureInfo]::InstalledUICulture
+    Write-Host "[ Debug ] currentCulture = $currentCulture.Name"
+    Write-Host "[ Debug ] currentUICulture = $currentUICulture.Name"
+    Write-Host "[ Debug ] installedUICulture = $installedUICulture.Name"
+
+    $zhCNCount = 0;
+    $enUSCount = 0;
+    if ($currentCulture.Name -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
+    if ($currentUICulture.Name -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
+    if ($installedUICulture.Name -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
+
+    if ($zhCNCount -ge $enUSCount) {
         $script:uiLang = 'zh-CN'
     } else {
         $script:uiLang = 'en-US'
     }
 } catch {
-    $script:uiLang = 'en-US'
+    Write-Host "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
+    Write-Host "[ Error ] Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
+    Write-Host "[ Error ] Message: $($_.Exception.Message)" -ForegroundColor Red
 }
+$script:ui = $script:textResources[$script:uiLang]
 
-# 获取当前语言的 UI 文本
-$script:ui = $script:resources[$script:uiLang]
 
-# 日志输出函数
-function Write-Log {
-    param(
-        [string]$Message,
-        [string]$Level = "Info"
-    )
 
-    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    
-    # 根据日志等级设置颜色
-    switch ($Level) {
-        "Info"    { $color = [System.Drawing.Color]::Black }
-        "Success" { $color = [System.Drawing.Color]::Green }
-        "Warning" { $color = [System.Drawing.Color]::Orange }
-        "Error"   { $color = [System.Drawing.Color]::Red }
-        "Progress" { $color = [System.Drawing.Color]::Blue }
-        "Debug"   { $color = [System.Drawing.Color]::Gray }
-        default   { $color = [System.Drawing.Color]::Black }
-    }
-
-    # 普通单行日志直接显示
-    $logLine = "[" + $timestamp + "] " + $Message + "`r`n"
-    $logTextBox.SelectionStart = $logTextBox.TextLength
-    $logTextBox.SelectionColor = $color
-    $logTextBox.AppendText($logLine)
-    $logTextBox.ScrollToCaret()
-}
-
-# 创建语言相关的数据（使用 $script:ui 统一访问）
-$script:uiLangData = @{
-    ArchivePathNotExist = if ($script:uiLang -eq 'zh-CN') {
-        "存档路径不存在：`n{0}`n`n是否要创建此目录？"
-    } else {
-        "Archive path does not exist:`n{0}`n`nDo you want to create this directory?"
-    }
-    ConfirmTitle = if ($script:uiLang -eq 'zh-CN') {
-        "提示"
-    } else {
-        "Confirm"
-    }
-}
+# ———————————————————————————————— 界面绘制部分 ————————————————————————————————
 
 # 创建主窗口
 $form = New-Object System.Windows.Forms.Form
@@ -494,6 +482,36 @@ $logTextBox.BackColor = [System.Drawing.Color]::White
 $logTextBox.Dock = "Fill"
 $logTabPage.Controls.Add($logTextBox)
 
+
+
+# 日志写入函数（依赖 $logTextBox 控件）
+function Write-Log {
+    param(
+        [string]$Message,
+        [string]$Level = "Info"
+    )
+
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    
+    # 根据日志等级设置颜色
+    switch ($Level) {
+        "Info"    { $color = [System.Drawing.Color]::Black }
+        "Success" { $color = [System.Drawing.Color]::Green }
+        "Warning" { $color = [System.Drawing.Color]::Orange }
+        "Error"   { $color = [System.Drawing.Color]::Red }
+        "Progress" { $color = [System.Drawing.Color]::Blue }
+        "Debug"   { $color = [System.Drawing.Color]::Gray }
+        default   { $color = [System.Drawing.Color]::Black }
+    }
+
+    # 普通单行日志直接显示
+    $logLine = "[" + $timestamp + "] " + $Message + "`r`n"
+    $logTextBox.SelectionStart = $logTextBox.TextLength
+    $logTextBox.SelectionColor = $color
+    $logTextBox.AppendText($logLine)
+    $logTextBox.ScrollToCaret()
+}
+
 # 输出系统版本和 PowerShell 版本信息到日志
 try {
     $osInfo = Get-WmiObject Win32_OperatingSystem
@@ -504,6 +522,11 @@ try {
     
     Write-Log ($script:ui.INFO_SystemInfo -f $windowsVersion, $psVersion) "Info"
 } catch {
+    Write-Host ""
+    Write-Host "[ Catch Error ]"
+    Write-Host "Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
+    Write-Host "Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
+    Write-Host "Message: $($_.Exception.Message)" -ForegroundColor Red
     Write-Log ($script:ui.INFO_SystemInfo -f "Windows NT $([System.Environment]::OSVersion.Version.ToString())", "$($PSVersionTable.PSVersion.ToString()) $($PSVersionTable.PSEdition)") "Info"
 }
 
@@ -608,11 +631,11 @@ $openLocationMenuItem.Add_Click({
                 
                 # 根据语言设置对话框文本
                 $messageText = if ($script:uiLang -eq 'zh-CN') {
-                    $script:uiLangData.ArchivePathNotExist -f $realPath
+                    "存档路径不存在：`n$realPath`n`n是否要创建此目录？"
                 } else {
-                    $script:uiLangData.ArchivePathNotExist -f $realPath
+                    "Archive path does not exist:`n$realPath`n`nDo you want to create this directory?"
                 }
-                $captionText = $script:uiLangData.ConfirmTitle
+                $captionText = if ($script:uiLang -eq 'zh-CN') { "提示" } else { "Confirm" }
                 
                 $result = [System.Windows.Forms.MessageBox]::Show(
                     $messageText,
@@ -713,6 +736,11 @@ function Load-GameList {
         $tabControl.SelectedTab = $gameListTabPage
 
     } catch {
+        Write-Host ""
+    Write-Host "[ Catch Error ]"
+    Write-Host "Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
+    Write-Host "Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
+    Write-Host "Message: $($_.Exception.Message)" -ForegroundColor Red
         Write-Log ($script:ui.GameListUpdated + ": $_") "Error"
         $script:configArray = $null
     }
@@ -721,7 +749,7 @@ function Load-GameList {
 # 加载内嵌的默认配置（根据系统语言选择）
 function Load-DefaultConfig {
     try {
-        $defaultConfigJson = $script:defaultConfigs[$script:uiLang]
+        $defaultConfigJson = $script:defaultJsonConfigs[$script:uiLang]
         if ($defaultConfigJson) {
             # 将内嵌的 JSON 字符串解析为对象
             $script:configArray = $defaultConfigJson | ConvertFrom-Json
@@ -736,9 +764,19 @@ function Load-DefaultConfig {
             
             # 获取脚本所在目录并显示备份根目录
             try {
-                $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+                # 优先使用 $PSScriptRoot（更可靠）
+                if ($PSScriptRoot) {
+                    $scriptDir = $PSScriptRoot
+                } else {
+                    $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+                }
                 Write-Log ($script:ui.INFO_BackupRootDir + ": " + $scriptDir) "Info"
             } catch {
+                Write-Host ""
+    Write-Host "[ Catch Error ]"
+    Write-Host "Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
+    Write-Host "Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
+    Write-Host "Message: $($_.Exception.Message)" -ForegroundColor Red
                 $scriptDir = [System.IO.Directory]::GetCurrentDirectory()
                 Write-Log ($script:ui.INFO_BackupRootDir + ": " + $scriptDir) "Info"
             }
@@ -797,6 +835,11 @@ function Load-GameListFromObject {
         $tabControl.SelectedTab = $gameListTabPage
 
     } catch {
+        Write-Host ""
+    Write-Host "[ Catch Error ]"
+    Write-Host "Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
+    Write-Host "Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
+    Write-Host "Message: $($_.Exception.Message)" -ForegroundColor Red
         Write-Log ($script:ui.GameListUpdated + ": $_") "Error"
         $script:configArray = $null
     }
@@ -811,13 +854,28 @@ function Find-AndLoadJsonFile {
     
     # 如果内嵌配置加载失败，则尝试查找外部 JSON 文件
     
-    # 获取脚本所在目录
+    # 获取脚本所在目录（使用 PSScriptRoot 更可靠）
     try {
-        $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+        # 优先使用 $PSScriptRoot（更可靠）
+        if ($PSScriptRoot) {
+            $scriptDir = $PSScriptRoot
+        } else {
+            $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+        }
     } catch {
+        Write-Host ""
+    Write-Host "[ Catch Error ]"
+    Write-Host "Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
+    Write-Host "Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
+    Write-Host "Message: $($_.Exception.Message)" -ForegroundColor Red
         $scriptDir = [System.IO.Directory]::GetCurrentDirectory()
     }
-
+    
+    # 确保 scriptDir 不为空
+    if ([string]::IsNullOrEmpty($scriptDir)) {
+        $scriptDir = [System.IO.Directory]::GetCurrentDirectory()
+    }
+    
     $jsonFiles = Get-ChildItem -Path $scriptDir -Filter "*.json" -File -ErrorAction SilentlyContinue
 
     if ($jsonFiles.Count -eq 0) {
@@ -854,16 +912,39 @@ function Show-LogPanel {
 
 # 浏览按钮点击事件
 $browseButton.Add_Click({
+    Write-Host "DEBUG: Globalization.CurrentCulture = $([System.Globalization.CultureInfo]::CurrentCulture.Name) " -ForegroundColor Cyan
+    Write-Host "DEBUG: Globalization.CurrentUICulture = $([System.Globalization.CultureInfo]::CurrentUICulture.Name) " -ForegroundColor Cyan
+    Write-Host "DEBUG: Application.CurrentCulture = $([System.Windows.Forms.Application]::CurrentCulture.Name) " -ForegroundColor Cyan
+    Write-Host "DEBUG: Application.CurrentUICulture = $([System.Windows.Forms.Application]::CurrentUICulture.Name) " -ForegroundColor Cyan
+    Write-Host "DEBUG: CurrentThread.CurrentCulture = $([System.Threading.Thread]::CurrentThread.CurrentCulture.Name) " -ForegroundColor Cyan
+    Write-Host "DEBUG: CurrentThread.CurrentUICulture = $([System.Threading.Thread]::CurrentThread.CurrentUICulture.Name) " -ForegroundColor Cyan
+
     $fileDialog = New-Object System.Windows.Forms.OpenFileDialog
     $fileDialog.Filter = $script:ui.FileFilter
     $fileDialog.Title = $script:ui.FileDialogTitle
 
-    # 获取脚本所在目录
+    # 获取脚本所在目录（使用 PSScriptRoot 更可靠）
     try {
-        $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+        # 优先使用 $PSScriptRoot（更可靠）
+        if ($PSScriptRoot) {
+            $scriptDir = $PSScriptRoot
+        } else {
+            $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+        }
     } catch {
+        Write-Host ""
+    Write-Host "[ Catch Error ]"
+    Write-Host "Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
+    Write-Host "Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
+    Write-Host "Message: $($_.Exception.Message)" -ForegroundColor Red
         $scriptDir = [System.IO.Directory]::GetCurrentDirectory()
     }
+    
+    # 确保 scriptDir 不为空
+    if ([string]::IsNullOrEmpty($scriptDir)) {
+        $scriptDir = [System.IO.Directory]::GetCurrentDirectory()
+    }
+    
     $fileDialog.InitialDirectory = $scriptDir
 
     if ($fileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
@@ -1031,7 +1112,7 @@ $startButton.Add_Click({
         }
 
         # 获取脚本所在目录作为备份根目录
-        $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+        $scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
         $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_CurrentWorkingDir + ": " + $scriptDir)
         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
@@ -1482,4 +1563,4 @@ $startButton.Add_Click({
 })
 
 # 显示窗口
-$form.ShowDialog()
+[System.Windows.Forms.Application]::Run($form);
