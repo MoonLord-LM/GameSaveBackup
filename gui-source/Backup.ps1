@@ -618,10 +618,10 @@ try {
     Write-Log ($script:ui.INFO_SystemInfo -f $script:windowsVersion, $script:psVersion) "Info"
 } catch {
     Write-Host ""
-    Write-Host "[ Catch Error ]"
-    Write-Host "Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
-    Write-Host "Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
-    Write-Host "Message: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
+    Write-Host "[ Error ] Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
+    Write-Host "[ Error ] Message: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host ""
 }
 
 # 展示机器名和用户名信息
