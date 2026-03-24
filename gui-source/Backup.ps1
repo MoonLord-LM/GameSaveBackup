@@ -345,18 +345,18 @@ $script:defaultJsonConfigs = @{
 # 根据系统语言，自动选择界面语言的中英文
 $script:uiLang = 'en-US'
 try {
-    $currentCulture = [System.Globalization.CultureInfo]::CurrentCulture
-    $currentUICulture = [System.Globalization.CultureInfo]::CurrentUICulture
-    $installedUICulture = [System.Globalization.CultureInfo]::InstalledUICulture
-    Write-Host "[ Debug ] currentCulture = $currentCulture.Name"
-    Write-Host "[ Debug ] currentUICulture = $currentUICulture.Name"
-    Write-Host "[ Debug ] installedUICulture = $installedUICulture.Name"
+    $currentCulture = [System.Globalization.CultureInfo]::CurrentCulture.Name
+    $currentUICulture = [System.Globalization.CultureInfo]::CurrentUICulture.Name
+    $installedUICulture = [System.Globalization.CultureInfo]::InstalledUICulture.Name
+    Write-Host "[ Debug ] currentCulture = $currentCulture"
+    Write-Host "[ Debug ] currentUICulture = $currentUICulture"
+    Write-Host "[ Debug ] installedUICulture = $installedUICulture"
 
     $zhCNCount = 0;
     $enUSCount = 0;
-    if ($currentCulture.Name -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
-    if ($currentUICulture.Name -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
-    if ($installedUICulture.Name -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
+    if ($currentCulture -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
+    if ($currentUICulture -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
+    if ($installedUICulture -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
 
     if ($zhCNCount -ge $enUSCount) {
         $script:uiLang = 'zh-CN'
@@ -368,6 +368,7 @@ try {
     Write-Host "[ Error ] Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
     Write-Host "[ Error ] Message: $($_.Exception.Message)" -ForegroundColor Red
 }
+Write-Host "[ Debug ] script:uiLang = $script:uiLang"
 $script:ui = $script:textResources[$script:uiLang]
 
 
