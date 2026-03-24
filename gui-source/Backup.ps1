@@ -384,9 +384,11 @@ $form.Font = New-Object System.Drawing.Font("Microsoft YaHei", 10)
 $form.MinimumSize = New-Object System.Drawing.Size(1000, 600)
 
 # 启用双缓冲减少闪烁
-$prop = [System.Windows.Forms.Control].GetProperty("DoubleBuffered", [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Instance)
-[System.Reflection.BindingFlags]$flags = "NonPublic, Instance"
+$flags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Instance
+$prop = [System.Windows.Forms.Control].GetProperty("DoubleBuffered", $flags)
+Write-Host "[ Debug ] DoubleBuffered default value: $($prop.GetValue($form))"
 $prop.SetValue($form, $true)
+Write-Host "[ Debug ] DoubleBuffered set value: $($prop.GetValue($form))"
 
 # 创建顶部面板（操作区）
 $topPanel = New-Object System.Windows.Forms.Panel
