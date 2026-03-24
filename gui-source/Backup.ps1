@@ -3,7 +3,7 @@
 
 
 
-# ———————————————————————————————— 1: 基础设置和常量定义部分 ————————————————————————————————
+# ———————————————————————————————— 1: 基础设置和常量定义 ————————————————————————————————
 
 # 加载窗体程序集
 using assembly System.Windows.Forms
@@ -399,7 +399,7 @@ $script:ui = $script:textResources[$script:uiLang]
 
 
 
-# ———————————————————————————————— 2: 界面绘制部分 ————————————————————————————————
+# ———————————————————————————————— 2: 窗体界面绘制 ————————————————————————————————
 
 # 创建主窗口
 $form = [Form]::new()
@@ -561,10 +561,9 @@ $bottomPanel.Controls.Add($progressBar)
 
 
 
-# ———————————————————————————————— 3: 功能实现部分 ————————————————————————————————
+# ———————————————————————————————— 3: 启动和初始化 ————————————————————————————————
 
 # 定义变量
-$script:configPath = ""
 $script:isRunning = $false
 $script:configJsonArray = $null
 $script:job = $null
@@ -648,6 +647,9 @@ try {
 $script:machineName = & cmd /c hostname
 $script:userName = [Environment]::UserName
 Write-Log ($script:ui.MachineInfo -f $script:machineName, $script:userName) "Info"
+
+# 配置文件路径
+$script:configPath = ""
 
 # 加载内嵌的默认配置
 function Load-DefaultConfig {
@@ -804,41 +806,25 @@ function Load-JsonConfigFile {
     }
 }
 
-# 自动查找并加载 JSON 配置文件
-function Find-AndLoadJsonFile {
-    $cd = [System.IO.Directory]::GetCurrentDirectory()
-    Write-Host "[ Debug ] current directory = $cd"
-    Write-Log ($script:ui.INFO_BackupRootDir + ": " + $cd) "Info"
-
-    # 查找当前目录下的所有 JSON 文件
-    $jsonFiles = Get-ChildItem -Path $cd -Filter "*.json" -File -ErrorAction SilentlyContinue
-
-    # 情况 1: 没有找到 JSON 文件 → 警告并使用默认配置
-    if ($jsonFiles.Count -eq 0) {
-        Write-Log $script:ui.ConfigNotFound "Warning"
-        Load-DefaultConfig
-        return
-    }
-
-    # 情况 2: 找到多个 JSON 文件 → 告警并使用默认配置
-    if ($jsonFiles.Count -gt 1) {
-        Write-Log ($script:ui.INFO_MultipleConfigFound -f $jsonFiles.Count) "Warning"
-        Load-DefaultConfig
-        return
-    }
-
-    # 情况 3: 找到唯一一个 JSON 文件 → 自动加载
-    Write-Log ($script:ui.ConfigSelected + "$(Split-Path -Leaf $jsonFiles.FullName)") "Info"
-    Load-JsonConfigFile -ConfigPath $jsonFiles.FullName
-}
-
-# 查找并加载 JSON 文件
+# 查找并加载配置
 Write-Log $script:ui.CheckingConfig "Info"
-Find-AndLoadJsonFile
 
-# 切换回日志标签页函数
-function Show-LogPanel {
-    $tabControl.SelectedTab = $logTabPage
+$script:cd = [System.IO.Directory]::GetCurrentDirectory()
+Write-Host "[ Debug ] current directory = $script:cd"
+Write-Log ($script:ui.INFO_BackupRootDir + ": " + $script:cd) "Info"
+
+$script:cdJsonFiles = Get-ChildItem -Path $script:cd -Filter "*.json" -File -ErrorAction SilentlyContinue
+if ($script:cdJsonFiles.Count -eq 0) {
+    Write-Log $script:ui.ConfigNotFound "Warning"
+    Load-DefaultConfig
+}
+elseif ($script:cdJsonFiles.Count -gt 1) {
+    Write-Log ($script:ui.INFO_MultipleConfigFound -f $script:cdJsonFiles.Count) "Warning"
+    Load-DefaultConfig
+}
+else {
+    Write-Log ($script:ui.ConfigSelected + "$(Split-Path -Leaf $script:cdJsonFiles.FullName)") "Info"
+    Load-JsonConfigFile -ConfigPath $script:cdJsonFiles.FullName
 }
 
 
@@ -986,7 +972,7 @@ $startButton.Add_Click({
     }
 
     # 切换回日志面板
-    Show-LogPanel
+    $tabControl.SelectedTab = $logTabPage
 
     $global:isRunning = $true
     $startButton.Enabled = $false
