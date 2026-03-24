@@ -78,6 +78,13 @@ $script:textResources = @{
         INFO_EnteringBackupDir = "进入备份目录"
         INFO_BackupRootDir = "备份根目录"
         ERROR_ConfigReadFailed = "读取配置文件失败"
+        ERROR_ConfigNotArrayFormat = "配置内容必须是数组格式"
+        ERROR_ConfigEmptyCount = "配置内容的配置项个数为零"
+        ERROR_ConfigItemNotObject = "第 {0} 个配置项不是 JSON 对象"
+        ERROR_ConfigItemMissingName = "第 {0} 个配置项缺少 'name' 属性"
+        ERROR_ConfigItemMissingSave = "第 {0} 个配置项缺少 'save' 属性"
+        ERROR_ConfigItemNameEmpty = "第 {0} 个配置项的 'name' 属性为空"
+        ERROR_ConfigItemSaveEmpty = "第 {0} 个配置项的 'save' 属性为空"
         INFO_FileTimeComparison = "本地文件修改时间:[{0}] 备份文件修改时间:[{1}]"
         WARNING_BothMissing = "本地存档文件与备份文件都不存在，跳过操作"
         WARNING_LocalMissing = "本地存档文件缺失，使用备份文件恢复"
@@ -152,6 +159,13 @@ $script:textResources = @{
         INFO_EnteringBackupDir = "Entering backup directory"
         INFO_BackupRootDir = "Backup root directory"
         ERROR_ConfigReadFailed = "Failed to read config file"
+        ERROR_ConfigNotArrayFormat = "Config content must be an array format"
+        ERROR_ConfigEmptyCount = "Config contains zero items"
+        ERROR_ConfigItemNotObject = "Item {0} is not a JSON object"
+        ERROR_ConfigItemMissingName = "Item {0} missing 'name' property"
+        ERROR_ConfigItemMissingSave = "Item {0} missing 'save' property"
+        ERROR_ConfigItemNameEmpty = "Item {0} has empty 'name' property"
+        ERROR_ConfigItemSaveEmpty = "Item {0} has empty 'save' property"
         INFO_FileTimeComparison = "Local file time:[{0}] Backup file time:[{1}]"
         WARNING_BothMissing = "Both local save and backup files are missing, skipping"
         WARNING_LocalMissing = "Local save file is missing, restoring from backup"
@@ -642,27 +656,27 @@ function Load-DefaultConfig {
         $script:configJsonArray = $script:defaultJsonConfigs[$script:uiLang] | ConvertFrom-Json
 
         if ($script:configJsonArray -isnot [System.Array]) {
-            throw "配置内容必须是数组格式"
+            throw $script:ui.ERROR_ConfigNotArrayFormat
         }
         if ($script:configJsonArray.Count -eq 0) {
-            throw "配置内容的配置项个数为零"
+            throw $script:ui.ERROR_ConfigEmptyCount
         }
         for ($i = 0; $i -lt $script:configJsonArray.Count; $i++) {
             $game = $script:configJsonArray[$i]
             if ($game -isnot [PSCustomObject]) {
-                throw "第 $($i + 1) 个配置项不是 JSON 对象"
+                throw ($script:ui.ERROR_ConfigItemNotObject -f ($i + 1))
             }
             if (-not $game.PSObject.Properties.Match('name')) {
-                throw "第 $($i + 1) 个配置项缺少 'name' 属性"
+                throw ($script:ui.ERROR_ConfigItemMissingName -f ($i + 1))
             }
             if (-not $game.PSObject.Properties.Match('save')) {
-                throw "第 $($i + 1) 个配置项缺少 'save' 属性"
+                throw ($script:ui.ERROR_ConfigItemMissingSave -f ($i + 1))
             }
             if ([string]::IsNullOrEmpty($game.name)) {
-                throw "第 $($i + 1) 个配置项的 'name' 属性为空"
+                throw ($script:ui.ERROR_ConfigItemNameEmpty -f ($i + 1))
             }
             if ([string]::IsNullOrEmpty($game.save)) {
-                throw "第 $($i + 1) 个配置项的 'save' 属性为空"
+                throw ($script:ui.ERROR_ConfigItemSaveEmpty -f ($i + 1))
             }
         }
 
@@ -721,27 +735,27 @@ function Load-JsonConfigFile {
         $script:configJsonArray = Get-Content -Path $script:configPath -Raw -Encoding UTF8 | ConvertFrom-Json
 
         if ($script:configJsonArray -isnot [System.Array]) {
-            throw "配置内容必须是数组格式"
+            throw $script:ui.ERROR_ConfigNotArrayFormat
         }
         if ($script:configJsonArray.Count -eq 0) {
-            throw "配置内容的配置项个数为零"
+            throw $script:ui.ERROR_ConfigEmptyCount
         }
         for ($i = 0; $i -lt $script:configJsonArray.Count; $i++) {
             $game = $script:configJsonArray[$i]
             if ($game -isnot [PSCustomObject]) {
-                throw "第 $($i + 1) 个配置项不是 JSON 对象"
+                throw ($script:ui.ERROR_ConfigItemNotObject -f ($i + 1))
             }
             if (-not $game.PSObject.Properties.Match('name')) {
-                throw "第 $($i + 1) 个配置项缺少 'name' 属性"
+                throw ($script:ui.ERROR_ConfigItemMissingName -f ($i + 1))
             }
             if (-not $game.PSObject.Properties.Match('save')) {
-                throw "第 $($i + 1) 个配置项缺少 'save' 属性"
+                throw ($script:ui.ERROR_ConfigItemMissingSave -f ($i + 1))
             }
             if ([string]::IsNullOrEmpty($game.name)) {
-                throw "第 $($i + 1) 个配置项的 'name' 属性为空"
+                throw ($script:ui.ERROR_ConfigItemNameEmpty -f ($i + 1))
             }
             if ([string]::IsNullOrEmpty($game.save)) {
-                throw "第 $($i + 1) 个配置项的 'save' 属性为空"
+                throw ($script:ui.ERROR_ConfigItemSaveEmpty -f ($i + 1))
             }
         }
 
