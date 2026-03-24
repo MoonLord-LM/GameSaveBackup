@@ -1,40 +1,10 @@
-﻿# DEBUG 显示 PowerShell 版本信息，勿删
-Write-Host "`$PSVersionTable :"
-$PSVersionTable
-
-# 设置字符编码 UTF-8
+﻿# 设置字符编码 UTF-8
 [System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
 # 加载 Windows Forms 程序集
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
-
-# 根据系统语言自动选择界面语言
-Write-Host "DEBUG: CurrentCulture = [ $([System.Globalization.CultureInfo]::CurrentCulture.Name) ]"
-try {
-    # 获取当前系统文化
-    $currentCulture = [System.Globalization.CultureInfo]::CurrentCulture.Name
-    
-    # 根据 CurrentCulture 设置 CurrentUICulture
-    if ($currentCulture -eq 'zh-CN' -or $currentCulture -like 'zh-*') {
-        # 中文环境
-        [System.Globalization.CultureInfo]::CurrentUICulture = [System.Globalization.CultureInfo]::CreateSpecificCulture("zh-CN")
-        $script:uiLang = 'zh-CN'
-    } else {
-        # 其他语言环境（默认英文）
-        [System.Globalization.CultureInfo]::CurrentUICulture = [System.Globalization.CultureInfo]::CreateSpecificCulture("en-US")
-        $script:uiLang = 'en-US'
-    }
-    
-    # DEBUG 测试国际化使用，勿删
-    # $script:uiLang = 'en-US'
-} catch {
-    # 如果设置失败，回退到英文
-    [System.Globalization.CultureInfo]::CurrentUICulture = [System.Globalization.CultureInfo]::CreateSpecificCulture("en-US")
-    $script:uiLang = 'en-US'
-}
-Write-Host "DEBUG: `$script:uiLang = [ $script:uiLang ]"
 
 # 定义多语言资源
 $script:resources = @{
@@ -46,7 +16,7 @@ $script:resources = @{
         CopyLogButton = "复制日志"
         LogTabPage = "运行日志"
         GameListTabPage = "游戏列表"
-        MachineInfo = "机器名：{0}  用户名：{1}"
+        MachineInfo = "机器名：[ {0} ]  用户名：[ {1} ]"
         ScanningConfig = "正在扫描配置文件..."
         ConfigLoaded = "成功加载配置文件，共 {0} 个游戏"
         GameListUpdated = "游戏列表已更新"
@@ -106,6 +76,7 @@ $script:resources = @{
         SUCCESS_FinalCommit = "最终 Git 提交完成"
         SUCCESS_BackupComplete = "备份完成"
         SUCCESS_GitInitialized = "Git 仓库已初始化并配置"
+        INFO_SystemInfo = "系统版本：[ {0} ]  PowerShell 版本：[ {1} ]"
     }
     'en-US' = @{
         FormTitle = "Game Save Backup Tool"
@@ -115,7 +86,7 @@ $script:resources = @{
         CopyLogButton = "Copy Log"
         LogTabPage = "Run Log"
         GameListTabPage = "Game List"
-        MachineInfo = "Machine: {0}  User: {1}"
+        MachineInfo = "Machine: [ {0} ]  User: [ {1} ]"
         ScanningConfig = "Scanning config file..."
         ConfigLoaded = "Config file loaded successfully, {0} game(s) found"
         GameListUpdated = "Game list updated"
@@ -175,6 +146,7 @@ $script:resources = @{
         SUCCESS_FinalCommit = "Final Git commit completed"
         SUCCESS_BackupComplete = "Backup completed successfully"
         SUCCESS_GitInitialized = "Git repository initialized and configured"
+        INFO_SystemInfo = "System Version: [ {0} ]  PowerShell Version: [ {1} ]"
     }
 }
 
@@ -354,13 +326,54 @@ $script:defaultConfigs = @{
   }
 ]
 '@
+}  # End of $script:resources
+
+# 根据系统语言自动选择界面语言
+try {
+    $currentCulture = [System.Globalization.CultureInfo]::CurrentCulture.Name
+    
+    if ($currentCulture -eq 'zh-CN' -or $currentCulture -like 'zh-*') {
+        [System.Globalization.CultureInfo]::CurrentUICulture = [System.Globalization.CultureInfo]::CreateSpecificCulture("zh-CN")
+        $script:uiLang = 'zh-CN'
+    } else {
+        [System.Globalization.CultureInfo]::CurrentUICulture = [System.Globalization.CultureInfo]::CreateSpecificCulture("en-US")
+        $script:uiLang = 'en-US'
+    }
+} catch {
+    [System.Globalization.CultureInfo]::CurrentUICulture = [System.Globalization.CultureInfo]::CreateSpecificCulture("en-US")
+    $script:uiLang = 'en-US'
 }
 
 # 获取当前语言的 UI 文本
 $script:ui = $script:resources[$script:uiLang]
-Write-Host "DEBUG: `$script:resources = [ $script:resources ]"
-Write-Host "DEBUG: `$script:uiLang = [ $script:uiLang ]"
-Write-Host "DEBUG: `$script:ui = [ $script:ui ]"
+
+# 日志输出函数
+function Write-Log {
+    param(
+        [string]$Message,
+        [string]$Level = "Info"
+    )
+
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    
+    # 根据日志等级设置颜色
+    switch ($Level) {
+        "Info"    { $color = [System.Drawing.Color]::Black }
+        "Success" { $color = [System.Drawing.Color]::Green }
+        "Warning" { $color = [System.Drawing.Color]::Orange }
+        "Error"   { $color = [System.Drawing.Color]::Red }
+        "Progress" { $color = [System.Drawing.Color]::Blue }
+        "Debug"   { $color = [System.Drawing.Color]::Gray }
+        default   { $color = [System.Drawing.Color]::Black }
+    }
+
+    # 普通单行日志直接显示
+    $logLine = "[" + $timestamp + "] " + $Message + "`r`n"
+    $logTextBox.SelectionStart = $logTextBox.TextLength
+    $logTextBox.SelectionColor = $color
+    $logTextBox.AppendText($logLine)
+    $logTextBox.ScrollToCaret()
+}
 
 # 创建语言相关的数据（使用 $script:ui 统一访问）
 $script:uiLangData = @{
@@ -385,13 +398,8 @@ $form.Font = New-Object System.Drawing.Font("Microsoft YaHei", 10)
 $form.MinimumSize = New-Object System.Drawing.Size(1000, 600)
 # 启用双缓冲减少闪烁
 $prop = [System.Windows.Forms.Control].GetProperty("DoubleBuffered", [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Instance)
-$defaultValue = $prop.GetValue($form)
-Write-Host "Form DoubleBuffered default value: $defaultValue"
 [System.Reflection.BindingFlags]$flags = "NonPublic, Instance"
-$prop = [System.Windows.Forms.Control].GetProperty("DoubleBuffered", $flags)
 $prop.SetValue($form, $true)
-$currentValue = $prop.GetValue($form)
-Write-Host "Form DoubleBuffered current value: $currentValue"
 
 # 创建顶部面板（操作区）
 $topPanel = New-Object System.Windows.Forms.Panel
@@ -465,15 +473,6 @@ $copyLogButton.Location = New-Object System.Drawing.Point(245, 5)
 $copyLogButton.Size = New-Object System.Drawing.Size(110, 30)
 $topButtonGroupPanel.Controls.Add($copyLogButton)
 
-# DEBUG 调试布局使用，勿删
-# $topPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-# $centerPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-# $bottomPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-# $topInfoPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-# $topButtonGroupPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-# $configLabel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-# $configTextBox.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-
 # 创建中部 TabControl（标签页容器）
 $tabControl = New-Object System.Windows.Forms.TabControl
 $tabControl.Dock = "Fill"
@@ -487,7 +486,6 @@ $tabControl.Controls.Add($logTabPage)
 # 创建游戏列表标签页
 $gameListTabPage = New-Object System.Windows.Forms.TabPage
 $gameListTabPage.Text = $script:ui.GameListTabPage
-# 注意：游戏列表标签页在初始化时不添加到 tabControl，仅在加载配置后动态添加
 
 # 日志显示区域
 $logTextBox = New-Object System.Windows.Forms.RichTextBox
@@ -498,15 +496,18 @@ $logTextBox.BackColor = [System.Drawing.Color]::White
 $logTextBox.Dock = "Fill"
 $logTabPage.Controls.Add($logTextBox)
 
-# 隐藏的 RichTextBox（用于折叠/展开时的离屏渲染）
-$logTextBoxHidden = New-Object System.Windows.Forms.RichTextBox
-$logTextBoxHidden.ReadOnly = $true
-$logTextBoxHidden.ScrollBars = [System.Windows.Forms.RichTextBoxScrollBars]::Vertical
-$logTextBoxHidden.BorderStyle = [System.Windows.Forms.BorderStyle]::None
-$logTextBoxHidden.BackColor = [System.Drawing.Color]::White
-$logTextBoxHidden.Size = New-Object System.Drawing.Size(10, 10)  # 小尺寸，放在角落
-$logTextBoxHidden.Location = New-Object System.Drawing.Point(-1000, -1000)  # 放在屏幕外
-$form.Controls.Add($logTextBoxHidden)
+# 输出系统版本和 PowerShell 版本信息到日志
+try {
+    $osInfo = Get-WmiObject Win32_OperatingSystem
+    $releaseId = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction SilentlyContinue
+    
+    $windowsVersion = "$($osInfo.Caption) $($releaseId.DisplayVersion)"
+    $psVersion = "$($PSVersionTable.PSVersion.ToString()) $($PSVersionTable.PSEdition)"
+    
+    Write-Log ($script:ui.INFO_SystemInfo -f $windowsVersion, $psVersion) "Info"
+} catch {
+    Write-Log ($script:ui.INFO_SystemInfo -f "Windows NT $([System.Environment]::OSVersion.Version.ToString())", "$($PSVersionTable.PSVersion.ToString()) $($PSVersionTable.PSEdition)") "Info"
+}
 
 # 游戏信息显示表格
 $gameDataGridView = New-Object System.Windows.Forms.DataGridView
@@ -580,35 +581,25 @@ $contextMenu.Add_Opening({
 # 右键菜单点击事件：打开存档位置
 $openLocationMenuItem.Add_Click({
     try {
-        Write-Host "DEBUG: 右键菜单被点击" -ForegroundColor Cyan
-        
         # 获取选中的行
         if ($gameDataGridView.SelectedRows.Count -eq 0) {
-            Write-Host "DEBUG: 没有选中的行" -ForegroundColor Yellow
             return
         }
         
-        Write-Host "DEBUG: 选中的行数：$($gameDataGridView.SelectedRows.Count)" -ForegroundColor Cyan
         $selectedRow = $gameDataGridView.SelectedRows[0]
         $gameName = $selectedRow.Cells[1].Value
         $savePath = $selectedRow.Cells[2].Value
-        
-        Write-Host "DEBUG: 游戏名称：$gameName, 存档路径：$savePath" -ForegroundColor Cyan
         
         # 还原环境变量显示
         $realPath = $savePath -replace '\$env:USERPROFILE', $env:USERPROFILE
         $realPath = $realPath -replace '\$env:PROGRAMDATA', $env:PROGRAMDATA
         
-        Write-Host "DEBUG: 实际路径：$realPath" -ForegroundColor Cyan
-        
         # 检查路径是否存在
         if (Test-Path $realPath) {
-            Write-Host "DEBUG: 路径存在，准备打开" -ForegroundColor Green
             # 打开文件夹
             Start-Process "explorer.exe" -ArgumentList $realPath
             Write-Log ($script:ui.OpeningSaveLocation -f $gameName, $realPath) "Info"
         } else {
-            Write-Host "DEBUG: 路径不存在" -ForegroundColor Red
             # 路径不存在，尝试打开父目录
             $parentDir = Split-Path -Parent $realPath
             if (Test-Path $parentDir) {
@@ -646,7 +637,6 @@ $openLocationMenuItem.Add_Click({
         }
     }
     catch {
-        Write-Host "DEBUG ERROR: $_" -ForegroundColor Red
         Write-Log "Failed to open save location: $_" "Error"
     }
 })
@@ -669,75 +659,24 @@ $global:psInstance = $null
 $global:runspacePool = $null
 # 使用同步集合来存储实时日志
 $global:logQueue = [System.Collections.Concurrent.ConcurrentBag[string]]::new()
-# 用于存储完整 debug 内容的字典（使用起始行号作为 key）
-$global:debugFullLogs = @{}
-# 使用 hostname 命令获取完整机器名（与备份.bat 保持一致）
+
+# 获取机器名（与备份.bat 保持一致）
 try {
     $hostnameOutput = & cmd /c hostname
     if ($hostnameOutput) {
         $script:machineName = $hostnameOutput.ToString().Trim()
-    }
-    else {
+    } else {
         $script:machineName = $env:COMPUTERNAME
     }
-}
-catch {
+} catch {
     $script:machineName = $env:COMPUTERNAME
 }
+
+# 获取用户名
 $script:userName = [Environment]::UserName
 
-# 日志输出函数
-function Write-Log {
-    param(
-        [string]$Message,
-        [string]$Level = "Info"
-    )
-
-    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    
-    # 根据日志等级设置颜色
-    switch ($Level) {
-        "Info"    { $color = [System.Drawing.Color]::Black }
-        "Success" { $color = [System.Drawing.Color]::Green }
-        "Warning" { $color = [System.Drawing.Color]::Orange }
-        "Error"   { $color = [System.Drawing.Color]::Red }
-        "Progress" { $color = [System.Drawing.Color]::Blue }
-        "Debug"   { $color = [System.Drawing.Color]::Gray }
-        default   { $color = [System.Drawing.Color]::Black }
-    }
-
-    # 如果是 Debug 且有多行
-    if ($Level -eq "Debug" -and $Message -match "`r?`n") {
-        $lines = $Message -split "`r?`n"
-        $firstLine = $lines[0]
-        
-        # 先添加到 RichTextBox
-        $displayText = "[" + $timestamp + "] " + $firstLine + " [...]`r`n"
-        $logTextBox.SelectionStart = $logTextBox.TextLength
-        $logTextBox.SelectionColor = $color
-        $logTextBox.AppendText($displayText)
-        $logTextBox.ScrollToCaret()
-        
-        # 添加后再获取实际的行号（此时 TextLength 已经更新）
-        $startLineIndex = $logTextBox.GetLineFromCharIndex($logTextBox.TextLength - 1)
-        
-        # 保存完整内容（使用实际行号作为 key）
-        $global:debugFullLogs[$startLineIndex] = @{
-            FullText = $Message
-            Timestamp = $timestamp
-            Color = $color
-            FirstLine = $firstLine  # 保存第一行用于匹配
-            IsExpanded = $false     # 标记是否已展开
-        }
-    } else {
-        # 普通单行日志直接显示
-        $logLine = "[" + $timestamp + "] " + $Message + "`r`n"
-        $logTextBox.SelectionStart = $logTextBox.TextLength
-        $logTextBox.SelectionColor = $color
-        $logTextBox.AppendText($logLine)
-        $logTextBox.ScrollToCaret()
-    }
-}
+# 输出机器名和用户名信息到日志
+Write-Log ($script:ui.MachineInfo -f $script:machineName, $script:userName) "Info"
 
 # 加载并显示游戏列表函数
 function Load-GameList {
@@ -868,14 +807,11 @@ function Load-GameListFromObject {
 # 自动查找并加载 JSON 配置文件（优先使用内嵌配置）
 function Find-AndLoadJsonFile {
     # 首先尝试加载内嵌的默认配置
-    Write-Host "DEBUG: Attempting to load embedded default config..."
     if (Load-DefaultConfig) {
-        Write-Host "DEBUG: Embedded default config loaded successfully"
         return $true
     }
     
     # 如果内嵌配置加载失败，则尝试查找外部 JSON 文件
-    Write-Host "DEBUG: Embedded config failed, trying to find external JSON files..."
     
     # 获取脚本所在目录
     try {
@@ -883,7 +819,6 @@ function Find-AndLoadJsonFile {
     } catch {
         $scriptDir = [System.IO.Directory]::GetCurrentDirectory()
     }
-    Write-Host "DEBUG: scriptDir = $scriptDir"
 
     $jsonFiles = Get-ChildItem -Path $scriptDir -Filter "*.json" -File -ErrorAction SilentlyContinue
 
@@ -932,7 +867,6 @@ $browseButton.Add_Click({
         $scriptDir = [System.IO.Directory]::GetCurrentDirectory()
     }
     $fileDialog.InitialDirectory = $scriptDir
-    Write-Host "DEBUG: scriptDir = $scriptDir"
 
     if ($fileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
         $global:configPath = $fileDialog.FileName
@@ -949,9 +883,6 @@ $browseButton.Add_Click({
     }
 })
 
-# 获取机器名和用户名并显示日志
-Write-Log ($script:ui.MachineInfo -f $script:machineName, $script:userName) "Info"
-
 # 复制日志按钮点击事件
 $copyLogButton.Add_Click({
     if ($logTextBox.Text.Length -gt 0) {
@@ -965,164 +896,6 @@ $copyLogButton.Add_Click({
 # 窗口加载时自动查找并加载 JSON 文件
 Write-Log $script:ui.ScanningConfig "Info"
 Find-AndLoadJsonFile | Out-Null
-
-# 点击事件展开 debug 日志
-$logTextBox.Add_MouseClick({
-    try {
-        $clickPoint = $logTextBox.PointToClient([System.Windows.Forms.Cursor]::Position)
-        $charIndex = $logTextBox.GetCharIndexFromPosition($clickPoint)
-        
-        # 如果点击在有效区域
-        if ($charIndex -ge 0) {
-            $lineIndex = $logTextBox.GetLineFromCharIndex($charIndex)
-            
-            if ($lineIndex -ge 0 -and $lineIndex -lt $logTextBox.Lines.Count) {
-                $lineText = $logTextBox.Lines[$lineIndex]
-                
-                # DEBUG: 输出点击信息
-                Write-Host "DEBUG: 点击行号=$lineIndex, 内容='$lineText'" -ForegroundColor Cyan
-                Write-Host "DEBUG: 字典 Keys 数量=$($global:debugFullLogs.Keys.Count)" -ForegroundColor Cyan
-                
-                # 检查是否为折叠行（包含 [...] 标记）- 使用简单字符串包含
-                if ($lineText -like "*...*") {
-                    Write-Host "DEBUG: 检测到折叠行标记" -ForegroundColor Cyan
-                    
-                    # 在字典中查找所有 key，找到包含该行的记录
-                    foreach ($key in $global:debugFullLogs.Keys) {
-                        $storedData = $global:debugFullLogs[$key]
-                        $firstLineOfStored = ($storedData.FullText -split "`r?`n")[0]
-                        
-                        # 构建期望的折叠行文本
-                        $expectedFoldedText = "[" + $storedData.Timestamp + "] " + $firstLineOfStored + " [...]"
-                        
-                        Write-Host "DEBUG: Key=$key, 期望文本='$expectedFoldedText'" -ForegroundColor Cyan
-                        Write-Host "DEBUG: 实际文本='$lineText'" -ForegroundColor Cyan
-                        Write-Host "DEBUG: 匹配结果？ $($lineText.Trim() -eq $expectedFoldedText.Trim())" -ForegroundColor Cyan
-                        
-                        # 检查是否匹配
-                        if ($lineText.Trim() -eq $expectedFoldedText.Trim()) {
-                            Write-Host "DEBUG: 匹配成功！开始展开..." -ForegroundColor Green
-                            
-                            # 找到匹配项，展开
-                            $fullText = $storedData.FullText
-                            $timestamp = $storedData.Timestamp
-                            $color = $storedData.Color
-                            
-                            # 构建展开后的文本（带时间戳）
-                            $expandedLines = $fullText -split "`r?`n"
-                            $resultText = ""
-                            for ($i = 0; $i -lt $expandedLines.Count; $i++) {
-                                $line = $expandedLines[$i]
-                                if (-not [string]::IsNullOrWhiteSpace($line)) {
-                                    # 第一行显示 [---]，其他行正常显示
-                                    if ($i -eq 0) {
-                                        $resultText += "[" + $timestamp + "] " + $line + " [---]`r`n"
-                                    } else {
-                                        $resultText += "[" + $timestamp + "] " + $line + "`r`n"
-                                    }
-                                }
-                            }
-                            
-                            Write-Host "DEBUG: 展开后文本长度=${resultText.Length}" -ForegroundColor Green
-                            
-                            # 保存当前的选中状态
-                            $savedSelectionStart = $logTextBox.SelectionStart
-                            $savedSelectionLength = $logTextBox.SelectionLength
-                            Write-Host "DEBUG: 保存的选中状态 SelectionStart=$savedSelectionStart, SelectionLength=$savedSelectionLength" -ForegroundColor Cyan
-                            
-                            # 使用 RichTextBox 的文本操作方法替换内容（保持格式）
-                            $startCharIndex = $logTextBox.GetFirstCharIndexFromLine($lineIndex)
-                            $endCharIndex = $logTextBox.GetFirstCharIndexFromLine($lineIndex + 1)
-                            if ($endCharIndex -le 0) { $endCharIndex = $logTextBox.TextLength }
-                            
-                            # 计算要替换的长度
-                            $replaceLength = $endCharIndex - $startCharIndex
-                            
-                            # 选中原来的折叠行
-                            $logTextBox.Select($startCharIndex, $replaceLength)
-                            
-                            # 先设置颜色，再插入文本（这样新文本会继承当前颜色）
-                            $logTextBox.SelectionColor = $color
-                            
-                            # 插入新文本（所有行都会是灰色）
-                            $logTextBox.SelectedText = $resultText
-
-                            # 更新状态为已展开
-                            $global:debugFullLogs[$key].IsExpanded = $true
-                            
-                            # 恢复当前的选中状态
-                            $logTextBox.SelectionStart = $savedSelectionStart
-                            $logTextBox.SelectionLength = $savedSelectionLength
-                            Write-Host "DEBUG: 恢复的选中状态 SelectionStart=$savedSelectionStart, SelectionLength=$savedSelectionLength" -ForegroundColor Cyan
-
-                            break
-                        }
-                    }
-                } elseif ($lineText -like "*---*") {
-                    Write-Host "DEBUG: 检测到展开行标记 [---]" -ForegroundColor Cyan
-                    
-                    # 需要折叠：找到对应的 key
-                    foreach ($key in $global:debugFullLogs.Keys) {
-                        $storedData = $global:debugFullLogs[$key]
-                        
-                        # 只有已展开的记录才处理
-                        if ($storedData.IsExpanded) {
-                            $firstLineOfStored = ($storedData.FullText -split "`r?`n")[0]
-                            
-                            # 检查当前行是否是展开的第一行（带 [---] 标记）
-                            $expectedFirstLine = "[" + $storedData.Timestamp + "] " + $firstLineOfStored + " [---]"
-                            
-                            Write-Host "DEBUG: Key=$key, 检查第一行='$expectedFirstLine'" -ForegroundColor Cyan
-                            Write-Host "DEBUG: 实际文本='$lineText'" -ForegroundColor Cyan
-                            
-                            if ($lineText.Trim() -eq $expectedFirstLine.Trim()) {
-                                Write-Host "DEBUG: 匹配成功！开始折叠..." -ForegroundColor Green
-                                
-                                # 保存当前的选中状态
-                                $savedSelectionStart = $logTextBox.SelectionStart
-                                $savedSelectionLength = $logTextBox.SelectionLength
-                                
-                                # 计算实际展开的行数（使用存储的完整文本）
-                                $fullExpandedLines = $storedData.FullText -split "`r?`n"
-                                $actualExpandedLineCount = ($fullExpandedLines | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count
-                                
-                                # 获取展开内容的起始位置
-                                $startCharIndex = $logTextBox.GetFirstCharIndexFromLine($lineIndex)
-                                
-                                # 计算结束位置（展开内容的最后一行的下一个字符）
-                                $endCharIndex = $logTextBox.GetFirstCharIndexFromLine($lineIndex + $actualExpandedLineCount)
-                                if ($endCharIndex -le 0) { $endCharIndex = $logTextBox.TextLength }
-                                
-                                # 选中展开的所有内容
-                                $logTextBox.Select($startCharIndex, $endCharIndex - $startCharIndex)
-                                
-                                # 先设置颜色，再替换文本（这样新文本会继承当前颜色）
-                                $logTextBox.SelectionColor = $storedData.Color
-                                
-                                # 替换为折叠文本
-                                $foldedText = "[" + $storedData.Timestamp + "] " + $firstLineOfStored + " [...]`r`n"
-                                $logTextBox.SelectedText = $foldedText
-                                
-                                # 更新状态为未展开
-                                $global:debugFullLogs[$key].IsExpanded = $false
-                                
-                                # 恢复当前的选中状态
-                                $logTextBox.SelectionStart = $savedSelectionStart
-                                $logTextBox.SelectionLength = $savedSelectionLength
-                                
-                                break
-                            }
-                        }
-                    }
-                } else {
-                    Write-Host "DEBUG: 不是折叠行，跳过" -ForegroundColor Yellow
-                }
-            }
-        }
-    } catch {
-        Write-Host "DEBUG ERROR: $_" -ForegroundColor Red
-    }
-})
 
 # 开始备份按钮点击事件
 $startButton.Add_Click({
