@@ -760,38 +760,35 @@ function Load-GameListFromObject {
 
 # 自动查找并加载 JSON 配置文件
 function Find-AndLoadJsonFile {
-    # 获取当前工作目录
-    $scriptDir = [System.IO.Directory]::GetCurrentDirectory()
-
-    # 打印当前工作目录
-    Write-Host "[ Debug ] Working directory = $scriptDir"
+    $cd = [System.IO.Directory]::GetCurrentDirectory()
+    Write-Host "[ Debug ] current directory = $cd"
 
     # 查找当前目录下的所有 JSON 文件
-    $jsonFiles = Get-ChildItem -Path $scriptDir -Filter "*.json" -File -ErrorAction SilentlyContinue
-    
+    $jsonFiles = Get-ChildItem -Path $cd -Filter "*.json" -File -ErrorAction SilentlyContinue
+
     # 情况 1：没有找到 JSON 文件 → 警告并使用默认配置
     if ($jsonFiles.Count -eq 0) {
         Write-Log $script:ui.ConfigNotFound "Warning"
         Load-DefaultConfig
         return
     }
-    
+
     # 情况 2：找到多个 JSON 文件 → 告警并使用默认配置
     if ($jsonFiles.Count -gt 1) {
         Write-Log ($script:ui.INFO_MultipleConfigFound -f $jsonFiles.Count) "Warning"
         Load-DefaultConfig
         return
     }
-    
+
     # 情况 3：找到唯一一个 JSON 文件 → 自动加载
     $script:configPath = $jsonFiles.FullName
     $configTextBox.Text = $script:configPath
-    
+
     Write-Log ($script:ui.ConfigSelected + "$((Split-Path -Leaf $script:configPath))") "Info"
-    
+
     # 加载游戏列表
     Load-GameList -ConfigPath $script:configPath
-    
+
     # 如果加载成功，启用开始按钮
     if ($null -ne $script:configArray) {
         $startButton.Enabled = $true
