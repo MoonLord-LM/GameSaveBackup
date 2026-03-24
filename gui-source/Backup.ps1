@@ -833,13 +833,6 @@ else {
 
 # 浏览按钮点击事件
 $browseButton.Add_Click({
-    Write-Host "DEBUG: Globalization.CurrentCulture = $([System.Globalization.CultureInfo]::CurrentCulture.Name) " -ForegroundColor Cyan
-    Write-Host "DEBUG: Globalization.CurrentUICulture = $([System.Globalization.CultureInfo]::CurrentUICulture.Name) " -ForegroundColor Cyan
-    Write-Host "DEBUG: Application.CurrentCulture = $([Application]::CurrentCulture.Name) " -ForegroundColor Cyan
-    Write-Host "DEBUG: Application.CurrentUICulture = $([Application]::CurrentUICulture.Name) " -ForegroundColor Cyan
-    Write-Host "DEBUG: CurrentThread.CurrentCulture = $([System.Threading.Thread]::CurrentThread.CurrentCulture.Name) " -ForegroundColor Cyan
-    Write-Host "DEBUG: CurrentThread.CurrentUICulture = $([System.Threading.Thread]::CurrentThread.CurrentUICulture.Name) " -ForegroundColor Cyan
-
     $fileDialog = [OpenFileDialog]::new()
     $fileDialog.Filter = $script:ui.FileFilter
     $fileDialog.Title = $script:ui.FileDialogTitle
