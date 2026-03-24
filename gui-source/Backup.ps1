@@ -5,16 +5,20 @@
 
 # ———————————————————————————————— 基础设置和常量定义部分 ————————————————————————————————
 
+# 加载窗体程序集
+using assembly System.Windows.Forms
+using assembly System.Drawing
+
+# 使用命名空间简化代码
+using namespace System.Windows.Forms
+using namespace System.Drawing
+
 # 设置字符编码 UTF-8
 [System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-# 加载 Windows Forms 程序集
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
-
 # 设置更现代的窗口样式
-[System.Windows.Forms.Application]::EnableVisualStyles()
-[System.Windows.Forms.Application]::SetCompatibleTextRenderingDefault($false)
+[Application]::EnableVisualStyles()
+[Application]::SetCompatibleTextRenderingDefault($false)
 
 # 界面支持中英文，定义多语言文本资源
 $script:textResources = @{
@@ -376,36 +380,36 @@ $script:ui = $script:textResources[$script:uiLang]
 # ———————————————————————————————— 界面绘制部分 ————————————————————————————————
 
 # 创建主窗口
-$form = New-Object System.Windows.Forms.Form
+$form = [Form]::new()
 $form.Text = $script:ui.FormTitle
-$form.Size = New-Object System.Drawing.Size(1280, 720)
+$form.Size = [Size]::new(1280, 720)
 $form.StartPosition = "CenterScreen"
-$form.Font = New-Object System.Drawing.Font("Microsoft YaHei", 10)
-$form.MinimumSize = New-Object System.Drawing.Size(1000, 600)
+$form.Font = [Font]::new("Microsoft YaHei", 10)
+$form.MinimumSize = [Size]::new(1000, 600)
 
 # 启用双缓冲减少闪烁
 $flags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Instance
-$prop = [System.Windows.Forms.Control].GetProperty("DoubleBuffered", $flags)
+$prop = [Control].GetProperty("DoubleBuffered", $flags)
 Write-Host "[ Debug ] DoubleBuffered default value: $($prop.GetValue($form))"
 $prop.SetValue($form, $true)
 Write-Host "[ Debug ] DoubleBuffered set value: $($prop.GetValue($form))"
 
 # 创建顶部面板（操作区）
-$topPanel = New-Object System.Windows.Forms.Panel
+$topPanel = [Panel]::new()
 $topPanel.Dock = "Top"
 $topPanel.Height = 60
-$topPanel.Padding = New-Object System.Windows.Forms.Padding(10, 10, 10, 10)
+$topPanel.Padding = [Padding]::new(10, 10, 10, 10)
 
 # 创建中部面板（内容区）
-$centerPanel = New-Object System.Windows.Forms.Panel
+$centerPanel = [Panel]::new()
 $centerPanel.Dock = "Fill"
-$centerPanel.Padding = New-Object System.Windows.Forms.Padding(10, 0, 10, 0)
+$centerPanel.Padding = [Padding]::new(10, 0, 10, 0)
 
 # 创建底部面板（提示区）
-$bottomPanel = New-Object System.Windows.Forms.Panel
+$bottomPanel = [Panel]::new()
 $bottomPanel.Dock = "Bottom"
 $bottomPanel.Height = 40
-$bottomPanel.Padding = New-Object System.Windows.Forms.Padding(10, 10, 10, 10)
+$bottomPanel.Padding = [Padding]::new(10, 10, 10, 10)
 
 # 将三个面板添加到主窗口（注意顺序：先添加 Fill，再添加 Top/Bottom）
 $form.Controls.Add($centerPanel)
@@ -413,88 +417,88 @@ $form.Controls.Add($topPanel)
 $form.Controls.Add($bottomPanel)
 
 # 配置文件标签和文本框
-$topInfoPanel = New-Object System.Windows.Forms.Panel
+$topInfoPanel = [Panel]::new()
 $topInfoPanel.Dock = "Fill"
 $topPanel.Controls.Add($topInfoPanel)
 
 # 配置文件标签
-$configLabel = New-Object System.Windows.Forms.Label
+$configLabel = [Label]::new()
 $configLabel.Text = $script:ui.ConfigLabel
-$configLabel.Location = New-Object System.Drawing.Point(10, 10)
-$configLabel.Size = New-Object System.Drawing.Size(80, 40)
+$configLabel.Location = [Point]::new(10, 10)
+$configLabel.Size = [Size]::new(80, 40)
 $topInfoPanel.Controls.Add($configLabel)
 
 # 配置文件文本框
-$configTextBox = New-Object System.Windows.Forms.TextBox
+$configTextBox = [TextBox]::new()
 $configTextBox.Anchor = "Left, Right"
-$configTextBox.Location = New-Object System.Drawing.Point(100, 8)
+$configTextBox.Location = [Point]::new(100, 8)
 $configTextBox.Width = $topInfoPanel.Width - 130
 $configTextBox.ReadOnly = $true
 $topInfoPanel.Controls.Add($configTextBox)
 
 # 按钮组 Panel
-$topButtonGroupPanel = New-Object System.Windows.Forms.Panel
+$topButtonGroupPanel = [Panel]::new()
 $topButtonGroupPanel.Dock = "Right"
 $topButtonGroupPanel.Width = 360
 $topPanel.Controls.Add($topButtonGroupPanel)
 
 # 选择配置按钮
-$browseButton = New-Object System.Windows.Forms.Button
+$browseButton = [Button]::new()
 $browseButton.Text = $script:ui.BrowseButton
-$browseButton.Location = New-Object System.Drawing.Point(5, 5)
-$browseButton.Size = New-Object System.Drawing.Size(110, 30)
-$browseButton.BackColor = [System.Drawing.Color]::LightBlue
+$browseButton.Location = [Point]::new(5, 5)
+$browseButton.Size = [Size]::new(110, 30)
+$browseButton.BackColor = [Color]::LightBlue
 $topButtonGroupPanel.Controls.Add($browseButton)
 
 # 开始备份按钮
-$startButton = New-Object System.Windows.Forms.Button
+$startButton = [Button]::new()
 $startButton.Text = $script:ui.StartButton
-$startButton.Location = New-Object System.Drawing.Point(125, 5)
-$startButton.Size = New-Object System.Drawing.Size(110, 30)
-$startButton.BackColor = [System.Drawing.Color]::LightBlue
+$startButton.Location = [Point]::new(125, 5)
+$startButton.Size = [Size]::new(110, 30)
+$startButton.BackColor = [Color]::LightBlue
 $startButton.Enabled = $false
 $topButtonGroupPanel.Controls.Add($startButton)
 
 # 复制日志按钮
-$copyLogButton = New-Object System.Windows.Forms.Button
+$copyLogButton = [Button]::new()
 $copyLogButton.Text = $script:ui.CopyLogButton
-$copyLogButton.Location = New-Object System.Drawing.Point(245, 5)
-$copyLogButton.Size = New-Object System.Drawing.Size(110, 30)
+$copyLogButton.Location = [Point]::new(245, 5)
+$copyLogButton.Size = [Size]::new(110, 30)
 $topButtonGroupPanel.Controls.Add($copyLogButton)
 
 # 创建中部 TabControl（标签页容器）
-$tabControl = New-Object System.Windows.Forms.TabControl
+$tabControl = [TabControl]::new()
 $tabControl.Dock = "Fill"
-$tabControl.Padding = New-Object System.Drawing.Point(20, 3)
+$tabControl.Padding = [Point]::new(20, 3)
 $centerPanel.Controls.Add($tabControl)
 
 # 创建日志标签页
-$logTabPage = New-Object System.Windows.Forms.TabPage
+$logTabPage = [TabPage]::new()
 $logTabPage.Text = $script:ui.LogTabPage
 $tabControl.Controls.Add($logTabPage)
 
 # 创建游戏列表标签页
-$gameListTabPage = New-Object System.Windows.Forms.TabPage
+$gameListTabPage = [TabPage]::new()
 $gameListTabPage.Text = $script:ui.GameListTabPage
 
 # 日志显示区域
-$logTextBox = New-Object System.Windows.Forms.RichTextBox
+$logTextBox = [RichTextBox]::new()
 $logTextBox.ReadOnly = $true
-$logTextBox.ScrollBars = [System.Windows.Forms.RichTextBoxScrollBars]::Vertical
-$logTextBox.BorderStyle = [System.Windows.Forms.BorderStyle]::None
-$logTextBox.BackColor = [System.Drawing.Color]::White
+$logTextBox.ScrollBars = [RichTextBoxScrollBars]::Vertical
+$logTextBox.BorderStyle = [BorderStyle]::None
+$logTextBox.BackColor = [Color]::White
 $logTextBox.Dock = "Fill"
 $logTabPage.Controls.Add($logTextBox)
 
 # 游戏信息显示表格
-$gameDataGridView = New-Object System.Windows.Forms.DataGridView
+$gameDataGridView = [DataGridView]::new()
 $gameDataGridView.ReadOnly = $true
 $gameDataGridView.AllowUserToAddRows = $false
 $gameDataGridView.AllowUserToDeleteRows = $false
-$gameDataGridView.ScrollBars = [System.Windows.Forms.ScrollBars]::Both
-$gameDataGridView.BorderStyle = [System.Windows.Forms.BorderStyle]::None
-$gameDataGridView.BackgroundColor = [System.Drawing.Color]::White
-$gameDataGridView.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::LightGray
+$gameDataGridView.ScrollBars = [ScrollBars]::Both
+$gameDataGridView.BorderStyle = [BorderStyle]::None
+$gameDataGridView.BackgroundColor = [Color]::White
+$gameDataGridView.ColumnHeadersDefaultCellStyle.BackColor = [Color]::LightGray
 $gameDataGridView.ColumnHeadersHeight = 40
 $gameDataGridView.RowTemplate.Height = 30
 $gameDataGridView.Dock = "Fill"
@@ -506,7 +510,7 @@ $gameDataGridView.Columns[1].Width = 320
 $gameDataGridView.Columns[2].Name = $script:ui.ColumnSavePath
 $gameDataGridView.Columns[2].Width = 780
 # 启用整行选择
-$gameDataGridView.SelectionMode = [System.Windows.Forms.DataGridViewSelectionMode]::FullRowSelect
+$gameDataGridView.SelectionMode = [DataGridViewSelectionMode]::FullRowSelect
 $gameDataGridView.MultiSelect = $false
 # 鼠标按下时自动选中整行（包括左键和右键）
 $gameDataGridView.Add_CellMouseDown({
@@ -520,17 +524,17 @@ $gameDataGridView.Add_CellMouseDown({
 $gameListTabPage.Controls.Add($gameDataGridView)
 
 # 创建右键菜单（打开存档位置）
-$contextMenu = New-Object System.Windows.Forms.ContextMenuStrip
-$openLocationMenuItem = New-Object System.Windows.Forms.ToolStripMenuItem
+$contextMenu = [ContextMenuStrip]::new()
+$openLocationMenuItem = [ToolStripMenuItem]::new()
 $openLocationMenuItem.Text = $script:ui.OpenSaveLocation
 $contextMenu.Items.Add($openLocationMenuItem) | Out-Null
 $gameDataGridView.ContextMenuStrip = $contextMenu
 
 # 底部进度条
-$progressBar = New-Object System.Windows.Forms.ProgressBar
+$progressBar = [ProgressBar]::new()
 $progressBar.Dock = "Fill"
 $progressBar.Visible = $false
-$progressBar.Style = [System.Windows.Forms.ProgressBarStyle]::Continuous
+$progressBar.Style = [ProgressBarStyle]::Continuous
 $bottomPanel.Controls.Add($progressBar)
 
 
@@ -579,13 +583,13 @@ function Write-Log {
     
     # 根据日志等级设置颜色
     switch ($Level) {
-        "Info"    { $color = [System.Drawing.Color]::Black }
-        "Success" { $color = [System.Drawing.Color]::Green }
-        "Warning" { $color = [System.Drawing.Color]::Orange }
-        "Error"   { $color = [System.Drawing.Color]::Red }
-        "Progress" { $color = [System.Drawing.Color]::Blue }
-        "Debug"   { $color = [System.Drawing.Color]::Gray }
-        default   { $color = [System.Drawing.Color]::Black }
+        "Info"    { $color = [Color]::Black }
+        "Success" { $color = [Color]::Green }
+        "Warning" { $color = [Color]::Orange }
+        "Error"   { $color = [Color]::Red }
+        "Progress" { $color = [Color]::Blue }
+        "Debug"   { $color = [Color]::Gray }
+        default   { $color = [Color]::Black }
     }
 
     # 普通单行日志直接显示
@@ -899,14 +903,14 @@ $openLocationMenuItem.Add_Click({
                 }
                 $captionText = if ($script:uiLang -eq 'zh-CN') { "提示" } else { "Confirm" }
                 
-                $result = [System.Windows.Forms.MessageBox]::Show(
+                $result = [MessageBox]::Show(
                     $messageText,
                     $captionText,
-                    [System.Windows.Forms.MessageBoxButtons]::YesNo,
-                    [System.Windows.Forms.MessageBoxIcon]::Question
+                    [MessageBoxButtons]::YesNo,
+                    [MessageBoxIcon]::Question
                 )
                 
-                if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
+                if ($result -eq [DialogResult]::Yes) {
                     try {
                         New-Item -ItemType Directory -Path $realPath -Force | Out-Null
                         Start-Process "explorer.exe" -ArgumentList $realPath
@@ -929,12 +933,12 @@ $openLocationMenuItem.Add_Click({
 $browseButton.Add_Click({
     Write-Host "DEBUG: Globalization.CurrentCulture = $([System.Globalization.CultureInfo]::CurrentCulture.Name) " -ForegroundColor Cyan
     Write-Host "DEBUG: Globalization.CurrentUICulture = $([System.Globalization.CultureInfo]::CurrentUICulture.Name) " -ForegroundColor Cyan
-    Write-Host "DEBUG: Application.CurrentCulture = $([System.Windows.Forms.Application]::CurrentCulture.Name) " -ForegroundColor Cyan
-    Write-Host "DEBUG: Application.CurrentUICulture = $([System.Windows.Forms.Application]::CurrentUICulture.Name) " -ForegroundColor Cyan
+    Write-Host "DEBUG: Application.CurrentCulture = $([Application]::CurrentCulture.Name) " -ForegroundColor Cyan
+    Write-Host "DEBUG: Application.CurrentUICulture = $([Application]::CurrentUICulture.Name) " -ForegroundColor Cyan
     Write-Host "DEBUG: CurrentThread.CurrentCulture = $([System.Threading.Thread]::CurrentThread.CurrentCulture.Name) " -ForegroundColor Cyan
     Write-Host "DEBUG: CurrentThread.CurrentUICulture = $([System.Threading.Thread]::CurrentThread.CurrentUICulture.Name) " -ForegroundColor Cyan
 
-    $fileDialog = New-Object System.Windows.Forms.OpenFileDialog
+    $fileDialog = [OpenFileDialog]::new()
     $fileDialog.Filter = $script:ui.FileFilter
     $fileDialog.Title = $script:ui.FileDialogTitle
 
@@ -962,7 +966,7 @@ $browseButton.Add_Click({
     
     $fileDialog.InitialDirectory = $scriptDir
 
-    if ($fileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+    if ($fileDialog.ShowDialog() -eq [DialogResult]::OK) {
         $global:configPath = $fileDialog.FileName
         $configTextBox.Text = $global:configPath
         Write-Log ($script:ui.ConfigSelected + $global:configPath) "Info"
@@ -980,7 +984,7 @@ $browseButton.Add_Click({
 # 复制日志按钮点击事件
 $copyLogButton.Add_Click({
     if ($logTextBox.Text.Length -gt 0) {
-        [System.Windows.Forms.Clipboard]::SetText($logTextBox.Text)
+        [Clipboard]::SetText($logTextBox.Text)
         Write-Log $script:ui.LogCopied "Success"
     } else {
         Write-Log $script:ui.NoLog "Warning"
@@ -1004,7 +1008,7 @@ $startButton.Add_Click({
     $startButton.Enabled = $false
     $browseButton.Enabled = $false
     $progressBar.Visible = $true
-    $progressBar.Style = [System.Windows.Forms.ProgressBarStyle]::Continuous
+    $progressBar.Style = [ProgressBarStyle]::Continuous
     $progressBar.Minimum = 0
     $progressBar.Maximum = 100
     $progressBar.Value = 0
@@ -1471,7 +1475,7 @@ $startButton.Add_Click({
     $global:runspacePool = $runspacePool
 
     # 创建并启动 Timer
-    $global:timer = New-Object System.Windows.Forms.Timer
+    $global:timer = [Timer]::new()
     $global:timer.Interval = 100  # 缩短轮询间隔到 100ms，更快响应
     $global:timer.Add_Tick({
         # 从同步集合中读取并显示日志
@@ -1578,4 +1582,4 @@ $startButton.Add_Click({
 })
 
 # 显示窗口
-[System.Windows.Forms.Application]::Run($form);
+[Application]::Run($form);
