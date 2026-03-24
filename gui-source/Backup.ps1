@@ -368,9 +368,11 @@ try {
         $script:uiLang = 'en-US'
     }
 } catch {
+    Write-Host ""
     Write-Host "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
     Write-Host "[ Error ] Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
     Write-Host "[ Error ] Message: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host ""
 }
 Write-Host "[ Debug ] script:uiLang = $script:uiLang"
 $script:ui = $script:textResources[$script:uiLang]
@@ -571,24 +573,39 @@ function Write-Log {
         [string]$Level = 'Info'
     )
 
-    $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
-    $color = if ($script:LogColorMap.ContainsKey($Level)) { 
-        $script:LogColorMap[$Level] 
-    } else { 
-        [Color]::Black 
-    }
-    $text = "[{0}] {1}`r`n" -f $timestamp, $Message
-
-    $logTextBox.SuspendLayout()
     try {
-        $logTextBox.SelectionStart = $logTextBox.TextLength
-        $logTextBox.SelectionLength = 0
-        $logTextBox.SelectionColor = $color
-        $logTextBox.AppendText($text)
-        $logTextBox.ScrollToCaret()
-    }
-    finally {
-        $logTextBox.ResumeLayout()
+        if ($logTextBox.InvokeRequired) {
+            $logTextBox.Invoke([Action]{
+                Write-Log -Message $Message -Level $Level
+            })
+            return
+        }
+
+        $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+        $color = if ($script:LogColorMap.ContainsKey($Level)) { 
+            $script:LogColorMap[$Level] 
+        } else { 
+            [Color]::Black 
+        }
+        $text = "[{0}] {1}`r`n" -f $timestamp, $Message
+
+        $logTextBox.SuspendLayout()
+        try {
+            $logTextBox.SelectionStart = $logTextBox.TextLength
+            $logTextBox.SelectionLength = 0
+            $logTextBox.SelectionColor = $color
+            $logTextBox.AppendText($text)
+            $logTextBox.ScrollToCaret()
+        }
+        finally {
+            $logTextBox.ResumeLayout()
+        }
+    } catch {
+        Write-Host ""
+        Write-Host "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
+        Write-Host "[ Error ] Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
+        Write-Host "[ Error ] Message: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host ""
     }
 }
 
