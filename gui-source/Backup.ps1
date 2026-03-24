@@ -561,7 +561,7 @@ $bottomPanel.Controls.Add($progressBar)
 
 
 
-# ———————————————————————————————— 3: 启动和初始化 ————————————————————————————————
+# ———————————————————————————————— 3: 初始化逻辑 ————————————————————————————————
 
 # 定义变量
 $script:isRunning = $false
@@ -829,100 +829,7 @@ else {
 
 
 
-# ———————————————————————————————— 事件处理和业务逻辑 ————————————————————————————————
-
-# 右键菜单打开前的事件: 动态启用/禁用菜单项
-$contextMenu.Add_Opening({
-    try {
-        # 检查是否有选中的行
-        if ($gameDataGridView.SelectedRows.Count -eq 0) {
-            $openLocationMenuItem.Enabled = $false
-            return
-        }
-
-        $selectedRow = $gameDataGridView.SelectedRows[0]
-        $savePath = $selectedRow.Cells[2].Value
-
-        # 还原环境变量显示
-        $realPath = $savePath -replace '\$env:USERPROFILE', $env:USERPROFILE
-        $realPath = $realPath -replace '\$env:PROGRAMDATA', $env:PROGRAMDATA
-
-        # 只有当路径存在时才启用菜单项
-        if (Test-Path $realPath) {
-            $openLocationMenuItem.Enabled = $true
-        } else {
-            $openLocationMenuItem.Enabled = $false
-        }
-    }
-    catch {
-        # 出现错误时禁用菜单项
-        $openLocationMenuItem.Enabled = $false
-    }
-})
-
-# 右键菜单点击事件: 打开存档位置
-$openLocationMenuItem.Add_Click({
-    try {
-        # 获取选中的行
-        if ($gameDataGridView.SelectedRows.Count -eq 0) {
-            return
-        }
-
-        $selectedRow = $gameDataGridView.SelectedRows[0]
-        $gameName = $selectedRow.Cells[1].Value
-        $savePath = $selectedRow.Cells[2].Value
-
-        # 还原环境变量显示
-        $realPath = $savePath -replace '\$env:USERPROFILE', $env:USERPROFILE
-        $realPath = $realPath -replace '\$env:PROGRAMDATA', $env:PROGRAMDATA
-
-        # 检查路径是否存在
-        if (Test-Path $realPath) {
-            # 打开文件夹
-            Start-Process "explorer.exe" -ArgumentList $realPath
-            Write-Log ($script:ui.OpeningSaveLocation -f $gameName, $realPath) "Info"
-        } else {
-            # 路径不存在，尝试打开父目录
-            $parentDir = Split-Path -Parent $realPath
-            if (Test-Path $parentDir) {
-                Start-Process "explorer.exe" -ArgumentList $parentDir
-                Write-Log ($script:ui.SaveLocationNotFound -f $gameName, $parentDir) "Warning"
-            } else {
-                Write-Log ($script:ui.SaveLocationNotExist -f $gameName, $realPath) "Error"
-
-                # 根据语言设置对话框文本
-                $messageText = if ($script:uiLang -eq 'zh-CN') {
-                    "存档路径不存在: `n$realPath`n`n是否要创建此目录？"
-                } else {
-                    "Archive path does not exist:`n$realPath`n`nDo you want to create this directory?"
-                }
-                $captionText = if ($script:uiLang -eq 'zh-CN') { "提示" } else { "Confirm" }
-
-                $result = [MessageBox]::Show(
-                    $messageText,
-                    $captionText,
-                    [MessageBoxButtons]::YesNo,
-                    [MessageBoxIcon]::Question
-                )
-
-                if ($result -eq [DialogResult]::Yes) {
-                    try {
-                        New-Item -ItemType Directory -Path $realPath -Force | Out-Null
-                        Start-Process "explorer.exe" -ArgumentList $realPath
-                        Write-Log ($script:ui.DirectoryCreated -f $gameName, $realPath) "Success"
-                    }
-                    catch {
-                        Write-Log ($script:ui.FailedToCreateDirectory -f $gameName, $_) "Error"
-                    }
-                }
-            }
-        }
-    }
-    catch {
-        Write-Log "Failed to open save location: $_" "Error"
-    }
-})
-
+# ———————————————————————————————— 4: 事件处理和功能实现 ————————————————————————————————
 
 # 浏览按钮点击事件
 $browseButton.Add_Click({
@@ -1551,6 +1458,100 @@ $startButton.Add_Click({
     Write-Log $script:ui.RunspaceStarted "Progress"
 })
 
-# 显示窗口
-[Application]::Run($form);
+# 右键菜单打开前的事件: 动态启用/禁用菜单项
+$contextMenu.Add_Opening({
+    try {
+        # 检查是否有选中的行
+        if ($gameDataGridView.SelectedRows.Count -eq 0) {
+            $openLocationMenuItem.Enabled = $false
+            return
+        }
 
+        $selectedRow = $gameDataGridView.SelectedRows[0]
+        $savePath = $selectedRow.Cells[2].Value
+
+        # 还原环境变量显示
+        $realPath = $savePath -replace '\$env:USERPROFILE', $env:USERPROFILE
+        $realPath = $realPath -replace '\$env:PROGRAMDATA', $env:PROGRAMDATA
+
+        # 只有当路径存在时才启用菜单项
+        if (Test-Path $realPath) {
+            $openLocationMenuItem.Enabled = $true
+        } else {
+            $openLocationMenuItem.Enabled = $false
+        }
+    }
+    catch {
+        # 出现错误时禁用菜单项
+        $openLocationMenuItem.Enabled = $false
+    }
+})
+
+# 右键菜单点击事件: 打开存档位置
+$openLocationMenuItem.Add_Click({
+    try {
+        # 获取选中的行
+        if ($gameDataGridView.SelectedRows.Count -eq 0) {
+            return
+        }
+
+        $selectedRow = $gameDataGridView.SelectedRows[0]
+        $gameName = $selectedRow.Cells[1].Value
+        $savePath = $selectedRow.Cells[2].Value
+
+        # 还原环境变量显示
+        $realPath = $savePath -replace '\$env:USERPROFILE', $env:USERPROFILE
+        $realPath = $realPath -replace '\$env:PROGRAMDATA', $env:PROGRAMDATA
+
+        # 检查路径是否存在
+        if (Test-Path $realPath) {
+            # 打开文件夹
+            Start-Process "explorer.exe" -ArgumentList $realPath
+            Write-Log ($script:ui.OpeningSaveLocation -f $gameName, $realPath) "Info"
+        } else {
+            # 路径不存在，尝试打开父目录
+            $parentDir = Split-Path -Parent $realPath
+            if (Test-Path $parentDir) {
+                Start-Process "explorer.exe" -ArgumentList $parentDir
+                Write-Log ($script:ui.SaveLocationNotFound -f $gameName, $parentDir) "Warning"
+            } else {
+                Write-Log ($script:ui.SaveLocationNotExist -f $gameName, $realPath) "Error"
+
+                # 根据语言设置对话框文本
+                $messageText = if ($script:uiLang -eq 'zh-CN') {
+                    "存档路径不存在: `n$realPath`n`n是否要创建此目录？"
+                } else {
+                    "Archive path does not exist:`n$realPath`n`nDo you want to create this directory?"
+                }
+                $captionText = if ($script:uiLang -eq 'zh-CN') { "提示" } else { "Confirm" }
+
+                $result = [MessageBox]::Show(
+                    $messageText,
+                    $captionText,
+                    [MessageBoxButtons]::YesNo,
+                    [MessageBoxIcon]::Question
+                )
+
+                if ($result -eq [DialogResult]::Yes) {
+                    try {
+                        New-Item -ItemType Directory -Path $realPath -Force | Out-Null
+                        Start-Process "explorer.exe" -ArgumentList $realPath
+                        Write-Log ($script:ui.DirectoryCreated -f $gameName, $realPath) "Success"
+                    }
+                    catch {
+                        Write-Log ($script:ui.FailedToCreateDirectory -f $gameName, $_) "Error"
+                    }
+                }
+            }
+        }
+    }
+    catch {
+        Write-Log "Failed to open save location: $_" "Error"
+    }
+})
+
+
+
+# ———————————————————————————————— 5: 程序启动 ————————————————————————————————
+
+[Application]::Run($form);
