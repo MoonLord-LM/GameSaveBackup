@@ -35,7 +35,7 @@ $script:textResources = @{
         CheckingConfig = "正在检查配置文件..."
         ConfigLoaded = "成功加载配置文件，共 {0} 个游戏"
         GameListUpdated = "游戏列表已更新"
-        ConfigNotFound = "警告：当前目录下未找到 [.json] 配置文件"
+        ConfigNotFound = "警告：当前目录下未找到 JSON 配置文件，将使用内置默认配置"
         ConfigSelected = "已选择配置文件："
         BackupStarted = "开始备份任务"
         RunspaceStarted = "Runspace 已启动，开始监控备份任务"
@@ -69,6 +69,7 @@ $script:textResources = @{
         INFO_GitCommand = "Git 命令"
         INFO_RobocopyCommand = "Robocopy 命令"
         INFO_GamesFound = "找到游戏配置数量"
+        INFO_MultipleConfigFound = "警告：当前目录下找到 {0} 个 JSON 配置文件，请删除多余的，只保留一个"
         PROGRESS_Processing = "处理"
         INFO_IgnoreItem = "忽略项"
         INFO_CurrentWorkingDir = "当前工作目录"
@@ -106,7 +107,7 @@ $script:textResources = @{
         CheckingConfig = "Checking config file..."
         ConfigLoaded = "Config file loaded successfully, {0} game(s) found"
         GameListUpdated = "Game list updated"
-        ConfigNotFound = "Warning: No [.json] config file found in current directory"
+        ConfigNotFound = "Warning: No JSON config file found in current directory, will use built-in default config"
         ConfigSelected = "Config file selected: "
         BackupStarted = "Starting backup task"
         RunspaceStarted = "Runspace started, monitoring backup task"
@@ -140,6 +141,7 @@ $script:textResources = @{
         INFO_GitCommand = "Git command"
         INFO_RobocopyCommand = "Robocopy command"
         INFO_GamesFound = "game(s) found in configuration"
+        INFO_MultipleConfigFound = "Warning: Found {0} JSON config files in current directory. Please remove extra files and keep only one"
         PROGRESS_Processing = "Processing"
         INFO_IgnoreItem = "Ignore item"
         INFO_CurrentWorkingDir = "Current working directory"
@@ -694,7 +696,6 @@ function Load-DefaultConfig {
             
             # 获取脚本所在目录并显示备份根目录
             try {
-                # 优先使用 $PSScriptRoot（更可靠）
                 if ($PSScriptRoot) {
                     $scriptDir = $PSScriptRoot
                 } else {
@@ -702,11 +703,6 @@ function Load-DefaultConfig {
                 }
                 Write-Log ($script:ui.INFO_BackupRootDir + ": " + $scriptDir) "Info"
             } catch {
-                Write-Host ""
-    Write-Host "[ Catch Error ]"
-    Write-Host "Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
-    Write-Host "Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
-    Write-Host "Message: $($_.Exception.Message)" -ForegroundColor Red
                 $scriptDir = [System.IO.Directory]::GetCurrentDirectory()
                 Write-Log ($script:ui.INFO_BackupRootDir + ": " + $scriptDir) "Info"
             }
@@ -775,50 +771,44 @@ function Load-GameListFromObject {
     }
 }
 
-# 自动查找并加载 JSON 配置文件（优先使用内嵌配置）
+# 自动查找并加载 JSON 配置文件
 function Find-AndLoadJsonFile {
-    # 首先尝试加载内嵌的默认配置
-    if (Load-DefaultConfig) {
-        return $true
-    }
-    
-    # 如果内嵌配置加载失败，则尝试查找外部 JSON 文件
-    
-    # 获取脚本所在目录（使用 PSScriptRoot 更可靠）
+    # 获取脚本所在目录
     try {
-        # 优先使用 $PSScriptRoot（更可靠）
         if ($PSScriptRoot) {
             $scriptDir = $PSScriptRoot
         } else {
             $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
         }
     } catch {
-        Write-Host ""
-    Write-Host "[ Catch Error ]"
-    Write-Host "Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
-    Write-Host "Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
-    Write-Host "Message: $($_.Exception.Message)" -ForegroundColor Red
         $scriptDir = [System.IO.Directory]::GetCurrentDirectory()
     }
     
-    # 确保 scriptDir 不为空
     if ([string]::IsNullOrEmpty($scriptDir)) {
         $scriptDir = [System.IO.Directory]::GetCurrentDirectory()
     }
     
+    # 打印当前脚本所在目录
+    Write-Host "[ Debug ] Script directory: $scriptDir"
+    
+    # 查找当前目录下的所有 JSON 文件
     $jsonFiles = Get-ChildItem -Path $scriptDir -Filter "*.json" -File -ErrorAction SilentlyContinue
-
+    
+    # 情况 1：没有找到 JSON 文件 → 警告并使用默认配置
     if ($jsonFiles.Count -eq 0) {
         Write-Log $script:ui.ConfigNotFound "Warning"
+        Load-DefaultConfig | Out-Null
         return $false
     }
-
+    
+    # 情况 2：找到多个 JSON 文件 → 告警并使用默认配置
     if ($jsonFiles.Count -gt 1) {
-        Write-Log ($script:ui.ConfigNotFound + " (" + $jsonFiles.Count + ")") "Warning"
+        Write-Log ($script:ui.INFO_MultipleConfigFound -f $jsonFiles.Count) "Warning"
+        Load-DefaultConfig | Out-Null
         return $false
     }
-
-    # 只有一个 json 文件，自动加载
+    
+    # 情况 3：找到唯一一个 JSON 文件 → 自动加载
     $script:configPath = $jsonFiles.FullName
     $configTextBox.Text = $script:configPath
     
@@ -826,12 +816,12 @@ function Find-AndLoadJsonFile {
     
     # 加载游戏列表
     Load-GameList -ConfigPath $script:configPath
-
+    
     # 如果加载成功，启用开始按钮
     if ($null -ne $script:configArray) {
         $startButton.Enabled = $true
     }
-
+    
     return $true
 }
 
