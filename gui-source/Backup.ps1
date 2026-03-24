@@ -32,7 +32,7 @@ $script:textResources = @{
         LogTabPage = "运行日志"
         GameListTabPage = "游戏列表"
         MachineInfo = "机器名：[ {0} ]  用户名：[ {1} ]"
-        ScanningConfig = "正在检查配置文件..."
+        CheckingConfig = "正在检查配置文件..."
         ConfigLoaded = "成功加载配置文件，共 {0} 个游戏"
         GameListUpdated = "游戏列表已更新"
         ConfigNotFound = "警告：当前目录下未找到 [.json] 配置文件"
@@ -103,7 +103,7 @@ $script:textResources = @{
         LogTabPage = "Run Log"
         GameListTabPage = "Game List"
         MachineInfo = "Machine: [ {0} ]  User: [ {1} ]"
-        ScanningConfig = "Checking config file..."
+        CheckingConfig = "Checking config file..."
         ConfigLoaded = "Config file loaded successfully, {0} game(s) found"
         GameListUpdated = "Game list updated"
         ConfigNotFound = "Warning: No [.json] config file found in current directory"
@@ -835,6 +835,10 @@ function Find-AndLoadJsonFile {
     return $true
 }
 
+# 查找并加载 JSON 文件
+Write-Log $script:ui.CheckingConfig "Info"
+Find-AndLoadJsonFile | Out-Null
+
 # 切换回日志标签页函数
 function Show-LogPanel {
     $tabControl.SelectedTab = $logTabPage
@@ -999,9 +1003,6 @@ $copyLogButton.Add_Click({
     }
 })
 
-# 窗口加载时自动查找并加载 JSON 文件
-Write-Log $script:ui.ScanningConfig "Info"
-Find-AndLoadJsonFile | Out-Null
 
 # 开始备份按钮点击事件
 $startButton.Add_Click({
