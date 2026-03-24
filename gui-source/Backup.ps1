@@ -631,6 +631,69 @@ $script:machineName = & cmd /c hostname
 $script:userName = [Environment]::UserName
 Write-Log ($script:ui.MachineInfo -f $script:machineName, $script:userName) "Info"
 
+# 加载内嵌的默认配置，根据系统语言选择
+function Load-DefaultConfig {
+    try {
+        $defaultConfigJson = $script:defaultJsonConfigs[$script:uiLang]
+        if ($defaultConfigJson) {
+            # 将内嵌的 JSON 字符串解析为对象
+            $script:configArray = $defaultConfigJson | ConvertFrom-Json
+            
+            # 在日志中给出提示
+            Write-Log ($script:ui.DefaultConfigLoaded -f $script:configArray.Count) "Success"
+            
+            # 创建临时文件用于存储内嵌配置（保持与外部文件兼容）
+            $tempConfigPath = [System.IO.Path]::GetTempFileName() + ".json"
+            Set-Content -Path $tempConfigPath -Value $defaultConfigJson -Encoding UTF8
+            $script:configPath = $tempConfigPath
+            
+            # 显示备份根目录（使用当前工作目录）
+            $scriptDir = [System.IO.Directory]::GetCurrentDirectory()
+            Write-Log ($script:ui.INFO_BackupRootDir + ": " + $scriptDir) "Info"
+            
+            # 使用国际化的配置显示文本
+            $configTextBox.Text = $script:ui.BuiltInConfigDisplay -f $script:configArray.Count
+            
+            # 清空现有的游戏数据
+            $gameDataGridView.Rows.Clear()
+            
+            # 为每个游戏添加表格行
+            for ($i = 0; $i -lt $script:configArray.Count; $i++) {
+                $game = $script:configArray[$i]
+                $gameName = $game.name
+                $savePath = $game.save
+                
+                # 替换环境变量显示
+                $displayPath = $savePath -replace "%USERPROFILE%", '$env:USERPROFILE'
+                $displayPath = $displayPath -replace "%PROGRAMDATA%", '$env:PROGRAMDATA'
+                
+                # 添加行到表格（抑制输出）
+                $gameDataGridView.Rows.Add(($i + 1), $gameName, $displayPath) | Out-Null
+            }
+            
+            Write-Log $script:ui.GameListUpdated "Info"
+            
+            # 仅在成功加载时才添加游戏列表标签页并切换
+            if ($tabControl.TabPages.Contains($gameListTabPage) -eq $false) {
+                $tabControl.Controls.Add($gameListTabPage)
+            }
+            $tabControl.SelectedTab = $gameListTabPage
+            
+            # 如果加载成功，启用开始按钮
+            if ($null -ne $script:configArray) {
+                $startButton.Enabled = $true
+            }
+        }
+    }
+    catch {
+        Write-Host ""
+        Write-Host "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
+        Write-Host "[ Error ] Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
+        Write-Host "[ Error ] Message: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host ""
+    }
+}
+
 # 加载并显示游戏列表函数
 function Load-GameList {
     param([string]$ConfigPath)
@@ -656,86 +719,6 @@ function Load-GameList {
             $displayPath = $displayPath -replace "%PROGRAMDATA%", '$env:PROGRAMDATA'
 
             # 添加行到表格（抑制输出）
-            $gameDataGridView.Rows.Add(($i + 1), $gameName, $displayPath) | Out-Null
-        }
-
-        Write-Log $script:ui.GameListUpdated "Info"
-
-        # 仅在成功加载时才添加游戏列表标签页并切换
-        if ($tabControl.TabPages.Contains($gameListTabPage) -eq $false) {
-            $tabControl.Controls.Add($gameListTabPage)
-        }
-        $tabControl.SelectedTab = $gameListTabPage
-
-    } catch {
-        Write-Host ""
-    Write-Host "[ Catch Error ]"
-    Write-Host "Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
-    Write-Host "Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
-    Write-Host "Message: $($_.Exception.Message)" -ForegroundColor Red
-        Write-Log ($script:ui.GameListUpdated + ": $_") "Error"
-        $script:configArray = $null
-    }
-}
-
-# 加载内嵌的默认配置（根据系统语言选择）
-function Load-DefaultConfig {
-    try {
-        $defaultConfigJson = $script:defaultJsonConfigs[$script:uiLang]
-        if ($defaultConfigJson) {
-            # 将内嵌的 JSON 字符串解析为对象
-            $script:configArray = $defaultConfigJson | ConvertFrom-Json
-            
-            # 在日志中给出提示
-            Write-Log ($script:ui.DefaultConfigLoaded -f $script:configArray.Count) "Success"
-            
-            # 创建临时文件用于存储内嵌配置（保持与外部文件兼容）
-            $tempConfigPath = [System.IO.Path]::GetTempFileName() + ".json"
-            Set-Content -Path $tempConfigPath -Value $defaultConfigJson -Encoding UTF8
-            $script:configPath = $tempConfigPath
-            
-            # 显示备份根目录（使用当前工作目录）
-            $scriptDir = [System.IO.Directory]::GetCurrentDirectory()
-            Write-Log ($script:ui.INFO_BackupRootDir + ": " + $scriptDir) "Info"
-            
-            # 使用国际化的配置显示文本
-            $configTextBox.Text = $script:ui.BuiltInConfigDisplay -f $script:configArray.Count
-            
-            # 加载游戏列表
-            Load-GameListFromObject -ConfigObject $script:configArray
-            
-            # 如果加载成功，启用开始按钮
-            if ($null -ne $script:configArray) {
-                $startButton.Enabled = $true
-            }
-        }
-    }
-    catch {
-        Write-Log "Failed to load default config: $_" "Error"
-    }
-}
-
-# 从对象加载游戏列表（不读取文件）
-function Load-GameListFromObject {
-    param([object]$ConfigObject)
-
-    try {
-        # 清空现有的游戏数据
-        $gameDataGridView.Rows.Clear()
-
-        $totalGames = $ConfigObject.Count
-
-        # 为每个游戏添加表格行
-        for ($i = 0; $i -lt $totalGames; $i++) {
-            $game = $ConfigObject[$i]
-            $gameName = $game.name
-            $savePath = $game.save
-
-            # 替换环境变量显示
-            $displayPath = $savePath -replace "%USERPROFILE%", '$env:USERPROFILE'
-            $displayPath = $displayPath -replace "%PROGRAMDATA%", '$env:PROGRAMDATA'
-
-            # 添加行到表格（需要使用 Out-Null 抑制输出）
             $gameDataGridView.Rows.Add(($i + 1), $gameName, $displayPath) | Out-Null
         }
 
