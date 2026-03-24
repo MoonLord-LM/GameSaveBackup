@@ -832,38 +832,20 @@ else {
 # ———————————————————————————————— 4: 事件处理和功能实现 ————————————————————————————————
 
 # 浏览按钮点击事件
+$script:fileDialogInitialDirectory = $script:cd
 $browseButton.Add_Click({
     $fileDialog = [OpenFileDialog]::new()
     $fileDialog.Filter = $script:ui.FileFilter
     $fileDialog.Title = $script:ui.FileDialogTitle
+    $fileDialog.InitialDirectory = $script:fileDialogInitialDirectory
 
-    $fileDialog.InitialDirectory = [System.IO.Directory]::GetCurrentDirectory()
-
-    if ($fileDialog.ShowDialog() -eq [DialogResult]::OK) {
+    if ($fileDialog.ShowDialog() -eq [DialogResult]::OK) {  
         $script:configPath = $fileDialog.FileName
-        $configTextBox.Text = $script:configPath
-        Write-Log ($script:ui.ConfigSelected + $script:configPath) "Info"
-
-        # 加载游戏列表（Load-JsonConfigFile 函数内部会在成功后切换到游戏列表标签页）
+        $script:fileDialogInitialDirectory = Split-Path -Parent $script:configPath
+        Write-Log ($script:ui.ConfigSelected + "$(Split-Path -Leaf $script:configPath)") "Info"
         Load-JsonConfigFile -ConfigPath $script:configPath
-
-        # 如果加载成功，启用开始按钮
-        if ($null -ne $script:configJsonArray) {
-            $startButton.Enabled = $true
-        }
     }
 })
-
-# 复制日志按钮点击事件
-$copyLogButton.Add_Click({
-    if ($logTextBox.Text.Length -gt 0) {
-        [Clipboard]::SetText($logTextBox.Text)
-        Write-Log $script:ui.LogCopied "Success"
-    } else {
-        Write-Log $script:ui.NoLog "Warning"
-    }
-})
-
 
 # 开始备份按钮点击事件
 $startButton.Add_Click({
@@ -1449,6 +1431,16 @@ $startButton.Add_Click({
     $global:timer.Start()
 
     Write-Log $script:ui.RunspaceStarted "Progress"
+})
+
+# 复制日志按钮点击事件
+$copyLogButton.Add_Click({
+    if ($logTextBox.Text.Length -gt 0) {
+        [Clipboard]::SetText($logTextBox.Text)
+        Write-Log $script:ui.LogCopied "Success"
+    } else {
+        Write-Log $script:ui.NoLog "Warning"
+    }
 })
 
 # 右键菜单打开前的事件: 动态启用/禁用菜单项
