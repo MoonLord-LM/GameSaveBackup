@@ -1,9 +1,9 @@
 ﻿# 游戏存档备份工具
-# 开源地址：https://github.com/MoonLord-LM/GameSaveBackup
+# 开源地址: https://github.com/MoonLord-LM/GameSaveBackup
 
 
 
-# ———————————————————————————————— 1：基础设置和常量定义部分 ————————————————————————————————
+# ———————————————————————————————— 1: 基础设置和常量定义部分 ————————————————————————————————
 
 # 加载窗体程序集
 using assembly System.Windows.Forms
@@ -31,12 +31,12 @@ $script:textResources = @{
         CopyLogButton = "复制日志"
         LogTabPage = "运行日志"
         GameListTabPage = "游戏列表"
-        MachineInfo = "机器名：[ {0} ]  用户名：[ {1} ]"
+        MachineInfo = "机器名: [ {0} ]  用户名: [ {1} ]"
         CheckingConfig = "正在检查配置文件..."
         ConfigLoaded = "成功加载配置文件，共 {0} 个游戏"
         GameListUpdated = "游戏列表已更新"
         ConfigNotFound = "当前目录下未找到 JSON 配置文件，将使用内嵌默认配置"
-        ConfigSelected = "已选择配置文件："
+        ConfigSelected = "已选择配置文件: "
         BackupStarted = "开始备份任务"
         RunspaceStarted = "Runspace 已启动，开始监控备份任务"
         LogCopied = "日志已复制到剪贴板"
@@ -49,15 +49,15 @@ $script:textResources = @{
         DefaultConfigLoaded = "已加载内嵌默认配置文件，共 {0} 个游戏"
         OpenSaveLocation = "打开存档路径"
         BuiltInConfigDisplay = "内置配置 ({0} 个游戏)"
-        OpeningSaveLocation = "正在打开存档位置：{0} - {1}"
-        SaveLocationNotFound = "存档路径不存在，打开父目录：{0} - {1}"
-        SaveLocationNotExist = "存档路径不存在：{0} - {1}"
-        DirectoryCreated = "目录已创建：{0} - {1}"
-        FailedToCreateDirectory = "创建目录失败：{0} - {1}"
+        OpeningSaveLocation = "正在打开存档位置: {0} - {1}"
+        SaveLocationNotFound = "存档路径不存在，打开父目录: {0} - {1}"
+        SaveLocationNotExist = "存档路径不存在: {0} - {1}"
+        DirectoryCreated = "目录已创建: {0} - {1}"
+        FailedToCreateDirectory = "创建目录失败: {0} - {1}"
         # 运行日志使用
-        ERROR_GitMissing = "错误：缺少 git.exe 组件"
+        ERROR_GitMissing = "错误: 缺少 git.exe 组件"
         ERROR_GitDownload = "请从 https://git-scm.com/install/windows 下载"
-        ERROR_ConfigNotFound = "错误：选定的配置文件不存在"
+        ERROR_ConfigNotFound = "错误: 选定的配置文件不存在"
         ERROR_ConfigInvalid = "配置文件格式错误"
         ERROR_ConfigMissingProperty = "配置文件缺少必需字段"
         ERROR_ConfigNotArray = "配置文件必须是 JSON 数组"
@@ -94,7 +94,7 @@ $script:textResources = @{
         SUCCESS_FinalCommit = "最终 Git 提交完成"
         SUCCESS_BackupComplete = "备份完成"
         SUCCESS_GitInitialized = "Git 仓库已初始化并配置"
-        INFO_SystemInfo = "系统版本：[ {0} ]  PowerShell 版本：[ {1} ]"
+        INFO_SystemInfo = "系统版本: [ {0} ]  PowerShell 版本: [ {1} ]"
     }
     'en-US' = @{
         # 界面元素使用
@@ -198,11 +198,11 @@ $script:defaultJsonConfigs = @{
     "save": "%USERPROFILE%\\Documents\\Prototype"
   },
   {
-    "name": "尼尔：机械纪元",
+    "name": "尼尔: 机械纪元",
     "save": "%USERPROFILE%\\Documents\\My Games\\NieR_Automata"
   },
   {
-    "name": "真三国无双 8：帝国",
+    "name": "真三国无双 8: 帝国",
     "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\Dynasty Warriors 9 Empires"
   },
   {
@@ -237,11 +237,11 @@ $script:defaultJsonConfigs = @{
     "save": "%USERPROFILE%\\AppData\\Local\\Larian Studios\\Baldur's Gate 3"
   },
   {
-    "name": "三国志 8：重制版",
+    "name": "三国志 8: 重制版",
     "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\SAN8R"
   },
   {
-    "name": "光与影：33 号远征队",
+    "name": "光与影: 33 号远征队",
     "save": "%USERPROFILE%\\AppData\\Local\\Sandfall\\Saved"
   },
   {
@@ -257,7 +257,7 @@ $script:defaultJsonConfigs = @{
     "save": "%PROGRAMDATA%\\AlderGames\\BugBits"
   },
   {
-    "name": "棋弈无限：围棋",
+    "name": "棋弈无限: 围棋",
     "save": "%USERPROFILE%\\AppData\\LocalLow\\Studio Amateur\\JustGo"
   }
 ]
@@ -385,7 +385,7 @@ $script:ui = $script:textResources[$script:uiLang]
 
 
 
-# ———————————————————————————————— 2：界面绘制部分 ————————————————————————————————
+# ———————————————————————————————— 2: 界面绘制部分 ————————————————————————————————
 
 # 创建主窗口
 $form = [Form]::new()
@@ -419,24 +419,24 @@ $bottomPanel.Dock = "Bottom"
 $bottomPanel.Height = 40
 $bottomPanel.Padding = [Padding]::new(10, 10, 10, 10)
 
-# 将三个面板添加到主窗口（注意顺序：先添加 Fill，再添加 Top/Bottom）
+# 将三个面板添加到主窗口（注意顺序: 先添加 Fill，再添加 Top/Bottom）
 $form.Controls.Add($centerPanel)
 $form.Controls.Add($topPanel)
 $form.Controls.Add($bottomPanel)
 
-# 顶部：左侧配置文件标签和文本框
+# 顶部: 左侧配置文件标签和文本框
 $topInfoPanel = [Panel]::new()
 $topInfoPanel.Dock = "Fill"
 $topPanel.Controls.Add($topInfoPanel)
 
-# 顶部：配置文件标签
+# 顶部: 配置文件标签
 $configLabel = [Label]::new()
 $configLabel.Text = $script:ui.ConfigLabel
 $configLabel.Location = [Point]::new(10, 8)
 $configLabel.Size = [Size]::new(100, 40)
 $topInfoPanel.Controls.Add($configLabel)
 
-# 顶部：配置文件文本框
+# 顶部: 配置文件文本框
 $configTextBox = [TextBox]::new()
 $configTextBox.Anchor = "Left, Right"
 $configTextBox.Location = [Point]::new(120, 5)
@@ -444,13 +444,13 @@ $configTextBox.Width = $topInfoPanel.Width - 130
 $configTextBox.ReadOnly = $true
 $topInfoPanel.Controls.Add($configTextBox)
 
-# 顶部：右侧按钮组
+# 顶部: 右侧按钮组
 $topButtonGroupPanel = [Panel]::new()
 $topButtonGroupPanel.Dock = "Right"
 $topButtonGroupPanel.Width = 420
 $topPanel.Controls.Add($topButtonGroupPanel)
 
-# 顶部：选择配置按钮
+# 顶部: 选择配置按钮
 $browseButton = [Button]::new()
 $browseButton.Text = $script:ui.BrowseButton
 $browseButton.Location = [Point]::new(5, 0)
@@ -458,7 +458,7 @@ $browseButton.Size = [Size]::new(130, 36)
 $browseButton.BackColor = [Color]::LightGreen
 $topButtonGroupPanel.Controls.Add($browseButton)
 
-# 顶部：开始备份按钮
+# 顶部: 开始备份按钮
 $startButton = [Button]::new()
 $startButton.Text = $script:ui.StartButton
 $startButton.Location = [Point]::new(140, 0)
@@ -467,29 +467,29 @@ $startButton.BackColor = [Color]::LightBlue
 $startButton.Enabled = $false
 $topButtonGroupPanel.Controls.Add($startButton)
 
-# 顶部：复制日志按钮
+# 顶部: 复制日志按钮
 $copyLogButton = [Button]::new()
 $copyLogButton.Text = $script:ui.CopyLogButton
 $copyLogButton.Location = [Point]::new(275, 0)
 $copyLogButton.Size = [Size]::new(130, 36)
 $topButtonGroupPanel.Controls.Add($copyLogButton)
 
-# 中部：标签页容器
+# 中部: 标签页容器
 $tabControl = [TabControl]::new()
 $tabControl.Dock = "Fill"
 $tabControl.Padding = [Point]::new(20, 3)
 $centerPanel.Controls.Add($tabControl)
 
-# 中部：日志标签页
+# 中部: 日志标签页
 $logTabPage = [TabPage]::new()
 $logTabPage.Text = $script:ui.LogTabPage
 $tabControl.Controls.Add($logTabPage)
 
-# 中部：游戏标签页
+# 中部: 游戏标签页
 $gameListTabPage = [TabPage]::new()
 $gameListTabPage.Text = $script:ui.GameListTabPage
 
-# 中部：日志显示区域
+# 中部: 日志显示区域
 $logTextBox = [RichTextBox]::new()
 $logTextBox.ReadOnly = $true
 $logTextBox.ScrollBars = [RichTextBoxScrollBars]::Vertical
@@ -498,7 +498,7 @@ $logTextBox.BackColor = [Color]::White
 $logTextBox.Dock = "Fill"
 $logTabPage.Controls.Add($logTextBox)
 
-# 中部：游戏信息显示表格
+# 中部: 游戏信息显示表格
 $gameDataGridView = [DataGridView]::new()
 $gameDataGridView.ReadOnly = $true
 $gameDataGridView.AllowUserToAddRows = $false
@@ -538,7 +538,7 @@ $openLocationMenuItem.Text = $script:ui.OpenSaveLocation
 $contextMenu.Items.Add($openLocationMenuItem) | Out-Null
 $gameDataGridView.ContextMenuStrip = $contextMenu
 
-# 底部：进度条
+# 底部: 进度条
 $progressBar = [ProgressBar]::new()
 $progressBar.Dock = "Fill"
 $progressBar.Visible = $false
@@ -547,7 +547,7 @@ $bottomPanel.Controls.Add($progressBar)
 
 
 
-# ———————————————————————————————— 3：功能实现部分 ————————————————————————————————
+# ———————————————————————————————— 3: 功能实现部分 ————————————————————————————————
 
 # 定义变量
 $script:configPath = ""
@@ -641,6 +641,31 @@ function Load-DefaultConfig {
         $script:configPath = ""
         $script:configJsonArray = $script:defaultJsonConfigs[$script:uiLang] | ConvertFrom-Json
 
+        if ($script:configJsonArray -isnot [System.Array]) {
+            throw "配置内容必须是数组格式"
+        }
+        if ($script:configJsonArray.Count -eq 0) {
+            throw "配置内容的配置项个数为零"
+        }
+        for ($i = 0; $i -lt $script:configJsonArray.Count; $i++) {
+            $game = $script:configJsonArray[$i]
+            if ($game -isnot [PSCustomObject]) {
+                throw "第 $($i + 1) 个配置项不是 JSON 对象"
+            }
+            if (-not $game.PSObject.Properties.Match('name')) {
+                throw "第 $($i + 1) 个配置项缺少 'name' 属性"
+            }
+            if (-not $game.PSObject.Properties.Match('save')) {
+                throw "第 $($i + 1) 个配置项缺少 'save' 属性"
+            }
+            if ([string]::IsNullOrEmpty($game.name)) {
+                throw "第 $($i + 1) 个配置项的 'name' 属性为空"
+            }
+            if ([string]::IsNullOrEmpty($game.save)) {
+                throw "第 $($i + 1) 个配置项的 'save' 属性为空"
+            }
+        }
+
         $configTextBox.Text = $script:ui.BuiltInConfigDisplay -f $script:configJsonArray.Count
         Write-Log ($script:ui.DefaultConfigLoaded -f $script:configJsonArray.Count) "Success"
 
@@ -693,6 +718,31 @@ function Load-JsonConfigFile {
     try {
         $script:configPath = $ConfigPath
         $script:configJsonArray = Get-Content -Path $script:configPath -Raw -Encoding UTF8 | ConvertFrom-Json
+
+        if ($script:configJsonArray -isnot [System.Array]) {
+            throw "配置内容必须是数组格式"
+        }
+        if ($script:configJsonArray.Count -eq 0) {
+            throw "配置内容的配置项个数为零"
+        }
+        for ($i = 0; $i -lt $script:configJsonArray.Count; $i++) {
+            $game = $script:configJsonArray[$i]
+            if ($game -isnot [PSCustomObject]) {
+                throw "第 $($i + 1) 个配置项不是 JSON 对象"
+            }
+            if (-not $game.PSObject.Properties.Match('name')) {
+                throw "第 $($i + 1) 个配置项缺少 'name' 属性"
+            }
+            if (-not $game.PSObject.Properties.Match('save')) {
+                throw "第 $($i + 1) 个配置项缺少 'save' 属性"
+            }
+            if ([string]::IsNullOrEmpty($game.name)) {
+                throw "第 $($i + 1) 个配置项的 'name' 属性为空"
+            }
+            if ([string]::IsNullOrEmpty($game.save)) {
+                throw "第 $($i + 1) 个配置项的 'save' 属性为空"
+            }
+        }
 
         $configTextBox.Text = $script:configPath
         Write-Log ($script:ui.ConfigLoaded -f $script:configJsonArray.Count) "Success"
@@ -747,21 +797,21 @@ function Find-AndLoadJsonFile {
     # 查找当前目录下的所有 JSON 文件
     $jsonFiles = Get-ChildItem -Path $cd -Filter "*.json" -File -ErrorAction SilentlyContinue
 
-    # 情况 1：没有找到 JSON 文件 → 警告并使用默认配置
+    # 情况 1: 没有找到 JSON 文件 → 警告并使用默认配置
     if ($jsonFiles.Count -eq 0) {
         Write-Log $script:ui.ConfigNotFound "Warning"
         Load-DefaultConfig
         return
     }
 
-    # 情况 2：找到多个 JSON 文件 → 告警并使用默认配置
+    # 情况 2: 找到多个 JSON 文件 → 告警并使用默认配置
     if ($jsonFiles.Count -gt 1) {
         Write-Log ($script:ui.INFO_MultipleConfigFound -f $jsonFiles.Count) "Warning"
         Load-DefaultConfig
         return
     }
 
-    # 情况 3：找到唯一一个 JSON 文件 → 自动加载
+    # 情况 3: 找到唯一一个 JSON 文件 → 自动加载
     Write-Log ($script:ui.ConfigSelected + "$(Split-Path -Leaf $jsonFiles.FullName)") "Info"
     Load-JsonConfigFile -ConfigPath $jsonFiles.FullName
 }
@@ -779,7 +829,7 @@ function Show-LogPanel {
 
 # ———————————————————————————————— 事件处理和业务逻辑 ————————————————————————————————
 
-# 右键菜单打开前的事件：动态启用/禁用菜单项
+# 右键菜单打开前的事件: 动态启用/禁用菜单项
 $contextMenu.Add_Opening({
     try {
         # 检查是否有选中的行
@@ -808,7 +858,7 @@ $contextMenu.Add_Opening({
     }
 })
 
-# 右键菜单点击事件：打开存档位置
+# 右键菜单点击事件: 打开存档位置
 $openLocationMenuItem.Add_Click({
     try {
         # 获取选中的行
@@ -840,7 +890,7 @@ $openLocationMenuItem.Add_Click({
 
                 # 根据语言设置对话框文本
                 $messageText = if ($script:uiLang -eq 'zh-CN') {
-                    "存档路径不存在：`n$realPath`n`n是否要创建此目录？"
+                    "存档路径不存在: `n$realPath`n`n是否要创建此目录？"
                 } else {
                     "Archive path does not exist:`n$realPath`n`nDo you want to create this directory?"
                 }
@@ -977,7 +1027,7 @@ $startButton.Add_Click({
                         return $false
                     }
 
-                    # 验证必需字段：name
+                    # 验证必需字段: name
                     if (-not $game.PSObject.Properties['name']) {
                         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                         $logQueue.Add("[$timestamp] [Error] " + $UiResources.ERROR_ConfigMissingProperty + ": name (index: $i)")
@@ -990,7 +1040,7 @@ $startButton.Add_Click({
                         return $false
                     }
 
-                    # 验证必需字段：save
+                    # 验证必需字段: save
                     if (-not $game.PSObject.Properties['save']) {
                         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                         $logQueue.Add("[$timestamp] [Error] " + $UiResources.ERROR_ConfigMissingProperty + ": save (index: $i)")
@@ -1402,7 +1452,7 @@ $startButton.Add_Click({
                 $logLine = ""
                 while ($global:logQueue.TryTake([ref]$logLine)) {
                     # 直接显示完整日志行
-                    # 格式：[timestamp] [Level] Message
+                    # 格式: [timestamp] [Level] Message
                     $firstBracketEnd = $logLine.IndexOf(']', $logLine.IndexOf('['))
 
                     if ($firstBracketEnd -gt 0) {
@@ -1501,3 +1551,4 @@ $startButton.Add_Click({
 
 # 显示窗口
 [Application]::Run($form);
+
