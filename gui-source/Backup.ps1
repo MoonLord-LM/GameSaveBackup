@@ -32,7 +32,7 @@ $script:textResources = @{
         LogTabPage = "运行日志"
         GameListTabPage = "游戏列表"
         MachineInfo = "机器名：[ {0} ]  用户名：[ {1} ]"
-        ScanningConfig = "正在扫描配置文件..."
+        ScanningConfig = "正在检查配置文件..."
         ConfigLoaded = "成功加载配置文件，共 {0} 个游戏"
         GameListUpdated = "游戏列表已更新"
         ConfigNotFound = "警告：当前目录下未找到 [.json] 配置文件"
@@ -47,7 +47,7 @@ $script:textResources = @{
         FileFilter = "JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*"
         FileDialogTitle = "选择配置文件"
         DefaultConfigLoaded = "已加载内嵌的默认配置文件（{0} 个游戏）"
-        OpenSaveLocation = "打开存档位置"
+        OpenSaveLocation = "打开存档路径"
         BuiltInConfigDisplay = "内置配置 ({0} 个游戏)"
         OpeningSaveLocation = "正在打开存档位置：{0} - {1}"
         SaveLocationNotFound = "存档路径不存在，打开父目录：{0} - {1}"
@@ -103,7 +103,7 @@ $script:textResources = @{
         LogTabPage = "Run Log"
         GameListTabPage = "Game List"
         MachineInfo = "Machine: [ {0} ]  User: [ {1} ]"
-        ScanningConfig = "Scanning config file..."
+        ScanningConfig = "Checking config file..."
         ConfigLoaded = "Config file loaded successfully, {0} game(s) found"
         GameListUpdated = "Game list updated"
         ConfigNotFound = "Warning: No [.json] config file found in current directory"
@@ -118,7 +118,7 @@ $script:textResources = @{
         FileFilter = "JSON Files (*.json)|*.json|All Files (*.*)|*.*"
         FileDialogTitle = "Select Config File"
         DefaultConfigLoaded = "Embedded default config loaded ({0} games)"
-        OpenSaveLocation = "Open Save Location"
+        OpenSaveLocation = "Open Save Path"
         BuiltInConfigDisplay = "Built-in Config ({0} games)"
         OpeningSaveLocation = "Opening save location: {0} - {1}"
         SaveLocationNotFound = "Save path not found, opening parent directory: {0} - {1}"
@@ -441,22 +441,22 @@ $topInfoPanel.Controls.Add($configTextBox)
 # 顶部：右侧按钮组
 $topButtonGroupPanel = [Panel]::new()
 $topButtonGroupPanel.Dock = "Right"
-$topButtonGroupPanel.Width = 360
+$topButtonGroupPanel.Width = 420
 $topPanel.Controls.Add($topButtonGroupPanel)
 
 # 顶部：选择配置按钮
 $browseButton = [Button]::new()
 $browseButton.Text = $script:ui.BrowseButton
 $browseButton.Location = [Point]::new(5, 0)
-$browseButton.Size = [Size]::new(110, 36)
+$browseButton.Size = [Size]::new(130, 36)
 $browseButton.BackColor = [Color]::LightGreen
 $topButtonGroupPanel.Controls.Add($browseButton)
 
 # 顶部：开始备份按钮
 $startButton = [Button]::new()
 $startButton.Text = $script:ui.StartButton
-$startButton.Location = [Point]::new(125, 0)
-$startButton.Size = [Size]::new(110, 36)
+$startButton.Location = [Point]::new(140, 0)
+$startButton.Size = [Size]::new(130, 36)
 $startButton.BackColor = [Color]::LightBlue
 $startButton.Enabled = $false
 $topButtonGroupPanel.Controls.Add($startButton)
@@ -464,8 +464,8 @@ $topButtonGroupPanel.Controls.Add($startButton)
 # 顶部：复制日志按钮
 $copyLogButton = [Button]::new()
 $copyLogButton.Text = $script:ui.CopyLogButton
-$copyLogButton.Location = [Point]::new(245, 0)
-$copyLogButton.Size = [Size]::new(110, 36)
+$copyLogButton.Location = [Point]::new(275, 0)
+$copyLogButton.Size = [Size]::new(130, 36)
 $topButtonGroupPanel.Controls.Add($copyLogButton)
 
 # 中部：标签页容器
