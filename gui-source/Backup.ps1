@@ -381,6 +381,7 @@ $form.Size = New-Object System.Drawing.Size(1280, 720)
 $form.StartPosition = "CenterScreen"
 $form.Font = New-Object System.Drawing.Font("Microsoft YaHei", 10)
 $form.MinimumSize = New-Object System.Drawing.Size(1000, 600)
+
 # 启用双缓冲减少闪烁
 $prop = [System.Windows.Forms.Control].GetProperty("DoubleBuffered", [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Instance)
 [System.Reflection.BindingFlags]$flags = "NonPublic, Instance"
@@ -482,7 +483,87 @@ $logTextBox.BackColor = [System.Drawing.Color]::White
 $logTextBox.Dock = "Fill"
 $logTabPage.Controls.Add($logTextBox)
 
+# 游戏信息显示表格
+$gameDataGridView = New-Object System.Windows.Forms.DataGridView
+$gameDataGridView.ReadOnly = $true
+$gameDataGridView.AllowUserToAddRows = $false
+$gameDataGridView.AllowUserToDeleteRows = $false
+$gameDataGridView.ScrollBars = [System.Windows.Forms.ScrollBars]::Both
+$gameDataGridView.BorderStyle = [System.Windows.Forms.BorderStyle]::None
+$gameDataGridView.BackgroundColor = [System.Drawing.Color]::White
+$gameDataGridView.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::LightGray
+$gameDataGridView.ColumnHeadersHeight = 40
+$gameDataGridView.RowTemplate.Height = 30
+$gameDataGridView.Dock = "Fill"
+$gameDataGridView.ColumnCount = 3
+$gameDataGridView.Columns[0].Name = $script:ui.ColumnIndex
+$gameDataGridView.Columns[0].Width = 60
+$gameDataGridView.Columns[1].Name = $script:ui.ColumnGameName
+$gameDataGridView.Columns[1].Width = 320
+$gameDataGridView.Columns[2].Name = $script:ui.ColumnSavePath
+$gameDataGridView.Columns[2].Width = 780
+# 启用整行选择
+$gameDataGridView.SelectionMode = [System.Windows.Forms.DataGridViewSelectionMode]::FullRowSelect
+$gameDataGridView.MultiSelect = $false
+# 鼠标按下时自动选中整行（包括左键和右键）
+$gameDataGridView.Add_CellMouseDown({
+    param($sender, $e)
+    if ($e.RowIndex -ge 0) {
+        $gameDataGridView.ClearSelection()
+        $gameDataGridView.Rows[$e.RowIndex].Selected = $true
+        $gameDataGridView.CurrentCell = $gameDataGridView.Rows[$e.RowIndex].Cells[0]
+    }
+})
+$gameListTabPage.Controls.Add($gameDataGridView)
 
+# 创建右键菜单（打开存档位置）
+$contextMenu = New-Object System.Windows.Forms.ContextMenuStrip
+$openLocationMenuItem = New-Object System.Windows.Forms.ToolStripMenuItem
+$openLocationMenuItem.Text = $script:ui.OpenSaveLocation
+$contextMenu.Items.Add($openLocationMenuItem) | Out-Null
+$gameDataGridView.ContextMenuStrip = $contextMenu
+
+# 底部进度条
+$progressBar = New-Object System.Windows.Forms.ProgressBar
+$progressBar.Dock = "Fill"
+$progressBar.Visible = $false
+$progressBar.Style = [System.Windows.Forms.ProgressBarStyle]::Continuous
+$bottomPanel.Controls.Add($progressBar)
+
+
+
+# ———————————————————————————————— 全局变量定义 ————————————————————————————————
+
+# 全局变量
+$global:configPath = ""
+$global:isRunning = $false
+$global:configArray = $null
+$global:job = $null
+$global:timer = $null
+$global:asyncResult = $null
+$global:psInstance = $null
+$global:runspacePool = $null
+# 使用同步集合来存储实时日志
+$global:logQueue = [System.Collections.Concurrent.ConcurrentBag[string]]::new()
+
+# 获取机器名（与备份.bat 保持一致）
+try {
+    $hostnameOutput = & cmd /c hostname
+    if ($hostnameOutput) {
+        $script:machineName = $hostnameOutput.ToString().Trim()
+    } else {
+        $script:machineName = $env:COMPUTERNAME
+    }
+} catch {
+    $script:machineName = $env:COMPUTERNAME
+}
+
+# 获取用户名
+$script:userName = [Environment]::UserName
+
+
+
+# ———————————————————————————————— 辅助函数定义 ————————————————————————————————
 
 # 日志写入函数（依赖 $logTextBox 控件）
 function Write-Log {
@@ -529,172 +610,6 @@ try {
     Write-Host "Message: $($_.Exception.Message)" -ForegroundColor Red
     Write-Log ($script:ui.INFO_SystemInfo -f "Windows NT $([System.Environment]::OSVersion.Version.ToString())", "$($PSVersionTable.PSVersion.ToString()) $($PSVersionTable.PSEdition)") "Info"
 }
-
-# 游戏信息显示表格
-$gameDataGridView = New-Object System.Windows.Forms.DataGridView
-$gameDataGridView.ReadOnly = $true
-$gameDataGridView.AllowUserToAddRows = $false
-$gameDataGridView.AllowUserToDeleteRows = $false
-$gameDataGridView.ScrollBars = [System.Windows.Forms.ScrollBars]::Both
-$gameDataGridView.BorderStyle = [System.Windows.Forms.BorderStyle]::None
-$gameDataGridView.BackgroundColor = [System.Drawing.Color]::White
-$gameDataGridView.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::LightGray
-$gameDataGridView.ColumnHeadersHeight = 40
-$gameDataGridView.RowTemplate.Height = 30
-$gameDataGridView.Dock = "Fill"
-$gameDataGridView.ColumnCount = 3
-$gameDataGridView.Columns[0].Name = $script:ui.ColumnIndex
-$gameDataGridView.Columns[0].Width = 60
-$gameDataGridView.Columns[1].Name = $script:ui.ColumnGameName
-$gameDataGridView.Columns[1].Width = 320
-$gameDataGridView.Columns[2].Name = $script:ui.ColumnSavePath
-$gameDataGridView.Columns[2].Width = 780
-# 启用整行选择
-$gameDataGridView.SelectionMode = [System.Windows.Forms.DataGridViewSelectionMode]::FullRowSelect
-$gameDataGridView.MultiSelect = $false
-# 鼠标按下时自动选中整行（包括左键和右键）
-$gameDataGridView.Add_CellMouseDown({
-    param($sender, $e)
-    if ($e.RowIndex -ge 0) {
-        $gameDataGridView.ClearSelection()
-        $gameDataGridView.Rows[$e.RowIndex].Selected = $true
-        $gameDataGridView.CurrentCell = $gameDataGridView.Rows[$e.RowIndex].Cells[0]
-    }
-})
-$gameListTabPage.Controls.Add($gameDataGridView)
-
-# 创建右键菜单（打开存档位置）
-$contextMenu = New-Object System.Windows.Forms.ContextMenuStrip
-$openLocationMenuItem = New-Object System.Windows.Forms.ToolStripMenuItem
-$openLocationMenuItem.Text = $script:ui.OpenSaveLocation
-$contextMenu.Items.Add($openLocationMenuItem) | Out-Null
-$gameDataGridView.ContextMenuStrip = $contextMenu
-
-# 右键菜单打开前的事件：动态启用/禁用菜单项
-$contextMenu.Add_Opening({
-    try {
-        # 检查是否有选中的行
-        if ($gameDataGridView.SelectedRows.Count -eq 0) {
-            $openLocationMenuItem.Enabled = $false
-            return
-        }
-        
-        $selectedRow = $gameDataGridView.SelectedRows[0]
-        $savePath = $selectedRow.Cells[2].Value
-        
-        # 还原环境变量显示
-        $realPath = $savePath -replace '\$env:USERPROFILE', $env:USERPROFILE
-        $realPath = $realPath -replace '\$env:PROGRAMDATA', $env:PROGRAMDATA
-        
-        # 只有当路径存在时才启用菜单项
-        if (Test-Path $realPath) {
-            $openLocationMenuItem.Enabled = $true
-        } else {
-            $openLocationMenuItem.Enabled = $false
-        }
-    }
-    catch {
-        # 出现错误时禁用菜单项
-        $openLocationMenuItem.Enabled = $false
-    }
-})
-
-# 右键菜单点击事件：打开存档位置
-$openLocationMenuItem.Add_Click({
-    try {
-        # 获取选中的行
-        if ($gameDataGridView.SelectedRows.Count -eq 0) {
-            return
-        }
-        
-        $selectedRow = $gameDataGridView.SelectedRows[0]
-        $gameName = $selectedRow.Cells[1].Value
-        $savePath = $selectedRow.Cells[2].Value
-        
-        # 还原环境变量显示
-        $realPath = $savePath -replace '\$env:USERPROFILE', $env:USERPROFILE
-        $realPath = $realPath -replace '\$env:PROGRAMDATA', $env:PROGRAMDATA
-        
-        # 检查路径是否存在
-        if (Test-Path $realPath) {
-            # 打开文件夹
-            Start-Process "explorer.exe" -ArgumentList $realPath
-            Write-Log ($script:ui.OpeningSaveLocation -f $gameName, $realPath) "Info"
-        } else {
-            # 路径不存在，尝试打开父目录
-            $parentDir = Split-Path -Parent $realPath
-            if (Test-Path $parentDir) {
-                Start-Process "explorer.exe" -ArgumentList $parentDir
-                Write-Log ($script:ui.SaveLocationNotFound -f $gameName, $parentDir) "Warning"
-            } else {
-                Write-Log ($script:ui.SaveLocationNotExist -f $gameName, $realPath) "Error"
-                
-                # 根据语言设置对话框文本
-                $messageText = if ($script:uiLang -eq 'zh-CN') {
-                    "存档路径不存在：`n$realPath`n`n是否要创建此目录？"
-                } else {
-                    "Archive path does not exist:`n$realPath`n`nDo you want to create this directory?"
-                }
-                $captionText = if ($script:uiLang -eq 'zh-CN') { "提示" } else { "Confirm" }
-                
-                $result = [System.Windows.Forms.MessageBox]::Show(
-                    $messageText,
-                    $captionText,
-                    [System.Windows.Forms.MessageBoxButtons]::YesNo,
-                    [System.Windows.Forms.MessageBoxIcon]::Question
-                )
-                
-                if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
-                    try {
-                        New-Item -ItemType Directory -Path $realPath -Force | Out-Null
-                        Start-Process "explorer.exe" -ArgumentList $realPath
-                        Write-Log ($script:ui.DirectoryCreated -f $gameName, $realPath) "Success"
-                    }
-                    catch {
-                        Write-Log ($script:ui.FailedToCreateDirectory -f $gameName, $_) "Error"
-                    }
-                }
-            }
-        }
-    }
-    catch {
-        Write-Log "Failed to open save location: $_" "Error"
-    }
-})
-
-# 底部进度条
-$progressBar = New-Object System.Windows.Forms.ProgressBar
-$progressBar.Dock = "Fill"
-$progressBar.Visible = $false
-$progressBar.Style = [System.Windows.Forms.ProgressBarStyle]::Continuous
-$bottomPanel.Controls.Add($progressBar)
-
-# 全局变量
-$global:configPath = ""
-$global:isRunning = $false
-$global:configArray = $null
-$global:job = $null
-$global:timer = $null
-$global:asyncResult = $null
-$global:psInstance = $null
-$global:runspacePool = $null
-# 使用同步集合来存储实时日志
-$global:logQueue = [System.Collections.Concurrent.ConcurrentBag[string]]::new()
-
-# 获取机器名（与备份.bat 保持一致）
-try {
-    $hostnameOutput = & cmd /c hostname
-    if ($hostnameOutput) {
-        $script:machineName = $hostnameOutput.ToString().Trim()
-    } else {
-        $script:machineName = $env:COMPUTERNAME
-    }
-} catch {
-    $script:machineName = $env:COMPUTERNAME
-}
-
-# 获取用户名
-$script:userName = [Environment]::UserName
 
 # 输出机器名和用户名信息到日志
 Write-Log ($script:ui.MachineInfo -f $script:machineName, $script:userName) "Info"
@@ -909,6 +824,103 @@ function Find-AndLoadJsonFile {
 function Show-LogPanel {
     $tabControl.SelectedTab = $logTabPage
 }
+
+
+
+# ———————————————————————————————— 事件处理和业务逻辑 ————————————————————————————————
+
+# 右键菜单打开前的事件：动态启用/禁用菜单项
+$contextMenu.Add_Opening({
+    try {
+        # 检查是否有选中的行
+        if ($gameDataGridView.SelectedRows.Count -eq 0) {
+            $openLocationMenuItem.Enabled = $false
+            return
+        }
+        
+        $selectedRow = $gameDataGridView.SelectedRows[0]
+        $savePath = $selectedRow.Cells[2].Value
+        
+        # 还原环境变量显示
+        $realPath = $savePath -replace '\$env:USERPROFILE', $env:USERPROFILE
+        $realPath = $realPath -replace '\$env:PROGRAMDATA', $env:PROGRAMDATA
+        
+        # 只有当路径存在时才启用菜单项
+        if (Test-Path $realPath) {
+            $openLocationMenuItem.Enabled = $true
+        } else {
+            $openLocationMenuItem.Enabled = $false
+        }
+    }
+    catch {
+        # 出现错误时禁用菜单项
+        $openLocationMenuItem.Enabled = $false
+    }
+})
+
+# 右键菜单点击事件：打开存档位置
+$openLocationMenuItem.Add_Click({
+    try {
+        # 获取选中的行
+        if ($gameDataGridView.SelectedRows.Count -eq 0) {
+            return
+        }
+        
+        $selectedRow = $gameDataGridView.SelectedRows[0]
+        $gameName = $selectedRow.Cells[1].Value
+        $savePath = $selectedRow.Cells[2].Value
+        
+        # 还原环境变量显示
+        $realPath = $savePath -replace '\$env:USERPROFILE', $env:USERPROFILE
+        $realPath = $realPath -replace '\$env:PROGRAMDATA', $env:PROGRAMDATA
+        
+        # 检查路径是否存在
+        if (Test-Path $realPath) {
+            # 打开文件夹
+            Start-Process "explorer.exe" -ArgumentList $realPath
+            Write-Log ($script:ui.OpeningSaveLocation -f $gameName, $realPath) "Info"
+        } else {
+            # 路径不存在，尝试打开父目录
+            $parentDir = Split-Path -Parent $realPath
+            if (Test-Path $parentDir) {
+                Start-Process "explorer.exe" -ArgumentList $parentDir
+                Write-Log ($script:ui.SaveLocationNotFound -f $gameName, $parentDir) "Warning"
+            } else {
+                Write-Log ($script:ui.SaveLocationNotExist -f $gameName, $realPath) "Error"
+                
+                # 根据语言设置对话框文本
+                $messageText = if ($script:uiLang -eq 'zh-CN') {
+                    "存档路径不存在：`n$realPath`n`n是否要创建此目录？"
+                } else {
+                    "Archive path does not exist:`n$realPath`n`nDo you want to create this directory?"
+                }
+                $captionText = if ($script:uiLang -eq 'zh-CN') { "提示" } else { "Confirm" }
+                
+                $result = [System.Windows.Forms.MessageBox]::Show(
+                    $messageText,
+                    $captionText,
+                    [System.Windows.Forms.MessageBoxButtons]::YesNo,
+                    [System.Windows.Forms.MessageBoxIcon]::Question
+                )
+                
+                if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
+                    try {
+                        New-Item -ItemType Directory -Path $realPath -Force | Out-Null
+                        Start-Process "explorer.exe" -ArgumentList $realPath
+                        Write-Log ($script:ui.DirectoryCreated -f $gameName, $realPath) "Success"
+                    }
+                    catch {
+                        Write-Log ($script:ui.FailedToCreateDirectory -f $gameName, $_) "Error"
+                    }
+                }
+            }
+        }
+    }
+    catch {
+        Write-Log "Failed to open save location: $_" "Error"
+    }
+})
+
 
 # 浏览按钮点击事件
 $browseButton.Add_Click({
