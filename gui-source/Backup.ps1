@@ -1235,7 +1235,7 @@ $startButton.Add_Click({
         $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_BackupComplete)
     })
 
-    $psInstance.AddParameter('configPath', $global:configPath)
+    $psInstance.AddParameter('configPath', $script:configPath)
     $psInstance.AddParameter('machineName', $script:machineName)
     $psInstance.AddParameter('userName', $script:userName)
     $psInstance.AddParameter('uiResources', $script:ui)
