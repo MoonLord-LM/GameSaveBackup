@@ -55,16 +55,10 @@ $script:textResources = @{
         DirectoryCreated = "目录已创建: {0} - {1}"
         FailedToCreateDirectory = "创建目录失败: {0} - {1}"
         # 运行日志使用
-        ERROR_GitMissing = "错误: 缺少 git.exe 组件"
+        ERROR_GitMissing = "错误：缺少 git.exe 组件"
         ERROR_GitDownload = "请从 https://git-scm.com/install/windows 下载"
-        ERROR_ConfigNotFound = "错误: 选定的配置文件不存在"
-        ERROR_ConfigInvalid = "配置文件格式错误"
-        ERROR_ConfigMissingProperty = "配置文件缺少必需字段"
-        ERROR_ConfigNotArray = "配置文件必须是 JSON 数组"
-        ERROR_ConfigEmptyArray = "配置文件数组为空"
-        ERROR_ConfigInvalidObject = "配置项不是有效对象"
-        ERROR_ConfigEmptyName = "配置项名称为空"
-        ERROR_ConfigEmptyPath = "配置项路径为空"
+        ERROR_ConfigNotFound = "错误：选定的配置文件不存在"
+        ERROR_ConfigReadFailed = "读取配置文件失败"
         INFO_UsingConfig = "使用配置文件"
         INFO_GitCommand = "Git 命令"
         INFO_RobocopyCommand = "Robocopy 命令"
@@ -77,7 +71,6 @@ $script:textResources = @{
         INFO_CurrentWorkingDir = "当前工作目录"
         INFO_EnteringBackupDir = "进入备份目录"
         INFO_BackupRootDir = "备份根目录"
-        ERROR_ConfigReadFailed = "读取配置文件失败"
         ERROR_ConfigNotArrayFormat = "配置内容必须是数组格式"
         ERROR_ConfigEmptyCount = "配置内容的配置项个数为零"
         ERROR_ConfigItemNotObject = "第 {0} 个配置项不是 JSON 对象"
@@ -139,13 +132,7 @@ $script:textResources = @{
         ERROR_GitMissing = "Error: git.exe component is missing"
         ERROR_GitDownload = "Please download from https://git-scm.com/install/windows"
         ERROR_ConfigNotFound = "Error: Selected config file does not exist"
-        ERROR_ConfigInvalid = "Invalid configuration file format"
-        ERROR_ConfigMissingProperty = "Configuration missing required field"
-        ERROR_ConfigNotArray = "Configuration must be a JSON array"
-        ERROR_ConfigEmptyArray = "Configuration array is empty"
-        ERROR_ConfigInvalidObject = "Configuration entry is not a valid object"
-        ERROR_ConfigEmptyName = "Configuration entry name is empty"
-        ERROR_ConfigEmptyPath = "Configuration entry path is empty"
+        ERROR_ConfigReadFailed = "Failed to read config file"
         INFO_UsingConfig = "Using config file"
         INFO_GitCommand = "Git command"
         INFO_RobocopyCommand = "Robocopy command"
@@ -158,7 +145,6 @@ $script:textResources = @{
         INFO_CurrentWorkingDir = "Current working directory"
         INFO_EnteringBackupDir = "Entering backup directory"
         INFO_BackupRootDir = "Backup root directory"
-        ERROR_ConfigReadFailed = "Failed to read config file"
         ERROR_ConfigNotArrayFormat = "Config content must be an array format"
         ERROR_ConfigEmptyCount = "Config contains zero items"
         ERROR_ConfigItemNotObject = "Item {0} is not a JSON object"
@@ -568,13 +554,9 @@ $bottomPanel.Controls.Add($progressBar)
 # 定义变量
 $script:configJsonArray = $null
 $script:job = $null
-$script:timer = $null
 $script:asyncResult = $null
 $script:psInstance = $null
 $script:runspacePool = $null
-
-# 使用同步集合来存储实时日志，可跨线程共享
-$script:logQueue = [System.Collections.Concurrent.ConcurrentBag[string]]::new()
 
 
 
@@ -627,6 +609,34 @@ function Write-Log {
         Write-Host "[ Error ] Message: $($_.Exception.Message)" -ForegroundColor Red
         Write-Host ""
     }
+}
+
+# 运行日志的异步添加，使用队列和定时任务，实现固定频率刷新界面
+$script:asyncLogQueue = [System.Collections.Concurrent.ConcurrentBag[hashtable]]::new()
+$script:asyncLogTimer = [Timer]::new()
+$script:asyncLogTimer.Add_Tick({
+    $logs = @()
+    while ($script:asyncLogQueue.Count -gt 0) {
+        $log = $null
+        if ($script:asyncLogQueue.TryTake([ref]$log)) {
+            $logs += $log
+        }
+    }
+    
+    if ($logs.Count -gt 0) {
+        foreach ($log in $logs) {
+            Write-Log -Message $log.Message -Level $log.Level
+        }
+    }
+})
+$script:asyncLogTimer.Interval = 200
+$script:asyncLogTimer.Start()
+function Write-Log-Async {
+    param(
+        [string]$Message = '',
+        [string]$Level = 'Info'
+    )
+    $script:asyncLogQueue.Add(@{ Message = $Message; Level = $Level })
 }
 
 # 展示系统版本和 PowerShell 版本信息
@@ -874,157 +884,74 @@ $startButton.Add_Click({
 
     # 添加要执行的脚本和参数
     $psInstance.AddScript({
-        param($configPath, $machineName, $userName, $logQueue, $uiResources)
-
-        function Test-GameConfig {
-            param(
-                [object]$Config,
-                [System.Collections.Concurrent.ConcurrentBag[string]]$LogQueue,
-                [hashtable]$UiResources
-            )
-
-            try {
-                # 验证是否为数组
-                if (-not ($Config -is [Array])) {
-                    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logQueue.Add("[$timestamp] [Error] " + $UiResources.ERROR_ConfigNotArray)
-                    return $false
-                }
-
-                if ($Config.Count -eq 0) {
-                    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logQueue.Add("[$timestamp] [Error] " + $UiResources.ERROR_ConfigEmptyArray)
-                    return $false
-                }
-
-                # 验证每个游戏配置
-                for ($i = 0; $i -lt $Config.Count; $i++) {
-                    $game = $Config[$i]
-
-                    # 验证是否为对象
-                    if (-not ($game -is [PSCustomObject])) {
-                        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                        $logQueue.Add("[$timestamp] [Error] " + $UiResources.ERROR_ConfigInvalidObject + " (index: $i)")
-                        return $false
-                    }
-
-                    # 验证必需字段: name
-                    if (-not $game.PSObject.Properties['name']) {
-                        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                        $logQueue.Add("[$timestamp] [Error] " + $UiResources.ERROR_ConfigMissingProperty + ": name (index: $i)")
-                        return $false
-                    }
-
-                    if ([string]::IsNullOrWhiteSpace($game.name)) {
-                        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                        $logQueue.Add("[$timestamp] [Error] " + $UiResources.ERROR_ConfigEmptyName + " (index: $i)")
-                        return $false
-                    }
-
-                    # 验证必需字段: save
-                    if (-not $game.PSObject.Properties['save']) {
-                        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                        $logQueue.Add("[$timestamp] [Error] " + $UiResources.ERROR_ConfigMissingProperty + ": save (index: $i)")
-                        return $false
-                    }
-
-                    if ([string]::IsNullOrWhiteSpace($game.save)) {
-                        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                        $logQueue.Add("[$timestamp] [Error] " + $UiResources.ERROR_ConfigEmptyPath + " (index: $i)")
-                        return $false
-                    }
-                }
-
-                return $true
-            }
-            catch {
-                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [Error] " + $UiResources.ERROR_ConfigInvalid + ": $_")
-                return $false
-            }
-        }
+        param($configPath, $machineName, $userName, $uiResources)
 
         function Invoke-GitCommand {
             param(
                 [string]$Arguments,
                 [string]$ErrorMessage,
-                [System.Collections.Concurrent.ConcurrentBag[string]]$LogQueue,
                 [hashtable]$UiResources
             )
-
+        
             try {
-                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [Debug] " + $UiResources.INFO_GitCommand + ": git $Arguments")
-
+                Write-Log-Async ($UiResources.INFO_GitCommand + ": git $Arguments") 'Debug'
+        
                 # 执行 Git 命令并捕获所有输出
                 $output = & git $Arguments.Split(' ') 2>&1 | Out-String
                 $exitCode = $LASTEXITCODE
-
+        
                 # 记录 Git 输出
                 if ($output -and $output.Trim()) {
-                    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logQueue.Add("[$timestamp] [Debug] " + $UiResources.INFO_GitOutput + ":`r`n" + $output)
+                    Write-Log-Async ($UiResources.INFO_GitOutput + ":[r`n" + $output) 'Debug'
                 }
-
+        
                 if ($exitCode -ne 0) {
                     throw "$ErrorMessage (Exit Code: $exitCode): $output"
                 }
-
+        
                 return $output
             }
             catch {
-                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [Error] $_")
+                Write-Log-Async $_ 'Error'
                 throw
             }
         }
 
         # 获取脚本所在目录作为备份根目录
         $cd = [System.IO.Directory]::GetCurrentDirectory()
-        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_CurrentWorkingDir + ": " + $cd)
-        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_BackupRootDir + ": " + $cd)
+        Write-Log-Async ($uiResources.INFO_CurrentWorkingDir + ": " + $cd) 'Info'
+        Write-Log-Async ($uiResources.INFO_BackupRootDir + ": " + $cd) 'Info'
 
         # 检查 Git
         $gitExe = Get-Command git -ErrorAction SilentlyContinue
         if (-not $gitExe) {
-            $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $logQueue.Add("[$timestamp] [Error] " + $uiResources.ERROR_GitMissing)
-            $logQueue.Add("[$timestamp] [Error] " + $uiResources.ERROR_GitDownload)
+            Write-Log-Async $uiResources.ERROR_GitMissing 'Error'
+            Write-Log-Async $uiResources.ERROR_GitDownload 'Error'
             return
         }
 
         # 验证选定的配置文件是否存在
         if (-not (Test-Path $configPath)) {
-            $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $logQueue.Add("[$timestamp] [Error] " + $uiResources.ERROR_ConfigNotFound + ": " + $configPath)
+            Write-Log-Async ($uiResources.ERROR_ConfigNotFound + ": " + $configPath) 'Error'
             return
         }
 
-        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_UsingConfig + ": " + (Split-Path -Leaf $configPath))
+        Write-Log-Async ($uiResources.INFO_UsingConfig + ": " + (Split-Path -Leaf $configPath)) 'Info'
 
-        # 读取配置文件并验证
+        # 读取配置文件
         try {
             $configContent = Get-Content -Path $configPath -Raw -Encoding UTF8
             $configArray = $configContent | ConvertFrom-Json
-
-            # 验证配置文件格式
-            if (-not (Test-GameConfig -Config $configArray -LogQueue $logQueue -UiResources $uiResources)) {
-                return
-            }
-
             $totalGames = $configArray.Count
+            
+            Write-Log-Async ($uiResources.INFO_GamesFound + ": " + $totalGames) 'Info'
         }
         catch {
-            $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $logQueue.Add("[$timestamp] [ERROR] " + $uiResources.ERROR_ConfigReadFailed + ": " + $_)
+            Write-Log-Async ($uiResources.ERROR_ConfigReadFailed + ": " + $_) 'Error'
             return
         }
 
-        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_GamesFound + ": " + $totalGames)
+        Write-Log-Async ($uiResources.INFO_GamesFound + ": " + $totalGames) 'Info'
 
         # 初始化 Git
         if (-not (Test-Path ".git")) {
@@ -1037,12 +964,10 @@ $startButton.Add_Click({
                 $null = & git config --local i18n.logoutputencoding utf-8 2>&1 | Out-String
                 $null = & git config --local i18n.commitencoding utf-8 2>&1 | Out-String
 
-                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_GitInitialized)
+                Write-Log-Async $uiResources.SUCCESS_GitInitialized 'Success'
             }
             catch {
-                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [Error] Failed to initialize Git repository: $_")
+                Write-Log-Async ("Failed to initialize Git repository: $_") 'Error'
             }
         }
 
@@ -1054,8 +979,7 @@ $startButton.Add_Click({
             $ignore = $game.ignore
 
             # 显示当前处理的遊戲
-            $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $logQueue.Add("[$timestamp] [Progress] " + $uiResources.PROGRESS_Processing + ": " + $gameIndex + " / " + $totalGames + " - '" + $name + "' @ '" + $save + "'")
+            Write-Log-Async ($uiResources.PROGRESS_Processing + ": " + $gameIndex + " / " + $totalGames + " - '" + $name + "' @ '" + $save + "'") 'Progress'
 
             # 替换环境变量
             $saveExpanded = $save -replace "%USERPROFILE%", $env:USERPROFILE
@@ -1188,12 +1112,12 @@ $startButton.Add_Click({
                 $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyReturn + ":`r`n" + $result)
 
                 try {
-                    $null = Invoke-GitCommand -Arguments "add ." -ErrorMessage "Git add failed" -LogQueue $logQueue -UiResources $uiResources
+                    $null = Invoke-GitCommand -Arguments "add ." -ErrorMessage "Git add failed"$logQueue -UiResources $uiResources
 
                     $diffResult = & git diff --cached --quiet 2>&1
                     if ($LASTEXITCODE -ne 0) {
                         $commitMsg = "Update - " + $name + " on " + $machineName + " by " + $userName
-                        $null = Invoke-GitCommand -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed" -LogQueue $logQueue -UiResources $uiResources
+                        $null = Invoke-GitCommand -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed"$logQueue -UiResources $uiResources
                         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                         $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_GitCommit)
                     }
@@ -1250,12 +1174,12 @@ $startButton.Add_Click({
                 $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyReturn + ":`r`n" + $result)
 
                 try {
-                    $null = Invoke-GitCommand -Arguments "add ." -ErrorMessage "Git add failed" -LogQueue $logQueue -UiResources $uiResources
+                    $null = Invoke-GitCommand -Arguments "add ." -ErrorMessage "Git add failed"$logQueue -UiResources $uiResources
 
                     $diffResult = & git diff --cached --quiet 2>&1
                     if ($LASTEXITCODE -ne 0) {
                         $commitMsg = "Update - " + $name + " on " + $machineName + " by " + $userName
-                        $null = Invoke-GitCommand -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed" -LogQueue $logQueue -UiResources $uiResources
+                        $null = Invoke-GitCommand -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed"$logQueue -UiResources $uiResources
                         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                         $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_GitCommit)
                     }
@@ -1272,20 +1196,19 @@ $startButton.Add_Click({
 
             # 恢复工作目录到配置目录（重要！避免目录层级越来越深）
             Pop-Location
-
-            # 游戏处理完成后，发送进度更新信号
-            $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $logQueue.Add("[$timestamp] PROGRESS_SIGNAL: $gameIndex|$totalGames")
+            
+            # 更新进度条
+            $progressBar.Value = [int](($gameIndex / $totalGames) * 100)
         }
 
         # 最终 Git 提交
         try {
-            $null = Invoke-GitCommand -Arguments "add ." -ErrorMessage "Final Git add failed" -LogQueue $logQueue -UiResources $uiResources
+            $null = Invoke-GitCommand -Arguments "add ." -ErrorMessage "Final Git add failed"$logQueue -UiResources $uiResources
 
             $diffResult = & git diff --cached --quiet 2>&1
             if ($LASTEXITCODE -ne 0) {
                 $commitMsg = "Update - on " + $machineName + " by " + $userName
-                $null = Invoke-GitCommand -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Final Git commit failed" -LogQueue $logQueue -UiResources $uiResources
+                $null = Invoke-GitCommand -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Final Git commit failed"$logQueue -UiResources $uiResources
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_FinalCommit)
             }
@@ -1315,117 +1238,12 @@ $startButton.Add_Click({
     $psInstance.AddParameter('configPath', $global:configPath)
     $psInstance.AddParameter('machineName', $script:machineName)
     $psInstance.AddParameter('userName', $script:userName)
-    $psInstance.AddParameter('logQueue', $global:logQueue)
     $psInstance.AddParameter('uiResources', $script:ui)
 
     # 异步执行
-    $global:asyncResult = $psInstance.BeginInvoke()
-    $global:psInstance = $psInstance
-    $global:runspacePool = $runspacePool
-
-    # 创建并启动 Timer
-    $global:timer = [Timer]::new()
-    $global:timer.Interval = 100  # 缩短轮询间隔到 100ms，更快响应
-    $global:timer.Add_Tick({
-        # 从同步集合中读取并显示日志
-        try {
-            if ($null -ne $global:logQueue -and -not $global:logQueue.IsEmpty) {
-                $logLine = ""
-                while ($global:logQueue.TryTake([ref]$logLine)) {
-                    # 直接显示完整日志行
-                    # 格式: [timestamp] [Level] Message
-                    $firstBracketEnd = $logLine.IndexOf(']', $logLine.IndexOf('['))
-
-                    if ($firstBracketEnd -gt 0) {
-                        # 提取完整消息 (包含所有原始内容)
-                        $message = $logLine.Substring($firstBracketEnd + 2).Trim()
-
-                        # 处理进度信号
-                        if ($message.StartsWith("PROGRESS_SIGNAL:")) {
-                            $signalValue = $message.Substring(16).Trim()
-                            $signalParts = $signalValue -split '\|'
-                            if ($signalParts.Count -eq 2) {
-                                $current = [int]$signalParts[0]
-                                $total = [int]$signalParts[1]
-                                $targetPercentage = [int](($current / $total) * 100)
-                                $progressBar.Value = $targetPercentage
-                            }
-                        }
-                        # 显示其他完整日志（带颜色）
-                        elseif (-not [string]::IsNullOrWhiteSpace($message)) {
-                            # 默认级别为 Info
-                            $level = "Info"
-
-                            # 检查是否有级别标记 [Level]
-                            if ($message -match "^\[(Error|Warning|Success|Info|Progress|Debug)\] ") {
-                                $level = $matches[1]
-                                # 移除级别标记，只保留实际消息
-                                $message = $message -replace "^\[(Error|Warning|Success|Info|Progress|Debug)\] ", ""
-                            }
-
-                            Write-Log $message $level
-                        }
-                    }
-                }
-            }
-        }
-        catch {
-            # 忽略读取错误
-        }
-
-        # 检查是否完成
-        if ($global:asyncResult.IsCompleted) {
-            $global:timer.Stop()
-
-            # 清空剩余的日志
-            try {
-                if ($null -ne $global:logQueue -and -not $global:logQueue.IsEmpty) {
-                    $logLine = ""
-                    while ($global:logQueue.TryTake([ref]$logLine)) {
-                        # 提取完整日志内容
-                        $firstBracketEnd = $logLine.IndexOf(']', $logLine.IndexOf('['))
-
-                        if ($firstBracketEnd -gt 0) {
-                            $message = $logLine.Substring($firstBracketEnd + 2).Trim()
-                            # 跳过进度信号，显示其他日志（带颜色）
-                            if (-not $message.StartsWith("PROGRESS_SIGNAL:") -and -not [string]::IsNullOrWhiteSpace($message)) {
-                                # 默认级别为 Info
-                                $level = "Info"
-
-                                # 检查是否有级别标记 [Level]（不区分大小写）
-                                if ($message -match "(?i)^\[(Error|Warning|Success|Info|Progress|Debug)\] ") {
-                                    $level = $matches[1]
-                                    # 移除级别标记，只保留实际消息
-                                    $message = $message -replace "(?i)^\[(Error|Warning|Success|Info|Progress|Debug)\] ", ""
-                                }
-
-                                Write-Log $message $level
-                            }
-                        }
-                    }
-                }
-            }
-            catch {}
-
-            $progressBar.Value = 100
-            $progressBar.Visible = $false
-            $startButton.Enabled = $true
-            $browseButton.Enabled = $true
-            $global:isRunning = $false
-
-            # 清理资源
-            if ($global:timer) { $global:timer.Stop(); $global:timer.Dispose() }
-            if ($global:asyncResult) { $global:asyncResult.AsyncWaitHandle.Close() }
-            if ($global:job) { Stop-Job -Job $global:job; Remove-Job -Job $global:job -Force }
-            if ($global:psInstance) { $global:psInstance.Dispose() }
-            if ($global:runspacePool) {
-                $global:runspacePool.Close()
-                $global:runspacePool.Dispose()
-            }
-            [GC]::Collect()
-        }
-    })
-    $global:timer.Start()
+    $script:asyncResult = $psInstance.BeginInvoke()
+    $script:psInstance = $psInstance
+    $script:runspacePool = $runspacePool
 
     Write-Log $script:ui.RunspaceStarted "Progress"
 })
@@ -1537,3 +1355,4 @@ $openLocationMenuItem.Add_Click({
 # ———————————————————————————————— 5: 程序启动 ————————————————————————————————
 
 [Application]::Run($form);
+
