@@ -892,23 +892,23 @@ $startButton.Add_Click({
                 [string]$ErrorMessage,
                 [hashtable]$UiResources
             )
-        
+
             try {
                 Write-Log-Async ($UiResources.INFO_GitCommand + ": git $Arguments") 'Debug'
-        
+
                 # 执行 Git 命令并捕获所有输出
                 $output = & git $Arguments.Split(' ') 2>&1 | Out-String
                 $exitCode = $LASTEXITCODE
-        
+
                 # 记录 Git 输出
                 if ($output -and $output.Trim()) {
                     Write-Log-Async ($UiResources.INFO_GitOutput + ":[r`n" + $output) 'Debug'
                 }
-        
+
                 if ($exitCode -ne 0) {
                     throw "$ErrorMessage (Exit Code: $exitCode): $output"
                 }
-        
+
                 return $output
             }
             catch {
@@ -943,7 +943,7 @@ $startButton.Add_Click({
             $configContent = Get-Content -Path $configPath -Raw -Encoding UTF8
             $configArray = $configContent | ConvertFrom-Json
             $totalGames = $configArray.Count
-            
+    
             Write-Log-Async ($uiResources.INFO_GamesFound + ": " + $totalGames) 'Info'
         }
         catch {
@@ -1196,7 +1196,7 @@ $startButton.Add_Click({
 
             # 恢复工作目录到配置目录（重要！避免目录层级越来越深）
             Pop-Location
-            
+    
             # 更新进度条
             $progressBar.Value = [int](($gameIndex / $totalGames) * 100)
         }
