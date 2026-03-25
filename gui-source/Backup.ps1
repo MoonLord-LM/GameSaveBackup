@@ -884,31 +884,26 @@ $startButton.Add_Click({
 
     # 添加要执行的脚本和参数
     $psInstance.AddScript({
-        param($configPath, $machineName, $userName, $uiResources)
+        param($configJsonArray, $machineName, $userName, $uiResources, $backupRootDir)
 
         function Invoke-GitCommand {
             param(
                 [string]$Arguments,
-                [string]$ErrorMessage,
-                [hashtable]$UiResources
+                [string]$ErrorMessage
             )
 
             try {
-                Write-Log-Async ($UiResources.INFO_GitCommand + ": git $Arguments") 'Debug'
+                Write-Log-Async ($uiResources.INFO_GitCommand + ": git $Arguments") 'Debug'
 
-                # 执行 Git 命令并捕获所有输出
                 $output = & git $Arguments.Split(' ') 2>&1 | Out-String
                 $exitCode = $LASTEXITCODE
-
-                # 记录 Git 输出
-                if ($output -and $output.Trim()) {
-                    Write-Log-Async ($UiResources.INFO_GitOutput + ":[r`n" + $output) 'Debug'
-                }
 
                 if ($exitCode -ne 0) {
                     throw "$ErrorMessage (Exit Code: $exitCode): $output"
                 }
-
+                if ($output -and $output.Trim()) {
+                    Write-Log-Async ($uiResources.INFO_GitOutput + ":`r`n" + $output) 'Debug'
+                }
                 return $output
             }
             catch {
@@ -930,27 +925,9 @@ $startButton.Add_Click({
             return
         }
 
-        # 验证选定的配置文件是否存在
-        if (-not (Test-Path $configPath)) {
-            Write-Log-Async ($uiResources.ERROR_ConfigNotFound + ": " + $configPath) 'Error'
-            return
-        }
-
-        Write-Log-Async ($uiResources.INFO_UsingConfig + ": " + (Split-Path -Leaf $configPath)) 'Info'
-
-        # 读取配置文件
-        try {
-            $configContent = Get-Content -Path $configPath -Raw -Encoding UTF8
-            $configArray = $configContent | ConvertFrom-Json
-            $totalGames = $configArray.Count
-    
-            Write-Log-Async ($uiResources.INFO_GamesFound + ": " + $totalGames) 'Info'
-        }
-        catch {
-            Write-Log-Async ($uiResources.ERROR_ConfigReadFailed + ": " + $_) 'Error'
-            return
-        }
-
+        # 使用已加载的配置数组
+        $configArray = $configJsonArray
+        $totalGames = $configArray.Count
         Write-Log-Async ($uiResources.INFO_GamesFound + ": " + $totalGames) 'Info'
 
         # 初始化 Git
@@ -996,8 +973,7 @@ $startButton.Add_Click({
                 foreach ($item in $ignore) {
                     $itemExpanded = $item -replace "%USERPROFILE%", $env:USERPROFILE
                     $itemExpanded = $itemExpanded -replace "%PROGRAMDATA%", $env:PROGRAMDATA
-                    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_IgnoreItem + ": '" + $itemExpanded + "'")
+                    Write-Log-Async ($uiResources.INFO_IgnoreItem + ": '" + $itemExpanded + "'") 'Debug'
                     $ignoreArgs += "/XF"
                     $ignoreArgs += $itemExpanded
                     $ignoreArgs += "/XD"
@@ -1005,8 +981,8 @@ $startButton.Add_Click({
                 }
             }
 
-            # 构建备份目录（在脚本所在目录下）
-            $backupDir = Join-Path $scriptDir $name
+            # 构建备份目录（在备份根目录下）
+            $backupDir = Join-Path $backupRootDir $name
 
             # 获取本地文件修改时间
             $maxLocalTime = $null
@@ -1038,8 +1014,7 @@ $startButton.Add_Click({
                 catch {}
             }
 
-            $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $logQueue.Add("[$timestamp] [INFO] " + ($uiResources.INFO_FileTimeComparison -f $maxLocalTimeString, $maxBackupTimeString))
+            Write-Log-Async ($uiResources.INFO_FileTimeComparison -f $maxLocalTimeString, $maxBackupTimeString) 'Info'
 
             # 创建备份目录
             if (-not (Test-Path $backupDir)) {
@@ -1049,43 +1024,36 @@ $startButton.Add_Click({
             # 进入备份目录
             Push-Location $backupDir
 
-            $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_EnteringBackupDir + ": " + (Get-Location).Path)
+            Write-Log-Async ($uiResources.INFO_EnteringBackupDir + ": " + (Get-Location).Path) 'Info'
 
             # 判断备份策略
             if ($null -eq $maxLocalTime) {
                 if ($null -eq $maxBackupTime) {
-                    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logQueue.Add("[$timestamp] [Warning] " + $uiResources.WARNING_BothMissing)
+                    Write-Log-Async $uiResources.WARNING_BothMissing 'Warning'
                 }
                 else {
-                    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logQueue.Add("[$timestamp] [Warning] " + $uiResources.WARNING_LocalMissing)
+                    Write-Log-Async $uiResources.WARNING_LocalMissing 'Warning'
                     $sh = New-Object -ComObject Shell.Application
                     $sh.Namespace(10).MoveHere($saveExpanded)
 
-                    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                     $robocopyCommand = "robocopy . `"$saveExpanded`" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
-                    $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyCommand + ": $robocopyCommand")
+                    Write-Log-Async ($uiResources.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
 
                     $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
                     $robocopyExitCode = $LASTEXITCODE
 
                     # 记录 Robocopy 状态（包含返回码）
-                    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                     if ($robocopyExitCode -ge 8) {
-                        $logQueue.Add("[$timestamp] [Debug] " + ($uiResources.INFO_RobocopyFailed -f $robocopyExitCode))
+                        Write-Log-Async ($uiResources.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
                     } else {
-                        $logQueue.Add("[$timestamp] [Debug] " + ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode))
+                        Write-Log-Async ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
                     }
 
-                    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyReturn + ":`r`n" + $result)
+                    Write-Log-Async ($uiResources.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
                 }
             }
             elseif ($null -eq $maxBackupTime) {
-                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_BackupMissing)
+                Write-Log-Async $uiResources.INFO_BackupMissing 'Info'
                 if (-not (Test-Path "存档位置.bat")) {
                     $batContent = "if not exist `"" + $saveExpanded + "`" mkdir `"" + $saveExpanded + "`"`r`n"
                     $batContent += "`"explorer.exe`" `"" + $saveExpanded + "`""
@@ -1093,152 +1061,146 @@ $startButton.Add_Click({
                     (Get-Item "存档位置.bat").LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime
                 }
 
-                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 $robocopyCommand = "robocopy `"$saveExpanded`" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
-                $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyCommand + ": $robocopyCommand")
+                Write-Log-Async ($uiResources.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
 
                 $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
                 $robocopyExitCode = $LASTEXITCODE
 
                 # 记录 Robocopy 状态（包含返回码）
-                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 if ($robocopyExitCode -ge 8) {
-                    $logQueue.Add("[$timestamp] [Debug] " + ($uiResources.INFO_RobocopyFailed -f $robocopyExitCode))
+                    Write-Log-Async ($uiResources.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
                 } else {
-                    $logQueue.Add("[$timestamp] [Debug] " + ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode))
+                    Write-Log-Async ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
                 }
 
-                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyReturn + ":`r`n" + $result)
+                Write-Log-Async ($uiResources.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
 
                 try {
-                    $null = Invoke-GitCommand -Arguments "add ." -ErrorMessage "Git add failed"$logQueue -UiResources $uiResources
+                    $null = Invoke-GitCommand -Arguments "add ." -ErrorMessage "Git add failed"
 
                     $diffResult = & git diff --cached --quiet 2>&1
                     if ($LASTEXITCODE -ne 0) {
                         $commitMsg = "Update - " + $name + " on " + $machineName + " by " + $userName
-                        $null = Invoke-GitCommand -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed"$logQueue -UiResources $uiResources
-                        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                        $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_GitCommit)
+                        $null = Invoke-GitCommand -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed"
+                        Write-Log-Async $uiResources.SUCCESS_GitCommit 'Success'
                     }
                 }
                 catch {
-                    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logQueue.Add("[$timestamp] [Error] Git operation failed: $_")
+                    Write-Log-Async ("Git operation failed: $_") 'Error'
                 }
             }
             elseif ($maxLocalTime -lt $maxBackupTime) {
-                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [Warning] " + $uiResources.WARNING_LocalOlder)
+                Write-Log-Async $uiResources.WARNING_LocalOlder 'Warning'
                 $sh = New-Object -ComObject Shell.Application
                 $sh.Namespace(10).MoveHere($saveExpanded)
 
-                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 $robocopyCommand = "robocopy . `"$saveExpanded`" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
-                $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyCommand + ": $robocopyCommand")
+                Write-Log-Async ($uiResources.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
 
                 $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
                 $robocopyExitCode = $LASTEXITCODE
 
                 # 记录 Robocopy 状态（包含返回码）
-                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 if ($robocopyExitCode -ge 8) {
-                    $logQueue.Add("[$timestamp] [Debug] " + ($uiResources.INFO_RobocopyFailed -f $robocopyExitCode))
+                    Write-Log-Async ($uiResources.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
                 } else {
-                    $logQueue.Add("[$timestamp] [Debug] " + ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode))
+                    Write-Log-Async ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
                 }
 
-                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyReturn + ":`r`n" + $result)
+                Write-Log-Async ($uiResources.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
             }
             elseif ($maxLocalTime -gt $maxBackupTime) {
-                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [Info] " + $uiResources.INFO_LocalNewer)
+                Write-Log-Async $uiResources.INFO_LocalNewer 'Info'
 
-                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 $robocopyCommand = "robocopy `"$saveExpanded`" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
-                $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyCommand + ": $robocopyCommand")
+                Write-Log-Async ($uiResources.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
 
                 $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
                 $robocopyExitCode = $LASTEXITCODE
 
                 # 记录 Robocopy 状态（包含返回码）
-                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 if ($robocopyExitCode -ge 8) {
-                    $logQueue.Add("[$timestamp] [Debug] " + ($uiResources.INFO_RobocopyFailed -f $robocopyExitCode))
+                    Write-Log-Async ($uiResources.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
                 } else {
-                    $logQueue.Add("[$timestamp] [Debug] " + ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode))
+                    Write-Log-Async ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
                 }
 
-                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [Debug] " + $uiResources.INFO_RobocopyReturn + ":`r`n" + $result)
+                Write-Log-Async ($uiResources.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
 
                 try {
-                    $null = Invoke-GitCommand -Arguments "add ." -ErrorMessage "Git add failed"$logQueue -UiResources $uiResources
+                    $null = Invoke-GitCommand -Arguments "add ." -ErrorMessage "Git add failed"
 
                     $diffResult = & git diff --cached --quiet 2>&1
                     if ($LASTEXITCODE -ne 0) {
                         $commitMsg = "Update - " + $name + " on " + $machineName + " by " + $userName
-                        $null = Invoke-GitCommand -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed"$logQueue -UiResources $uiResources
-                        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                        $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_GitCommit)
+                        $null = Invoke-GitCommand -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed"
+                        Write-Log-Async $uiResources.SUCCESS_GitCommit 'Success'
                     }
                 }
                 catch {
-                    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logQueue.Add("[$timestamp] [Error] Git operation failed: $_")
+                    Write-Log-Async ("Git operation failed: $_") 'Error'
                 }
             }
             else {
-                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [Success] " + $uiResources.INFO_SameTime)
+                Write-Log-Async $uiResources.INFO_SameTime 'Success'
             }
 
             # 恢复工作目录到配置目录（重要！避免目录层级越来越深）
             Pop-Location
     
-            # 更新进度条
-            $progressBar.Value = [int](($gameIndex / $totalGames) * 100)
+            # 更新进度条（通过 Invoke 跨线程调用）
+            try {
+                if ($progressBar.InvokeRequired) {
+                    $progressBar.Invoke([Action]{ 
+                        $progressBar.Value = [int](($gameIndex / $totalGames) * 100) 
+                    })
+                } else {
+                    $progressBar.Value = [int](($gameIndex / $totalGames) * 100)
+                }
+            }
+            catch {
+                # 进度条更新失败不影响主流程
+            }
         }
 
         # 最终 Git 提交
         try {
-            $null = Invoke-GitCommand -Arguments "add ." -ErrorMessage "Final Git add failed"$logQueue -UiResources $uiResources
+            $null = Invoke-GitCommand -Arguments "add ." -ErrorMessage "Final Git add failed"
 
             $diffResult = & git diff --cached --quiet 2>&1
             if ($LASTEXITCODE -ne 0) {
                 $commitMsg = "Update - on " + $machineName + " by " + $userName
-                $null = Invoke-GitCommand -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Final Git commit failed"$logQueue -UiResources $uiResources
-                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_FinalCommit)
+                $null = Invoke-GitCommand -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Final Git commit failed"
+                Write-Log-Async $uiResources.SUCCESS_FinalCommit 'Success'
             }
         }
         catch {
-            $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $logQueue.Add("[$timestamp] [Error] Final Git operation failed: $_")
+            Write-Log-Async ("Final Git operation failed: $_") 'Error'
         }
 
         # Git clean 操作
         try {
             $cleanOutput = & git clean -df 2>&1 | Out-String
             if ($cleanOutput -and $cleanOutput.Trim()) {
-                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $logQueue.Add("[$timestamp] [Debug] Git clean output: " + $cleanOutput)
+                Write-Log-Async ("Git clean output: " + $cleanOutput) 'Debug'
             }
         }
         catch {
-            $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $logQueue.Add("[$timestamp] [Warning] Git clean failed: $_")
+            Write-Log-Async ("Git clean failed: $_") 'Warning'
         }
 
-        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        $logQueue.Add("[$timestamp] [Success] " + $uiResources.SUCCESS_BackupComplete)
+        Write-Log-Async $uiResources.SUCCESS_BackupComplete 'Success'
+        
+        # 返回成功标记
+        return $true
     })
 
-    $psInstance.AddParameter('configPath', $script:configPath)
+    $psInstance.AddParameter('configJsonArray', $script:configJsonArray)
     $psInstance.AddParameter('machineName', $script:machineName)
     $psInstance.AddParameter('userName', $script:userName)
     $psInstance.AddParameter('uiResources', $script:ui)
+    $psInstance.AddParameter('backupRootDir', $script:cd)
 
     # 异步执行
     $script:asyncResult = $psInstance.BeginInvoke()
@@ -1246,6 +1208,39 @@ $startButton.Add_Click({
     $script:runspacePool = $runspacePool
 
     Write-Log $script:ui.RunspaceStarted "Progress"
+    
+    # 等待任务完成并清理资源
+    try {
+        while (-not $script:asyncResult.IsCompleted) {
+            Start-Sleep -Milliseconds 100
+        }
+        
+        # 获取执行结果
+        $result = $psInstance.EndInvoke($script:asyncResult)
+        
+        if ($result -eq $true) {
+            Write-Log "Backup task completed successfully" 'Success'
+        }
+    }
+    catch {
+        Write-Log "Backup task failed: $_" 'Error'
+    }
+    finally {
+        # 清理资源
+        if ($psInstance) {
+            $psInstance.Dispose()
+        }
+        if ($runspacePool) {
+            $runspacePool.Close()
+            $runspacePool.Dispose()
+        }
+        
+        # 恢复 UI 状态
+        $startButton.Enabled = $true
+        $browseButton.Enabled = $true
+        $progressBar.Value = 100
+        $script:isBackupRunning = $false
+    }
 })
 
 # 复制日志按钮点击事件
@@ -1355,4 +1350,3 @@ $openLocationMenuItem.Add_Click({
 # ———————————————————————————————— 5: 程序启动 ————————————————————————————————
 
 [Application]::Run($form);
-
