@@ -1,4 +1,4 @@
-﻿# 游戏存档备份工具
+# 游戏存档备份工具
 # 开源地址: https://github.com/MoonLord-LM/GameSaveBackup
 
 
@@ -522,7 +522,7 @@ $gameDataGridView.SelectionMode = [DataGridViewSelectionMode]::FullRowSelect
 $gameDataGridView.MultiSelect = $false
 # 鼠标按下时自动选中一行（包括左键和右键）
 $gameDataGridView.Add_CellMouseDown({
-    param($sender, $e)
+    param($eventSender, $e)
     if ($e.RowIndex -ge 0) {
         $gameDataGridView.ClearSelection()
         $gameDataGridView.Rows[$e.RowIndex].Selected = $true
