@@ -78,6 +78,9 @@ $script:textResources = @{
         ERROR_ConfigItemMissingSave = "第 {0} 个配置项缺少 'save' 属性"
         ERROR_ConfigItemNameEmpty = "第 {0} 个配置项的 'name' 属性为空"
         ERROR_ConfigItemSaveEmpty = "第 {0} 个配置项的 'save' 属性为空"
+        ERROR_ConfigItemNameIllegalChars = "第 {0} 个配置项的 'name' 属性包含 Windows 文件名非法字符（< > : \" / \\ | ? *）"
+        ERROR_CreateBackupDirFailed = "创建备份目录失败: {0}"
+        ERROR_ErrorDetails = "错误详情: {0}"
         INFO_FileTimeComparison = "本地文件修改时间:[{0}] 备份文件修改时间:[{1}]"
         WARNING_BothMissing = "本地存档文件与备份文件都不存在，跳过操作"
         WARNING_LocalMissing = "本地存档文件缺失，使用备份文件恢复"
@@ -152,6 +155,9 @@ $script:textResources = @{
         ERROR_ConfigItemMissingSave = "Item {0} missing 'save' property"
         ERROR_ConfigItemNameEmpty = "Item {0} has empty 'name' property"
         ERROR_ConfigItemSaveEmpty = "Item {0} has empty 'save' property"
+        ERROR_ConfigItemNameIllegalChars = "Item {0} 'name' property contains illegal filename characters (<>:\"/\\|?*)"
+        ERROR_CreateBackupDirFailed = "Failed to create backup directory: {0}"
+        ERROR_ErrorDetails = "Error details: {0}"
         INFO_FileTimeComparison = "Local file time:[{0}] Backup file time:[{1}]"
         WARNING_BothMissing = "Both local save and backup files are missing, skipping"
         WARNING_LocalMissing = "Local save file is missing, restoring from backup"
@@ -659,6 +665,15 @@ Write-Log ($script:ui.MachineInfo -f $script:machineName, $script:userName) "Inf
 # 配置文件路径
 $script:configPath = ""
 
+# 检查游戏名称是否包含 Windows 文件名非法字符
+function Test-GameNameIllegalChars {
+    param([string]$Name)
+
+    # Windows 文件名不允许的字符: < > : " / \ | ? * 以及控制字符(0-31)
+    $illegalChars = [regex]"[<>:`"\/\\|?*\x00-\x1f]"
+    return $illegalChars.IsMatch($Name)
+}
+
 # 加载内嵌的默认配置
 function Load-DefaultConfig {
     try {
@@ -687,6 +702,9 @@ function Load-DefaultConfig {
             }
             if ([string]::IsNullOrEmpty($game.save)) {
                 throw ($script:ui.ERROR_ConfigItemSaveEmpty -f ($i + 1))
+            }
+            if (Test-GameNameIllegalChars -Name $game.name) {
+                throw ($script:ui.ERROR_ConfigItemNameIllegalChars -f ($i + 1))
             }
         }
 
@@ -766,6 +784,9 @@ function Load-JsonConfigFile {
             }
             if ([string]::IsNullOrEmpty($game.save)) {
                 throw ($script:ui.ERROR_ConfigItemSaveEmpty -f ($i + 1))
+            }
+            if (Test-GameNameIllegalChars -Name $game.name) {
+                throw ($script:ui.ERROR_ConfigItemNameIllegalChars -f ($i + 1))
             }
         }
 
@@ -1023,23 +1044,13 @@ $startButton.Add_Click({
             # 创建备份目录
             if (-not (Test-Path $backupDir)) {
                 try {
-                    Write-Log-Async "准备创建备份目录: $backupDir" 'Info'
+                    Write-Log-Async "创建备份目录: $backupDir" 'Info'
                     New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
-
-                    if (-not (Test-Path -LiteralPath $backupDir)) {
-                        throw "目录创建失败，请检查路径是否包含非法字符（如冒号 : 等 Windows 不支持的字符）"
-                    }
                 }
                 catch {
                     $errorMsg = $_.Exception.Message
-                    Write-Log-Async "创建备份目录失败: $backupDir" 'Error'
-                    Write-Log-Async "错误详情: $errorMsg" 'Error'
-                    [System.Windows.Forms.MessageBox]::Show(
-                        "游戏 `"$name`" 的备份目录创建失败！`n`n目标路径: $backupDir`n`n可能原因:`n1. 游戏名称包含 Windows 非法字符（如冒号 : ）`n2. 路径过长超过 260 字符限制`n3. 权限不足`n`n错误信息: $errorMsg",
-                        '备份目录创建失败',
-                        'OK',
-                        'Error'
-                    ) | Out-Null
+                    Write-Log-Async ($uiResources.ERROR_CreateBackupDirFailed -f $backupDir) 'Error'
+                    Write-Log-Async ($uiResources.ERROR_ErrorDetails -f $errorMsg) 'Error'
                     continue
                 }
             }
