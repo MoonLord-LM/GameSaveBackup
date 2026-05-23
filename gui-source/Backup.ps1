@@ -198,11 +198,11 @@ $script:defaultJsonConfigs = @{
     "save": "%USERPROFILE%\\Documents\\Prototype"
   },
   {
-    "name": "尼尔: 机械纪元",
+    "name": "尼尔：机械纪元",
     "save": "%USERPROFILE%\\Documents\\My Games\\NieR_Automata"
   },
   {
-    "name": "真三国无双 8: 帝国",
+    "name": "真三国无双 8：帝国",
     "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\Dynasty Warriors 9 Empires"
   },
   {
@@ -237,11 +237,11 @@ $script:defaultJsonConfigs = @{
     "save": "%USERPROFILE%\\AppData\\Local\\Larian Studios\\Baldur's Gate 3"
   },
   {
-    "name": "三国志 8: 重制版",
+    "name": "三国志 8：重制版",
     "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\SAN8R"
   },
   {
-    "name": "光与影: 33 号远征队",
+    "name": "光与影：33 号远征队",
     "save": "%USERPROFILE%\\AppData\\Local\\Sandfall\\Saved"
   },
   {
@@ -257,7 +257,7 @@ $script:defaultJsonConfigs = @{
     "save": "%PROGRAMDATA%\\AlderGames\\BugBits"
   },
   {
-    "name": "棋弈无限: 围棋",
+    "name": "棋弈无限：围棋",
     "save": "%USERPROFILE%\\AppData\\LocalLow\\Studio Amateur\\JustGo"
   }
 ]
@@ -1022,7 +1022,26 @@ $startButton.Add_Click({
 
             # 创建备份目录
             if (-not (Test-Path $backupDir)) {
-                New-Item -ItemType Directory -Path $backupDir | Out-Null
+                try {
+                    Write-Log-Async "准备创建备份目录: $backupDir" 'Info'
+                    New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
+
+                    if (-not (Test-Path -LiteralPath $backupDir)) {
+                        throw "目录创建失败，请检查路径是否包含非法字符（如冒号 : 等 Windows 不支持的字符）"
+                    }
+                }
+                catch {
+                    $errorMsg = $_.Exception.Message
+                    Write-Log-Async "创建备份目录失败: $backupDir" 'Error'
+                    Write-Log-Async "错误详情: $errorMsg" 'Error'
+                    [System.Windows.Forms.MessageBox]::Show(
+                        "游戏 `"$name`" 的备份目录创建失败！`n`n目标路径: $backupDir`n`n可能原因:`n1. 游戏名称包含 Windows 非法字符（如冒号 : ）`n2. 路径过长超过 260 字符限制`n3. 权限不足`n`n错误信息: $errorMsg",
+                        '备份目录创建失败',
+                        'OK',
+                        'Error'
+                    ) | Out-Null
+                    continue
+                }
             }
 
             # 进入备份目录
