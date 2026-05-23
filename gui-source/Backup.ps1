@@ -652,6 +652,20 @@ function Write-Log-Async {
     $script:asyncLogQueue.Add(@{ Message = $Message; Level = $Level })
 }
 
+# 进度条的异步更新，使用 hashtable（引用类型）和定时任务
+# 注意：必须使用引用类型而非值类型(int)，因为 PowerShell 的 AddParameter 对值类型会复制副本
+$script:asyncProgressState = @{ Value = 0 }
+$script:asyncProgressTimer = [Timer]::new()
+$script:asyncProgressTimer.Add_Tick({
+    # 从共享 hashtable 读取最新进度值（引用类型，跨线程可见）
+    $value = $script:asyncProgressState['Value']
+    if ($value -ge 0) {
+        $progressBar.Value = [Math]::Min($value, 100)
+    }
+})
+$script:asyncProgressTimer.Interval = 100  # 更频繁刷新进度条
+$script:asyncProgressTimer.Start()
+
 # 展示系统版本和 PowerShell 版本信息
 try {
     $script:osInfo = Get-WmiObject Win32_OperatingSystem
@@ -882,6 +896,7 @@ $startButton.Add_Click({
     $tabControl.SelectedTab = $logTabPage
     $progressBar.Visible = $true
     $progressBar.Value = 0
+    $script:asyncProgressState['Value'] = 0  # 重置异步进度变量（通过 hashtable 引用）
 
     Write-Log $script:ui.BackupStarted "Progress"
 
@@ -895,7 +910,7 @@ $startButton.Add_Click({
 
     # 添加要执行的脚本和参数
     $psInstance.AddScript({
-        param($configJsonArray, $machineName, $userName, $uiResources, $backupRootDir, $logQueue)
+        param($configJsonArray, $machineName, $userName, $uiResources, $backupRootDir, $logQueue, $progressQueue)
 
         # Runspace 内必须定义 Write-Log-Async（主脚本的函数在此不可见）
         function Write-Log-Async {
@@ -1185,18 +1200,12 @@ $startButton.Add_Click({
                 Write-Log-Async $uiResources.INFO_SameTime 'Success'
             }
 
-            # 更新进度条（通过 Invoke 跨线程调用）
+            # 更新进度条（通过共享 hashtable 传递给UI线程）
             try {
-                if ($progressBar.InvokeRequired) {
-                    $progressBar.Invoke([Action]{ 
-                        $progressBar.Value = [int](($gameIndex / $totalGames) * 100) 
-                    })
-                } else {
-                    $progressBar.Value = [int](($gameIndex / $totalGames) * 100)
-                }
+                $progressQueue['Value'] = [int](($gameIndex / $totalGames) * 100)
             }
             catch {
-                # 进度条更新失败不影响主流程
+                # 进度更新失败不影响主流程
             }
         }
 
@@ -1242,6 +1251,7 @@ $startButton.Add_Click({
     $psInstance.AddParameter('uiResources', $script:ui)
     $psInstance.AddParameter('backupRootDir', $script:cd)
     $psInstance.AddParameter('logQueue', $script:asyncLogQueue)
+    $psInstance.AddParameter('progressQueue', $script:asyncProgressState)
 
     # 异步执行
     $script:asyncResult = $psInstance.BeginInvoke()
