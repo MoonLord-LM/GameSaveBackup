@@ -1244,7 +1244,8 @@ $startButton.Add_Click({
     # 等待任务完成并清理资源
     try {
         while (-not $script:asyncResult.IsCompleted) {
-            Start-Sleep -Milliseconds 100
+            [Application]::DoEvents()
+            Start-Sleep -Milliseconds 50
         }
         
         # 获取执行结果
