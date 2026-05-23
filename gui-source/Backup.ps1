@@ -1027,7 +1027,6 @@ $startButton.Add_Click({
 
             # 进入备份目录
             Push-Location $backupDir
-
             Write-Log-Async ($uiResources.INFO_EnteringBackupDir + ": " + (Get-Location).Path) 'Info'
 
             # 判断备份策略
@@ -1152,6 +1151,7 @@ $startButton.Add_Click({
 
             # 恢复工作目录到配置目录（重要！避免目录层级越来越深）
             Pop-Location
+            Write-Log-Async ($uiResources.INFO_CurrentWorkingDir + ": " + (Get-Location).Path) 'Info'
     
             # 更新进度条（通过 Invoke 跨线程调用）
             try {
