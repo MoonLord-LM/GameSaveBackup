@@ -870,6 +870,14 @@ else {
 # 配置文件按钮点击事件
 $script:fileDialogInitialDirectory = $script:cd
 $browseButton.Add_Click({
+    [System.Threading.Thread]::CurrentThread.CurrentUICulture = 'zh-CN'
+    $currentCulture = [System.Globalization.CultureInfo]::CurrentCulture.Name
+    $currentUICulture = [System.Globalization.CultureInfo]::CurrentUICulture.Name
+    $installedUICulture = [System.Globalization.CultureInfo]::InstalledUICulture.Name
+    Write-Host "[ Debug ] currentCulture = $currentCulture"
+    Write-Host "[ Debug ] currentUICulture = $currentUICulture"
+    Write-Host "[ Debug ] installedUICulture = $installedUICulture"
+
     $fileDialog = [OpenFileDialog]::new()
     $fileDialog.Filter = $script:ui.FileFilter
     $fileDialog.Title = $script:ui.FileDialogTitle
