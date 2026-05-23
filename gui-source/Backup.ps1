@@ -54,6 +54,10 @@ $script:textResources = @{
         SaveLocationNotExist = "存档路径不存在: {0} - {1}"
         DirectoryCreated = "目录已创建: {0} - {1}"
         FailedToCreateDirectory = "创建目录失败: {0} - {1}"
+        ConfirmPrompt = "提示"
+        ConfirmCreateDirectory = "存档路径不存在:`n{0}`n`n是否要创建此目录？"
+        SaveLocationBatName = "存档位置.bat"
+        CreateBackupDir = "创建备份目录: {0}"
         # 运行日志使用
         ERROR_GitMissing = "错误：缺少 git.exe 组件"
         ERROR_GitDownload = "请从 https://git-scm.com/install/windows 下载"
@@ -96,6 +100,7 @@ $script:textResources = @{
         SUCCESS_GitCommit = "Git 提交完成"
         SUCCESS_FinalCommit = "最终 Git 提交完成"
         SUCCESS_BackupComplete = "备份完成"
+        ERROR_BackupTaskFailed = "备份任务失败: {0}"
         SUCCESS_GitInitialized = "Git 仓库已初始化并配置"
         INFO_SystemInfo = "系统版本: [ {0} ]  PowerShell 版本: [ {1} ]"
     }
@@ -131,6 +136,10 @@ $script:textResources = @{
         SaveLocationNotExist = "Save location does not exist: {0} - {1}"
         DirectoryCreated = "Directory created: {0} - {1}"
         FailedToCreateDirectory = "Failed to create directory: {0} - {1}"
+        ConfirmPrompt = "Confirm"
+        ConfirmCreateDirectory = "Archive path does not exist:`n{0}`n`nDo you want to create this directory?"
+        SaveLocationBatName = "SaveLocation.bat"
+        CreateBackupDir = "Creating backup directory: {0}"
         # 运行日志使用
         ERROR_GitMissing = "Error: git.exe component is missing"
         ERROR_GitDownload = "Please download from https://git-scm.com/install/windows"
@@ -173,6 +182,7 @@ $script:textResources = @{
         SUCCESS_GitCommit = "Git commit completed"
         SUCCESS_FinalCommit = "Final Git commit completed"
         SUCCESS_BackupComplete = "Backup completed successfully"
+        ERROR_BackupTaskFailed = "Backup task failed: {0}"
         SUCCESS_GitInitialized = "Git repository initialized and configured"
         INFO_SystemInfo = "System Version: [ {0} ]  PowerShell Version: [ {1} ]"
     }
@@ -674,39 +684,47 @@ function Test-GameNameIllegalChars {
     return $illegalChars.IsMatch($Name)
 }
 
+# 验证游戏配置数组格式和内容
+function Validate-GameConfig {
+    param([array]$configArray, [hashtable]$uiResources)
+
+    if ($configArray -isnot [System.Array]) {
+        throw $uiResources.ERROR_ConfigNotArrayFormat
+    }
+    if ($configArray.Count -eq 0) {
+        throw $uiResources.ERROR_ConfigEmptyCount
+    }
+    for ($i = 0; $i -lt $configArray.Count; $i++) {
+        $game = $configArray[$i]
+        if ($game -isnot [PSCustomObject]) {
+            throw ($uiResources.ERROR_ConfigItemNotObject -f ($i + 1))
+        }
+        if (-not $game.PSObject.Properties.Match('name')) {
+            throw ($uiResources.ERROR_ConfigItemMissingName -f ($i + 1))
+        }
+        if (-not $game.PSObject.Properties.Match('save')) {
+            throw ($uiResources.ERROR_ConfigItemMissingSave -f ($i + 1))
+        }
+        if ([string]::IsNullOrEmpty($game.name)) {
+            throw ($uiResources.ERROR_ConfigItemNameEmpty -f ($i + 1))
+        }
+        if ([string]::IsNullOrEmpty($game.save)) {
+            throw ($uiResources.ERROR_ConfigItemSaveEmpty -f ($i + 1))
+        }
+        if (Test-GameNameIllegalChars -Name $game.name) {
+            throw ($uiResources.ERROR_ConfigItemNameIllegalChars -f ($i + 1))
+        }
+    }
+}
+
 # 加载内嵌的默认配置
 function Load-DefaultConfig {
     try {
         $script:configPath = ""
         $script:configJsonArray = $script:defaultJsonConfigs[$script:uiLang] | ConvertFrom-Json
 
-        if ($script:configJsonArray -isnot [System.Array]) {
-            throw $script:ui.ERROR_ConfigNotArrayFormat
-        }
-        if ($script:configJsonArray.Count -eq 0) {
-            throw $script:ui.ERROR_ConfigEmptyCount
-        }
-        for ($i = 0; $i -lt $script:configJsonArray.Count; $i++) {
-            $game = $script:configJsonArray[$i]
-            if ($game -isnot [PSCustomObject]) {
-                throw ($script:ui.ERROR_ConfigItemNotObject -f ($i + 1))
-            }
-            if (-not $game.PSObject.Properties.Match('name')) {
-                throw ($script:ui.ERROR_ConfigItemMissingName -f ($i + 1))
-            }
-            if (-not $game.PSObject.Properties.Match('save')) {
-                throw ($script:ui.ERROR_ConfigItemMissingSave -f ($i + 1))
-            }
-            if ([string]::IsNullOrEmpty($game.name)) {
-                throw ($script:ui.ERROR_ConfigItemNameEmpty -f ($i + 1))
-            }
-            if ([string]::IsNullOrEmpty($game.save)) {
-                throw ($script:ui.ERROR_ConfigItemSaveEmpty -f ($i + 1))
-            }
-            if (Test-GameNameIllegalChars -Name $game.name) {
-                throw ($script:ui.ERROR_ConfigItemNameIllegalChars -f ($i + 1))
-            }
-        }
+        # 使用统一的配置验证函数
+        Validate-GameConfig -configArray $script:configJsonArray -uiResources $script:ui
 
         $configTextBox.Text = $script:ui.BuiltInConfigDisplay -f $script:configJsonArray.Count
         Write-Log ($script:ui.DefaultConfigLoaded -f $script:configJsonArray.Count) "Success"
@@ -762,33 +780,8 @@ function Load-JsonConfigFile {
         $script:configPath = $ConfigPath
         $script:configJsonArray = Get-Content -Path $script:configPath -Raw -Encoding UTF8 | ConvertFrom-Json
 
-        if ($script:configJsonArray -isnot [System.Array]) {
-            throw $script:ui.ERROR_ConfigNotArrayFormat
-        }
-        if ($script:configJsonArray.Count -eq 0) {
-            throw $script:ui.ERROR_ConfigEmptyCount
-        }
-        for ($i = 0; $i -lt $script:configJsonArray.Count; $i++) {
-            $game = $script:configJsonArray[$i]
-            if ($game -isnot [PSCustomObject]) {
-                throw ($script:ui.ERROR_ConfigItemNotObject -f ($i + 1))
-            }
-            if (-not $game.PSObject.Properties.Match('name')) {
-                throw ($script:ui.ERROR_ConfigItemMissingName -f ($i + 1))
-            }
-            if (-not $game.PSObject.Properties.Match('save')) {
-                throw ($script:ui.ERROR_ConfigItemMissingSave -f ($i + 1))
-            }
-            if ([string]::IsNullOrEmpty($game.name)) {
-                throw ($script:ui.ERROR_ConfigItemNameEmpty -f ($i + 1))
-            }
-            if ([string]::IsNullOrEmpty($game.save)) {
-                throw ($script:ui.ERROR_ConfigItemSaveEmpty -f ($i + 1))
-            }
-            if (Test-GameNameIllegalChars -Name $game.name) {
-                throw ($script:ui.ERROR_ConfigItemNameIllegalChars -f ($i + 1))
-            }
-        }
+        # 使用统一的配置验证函数
+        Validate-GameConfig -configArray $script:configJsonArray -uiResources $script:ui
 
         $configTextBox.Text = $script:configPath
         Write-Log ($script:ui.ConfigLoaded -f $script:configJsonArray.Count) "Success"
@@ -994,6 +987,9 @@ $startButton.Add_Click({
             $ignoreArgs += "/XF"
             $ignoreArgs += "存档位置.bat"
 
+            # 获取当前语言对应的 bat 文件名（用于创建文件）
+            $saveLocationBatName = $uiResources.SaveLocationBatName
+
             if ($ignore) {
                 foreach ($item in $ignore) {
                     $itemExpanded = $item -replace "%USERPROFILE%", $env:USERPROFILE
@@ -1044,7 +1040,7 @@ $startButton.Add_Click({
             # 创建备份目录
             if (-not (Test-Path $backupDir)) {
                 try {
-                    Write-Log-Async "创建备份目录: $backupDir" 'Info'
+                    Write-Log-Async ($uiResources.CreateBackupDir -f $backupDir) 'Info'
                     New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
                 }
                 catch {
@@ -1067,7 +1063,12 @@ $startButton.Add_Click({
                 else {
                     Write-Log-Async $uiResources.WARNING_LocalMissing 'Warning'
                     $sh = New-Object -ComObject Shell.Application
-                    $sh.Namespace(10).MoveHere($saveExpanded)
+                    try {
+                        $sh.Namespace(10).MoveHere($saveExpanded)
+                    }
+                    finally {
+                        [System.Runtime.Interopservices.Marshal]::ReleaseComObject($sh) | Out-Null
+                    }
 
                     $robocopyCommand = "robocopy . `"$saveExpanded`" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
                     Write-Log-Async ($uiResources.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
@@ -1087,11 +1088,11 @@ $startButton.Add_Click({
             }
             elseif ($null -eq $maxBackupTime) {
                 Write-Log-Async $uiResources.INFO_BackupMissing 'Info'
-                if (-not (Test-Path "存档位置.bat")) {
+                if (-not (Test-Path $saveLocationBatName)) {
                     $batContent = "if not exist `"" + $saveExpanded + "`" mkdir `"" + $saveExpanded + "`"`r`n"
                     $batContent += "`"explorer.exe`" `"" + $saveExpanded + "`""
-                    Set-Content -Path "存档位置.bat" -Value $batContent -Encoding UTF8
-                    (Get-Item "存档位置.bat").LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime
+                    Set-Content -Path $saveLocationBatName -Value $batContent -Encoding UTF8
+                    (Get-Item $saveLocationBatName).LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime
                 }
 
                 $robocopyCommand = "robocopy `"$saveExpanded`" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
@@ -1126,7 +1127,12 @@ $startButton.Add_Click({
             elseif ($maxLocalTime -lt $maxBackupTime) {
                 Write-Log-Async $uiResources.WARNING_LocalOlder 'Warning'
                 $sh = New-Object -ComObject Shell.Application
-                $sh.Namespace(10).MoveHere($saveExpanded)
+                try {
+                    $sh.Namespace(10).MoveHere($saveExpanded)
+                }
+                finally {
+                    [System.Runtime.Interopservices.Marshal]::ReleaseComObject($sh) | Out-Null
+                }
 
                 $robocopyCommand = "robocopy . `"$saveExpanded`" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
                 Write-Log-Async ($uiResources.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
@@ -1250,13 +1256,10 @@ $startButton.Add_Click({
         
         # 获取执行结果
         $result = $psInstance.EndInvoke($script:asyncResult)
-        
-        if ($result -eq $true) {
-            Write-Log "Backup task completed successfully" 'Success'
-        }
+        Write-Host "[ Debug ] EndInvoke result = $($result) (type: $($result.GetType()))"
     }
     catch {
-        Write-Log "Backup task failed: $_" 'Error'
+        Write-Log ($script:ui.ERROR_BackupTaskFailed -f $_) 'Error'
     }
     finally {
         # 清理资源
@@ -1348,17 +1351,9 @@ $openLocationMenuItem.Add_Click({
             } else {
                 Write-Log ($script:ui.SaveLocationNotExist -f $gameName, $realPath) "Error"
 
-                # 根据语言设置对话框文本
-                $messageText = if ($script:uiLang -eq 'zh-CN') {
-                    "存档路径不存在: `n$realPath`n`n是否要创建此目录？"
-                } else {
-                    "Archive path does not exist:`n$realPath`n`nDo you want to create this directory?"
-                }
-                $captionText = if ($script:uiLang -eq 'zh-CN') { "提示" } else { "Confirm" }
-
                 $result = [MessageBox]::Show(
-                    $messageText,
-                    $captionText,
+                    ($script:ui.ConfirmCreateDirectory -f $realPath),
+                    $script:ui.ConfirmPrompt,
                     [MessageBoxButtons]::YesNo,
                     [MessageBoxIcon]::Question
                 )
