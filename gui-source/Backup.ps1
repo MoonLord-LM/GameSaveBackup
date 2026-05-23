@@ -553,10 +553,7 @@ $bottomPanel.Controls.Add($progressBar)
 
 # 定义变量
 $script:configJsonArray = $null
-$script:job = $null
 $script:asyncResult = $null
-$script:psInstance = $null
-$script:runspacePool = $null
 
 
 
@@ -884,7 +881,13 @@ $startButton.Add_Click({
 
     # 添加要执行的脚本和参数
     $psInstance.AddScript({
-        param($configJsonArray, $machineName, $userName, $uiResources, $backupRootDir)
+        param($configJsonArray, $machineName, $userName, $uiResources, $backupRootDir, $logQueue)
+
+        # Runspace 内必须定义 Write-Log-Async（主脚本的函数在此不可见）
+        function Write-Log-Async {
+            param([string]$Message = '', [string]$Level = 'Info')
+            $logQueue.Add(@{ Message = $Message; Level = $Level })
+        }
 
         function Invoke-GitCommand {
             param(
@@ -912,10 +915,11 @@ $startButton.Add_Click({
             }
         }
 
-        # 获取脚本所在目录作为备份根目录
-        $cd = [System.IO.Directory]::GetCurrentDirectory()
-        Write-Log-Async ($uiResources.INFO_CurrentWorkingDir + ": " + $cd) 'Info'
-        Write-Log-Async ($uiResources.INFO_BackupRootDir + ": " + $cd) 'Info'
+        # 切换到备份根目录（同步进程 CWD 和 PowerShell Location，git/robocopy 等外部程序依赖进程 CWD）
+        [System.IO.Directory]::SetCurrentDirectory($backupRootDir)
+        Set-Location -LiteralPath $backupRootDir
+        Write-Log-Async ($uiResources.INFO_CurrentWorkingDir + ": " + $backupRootDir) 'Info'
+        Write-Log-Async ($uiResources.INFO_BackupRootDir + ": " + $backupRootDir) 'Info'
 
         # 检查 Git
         $gitExe = Get-Command git -ErrorAction SilentlyContinue
@@ -1201,12 +1205,10 @@ $startButton.Add_Click({
     $psInstance.AddParameter('userName', $script:userName)
     $psInstance.AddParameter('uiResources', $script:ui)
     $psInstance.AddParameter('backupRootDir', $script:cd)
+    $psInstance.AddParameter('logQueue', $script:asyncLogQueue)
 
     # 异步执行
     $script:asyncResult = $psInstance.BeginInvoke()
-    $script:psInstance = $psInstance
-    $script:runspacePool = $runspacePool
-
     Write-Log $script:ui.RunspaceStarted "Progress"
     
     # 等待任务完成并清理资源
