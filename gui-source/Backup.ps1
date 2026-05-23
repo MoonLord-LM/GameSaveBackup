@@ -1168,10 +1168,6 @@ $startButton.Add_Click({
                 Write-Log-Async $uiResources.INFO_SameTime 'Success'
             }
 
-            # 恢复工作目录到备份根目录
-            Set-Location -LiteralPath $backupRootDir
-            Write-Log-Async ($uiResources.INFO_CurrentWorkingDir + ": " + (Get-Location).Path) 'Info'
-    
             # 更新进度条（通过 Invoke 跨线程调用）
             try {
                 if ($progressBar.InvokeRequired) {
@@ -1186,6 +1182,10 @@ $startButton.Add_Click({
                 # 进度条更新失败不影响主流程
             }
         }
+
+        # 恢复工作目录到备份根目录
+        Set-Location -LiteralPath $backupRootDir
+        Write-Log-Async ($uiResources.INFO_CurrentWorkingDir + ": " + (Get-Location).Path) 'Info'
 
         # 最终 Git 提交
         try {
@@ -1266,6 +1266,9 @@ $startButton.Add_Click({
 
 # 复制日志按钮点击事件
 $copyLogButton.Add_Click({
+    # 切换到日志标签页
+    $tabControl.SelectedTab = $logTabPage
+
     if ($logTextBox.Text.Length -gt 0) {
         [Clipboard]::SetText($logTextBox.Text)
         Write-Log $script:ui.LogCopied "Success"
