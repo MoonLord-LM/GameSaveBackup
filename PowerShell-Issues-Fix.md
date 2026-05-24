@@ -313,3 +313,71 @@ using assembly System.Windows.Forms
 Get-CimInstance Win32_OperatingSystem
 [Windows.Forms.OpenFileDialog]::new().ShowDialog()
 ```
+
+33. 调用 Get-ChildItem，文件选择框的界面元素为中文✅
+
+```
+Add-Type -AssemblyName System.Windows.Forms
+Get-ChildItem -Path . -Filter "*.json" -File
+(New-Object Windows.Forms.OpenFileDialog).ShowDialog()
+```
+
+34. 调用 Get-ChildItem，文件选择框的界面元素为中文✅
+
+```
+Add-Type -AssemblyName System.Windows.Forms
+Get-ChildItem -Path . -Filter "*.json" -File
+[Windows.Forms.OpenFileDialog]::new().ShowDialog()
+```
+
+35. 调用 Get-ChildItem，文件选择框的界面元素为中文✅
+
+```
+using assembly System.Windows.Forms
+Get-ChildItem -Path . -Filter "*.json" -File
+(New-Object Windows.Forms.OpenFileDialog).ShowDialog()
+```
+
+36. 调用 Get-ChildItem，文件选择框的界面元素为中文✅
+
+```
+using assembly System.Windows.Forms
+Get-ChildItem -Path . -Filter "*.json" -File
+[Windows.Forms.OpenFileDialog]::new().ShowDialog()
+```
+
+37. 修改输出编码后，调用 Get-ChildItem，文件选择框的界面元素为英文❌
+
+```
+Add-Type -AssemblyName System.Windows.Forms
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+Get-ChildItem -Path . -Filter "*.json" -File
+(New-Object Windows.Forms.OpenFileDialog).ShowDialog()
+```
+
+38. 修改输出编码后，调用 Get-ChildItem，文件选择框的界面元素为英文❌
+
+```
+Add-Type -AssemblyName System.Windows.Forms
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+Get-ChildItem -Path . -Filter "*.json" -File
+[Windows.Forms.OpenFileDialog]::new().ShowDialog()
+```
+
+39. 修改输出编码后，调用 Get-ChildItem，文件选择框的界面元素为英文❌
+
+```
+using assembly System.Windows.Forms
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+Get-ChildItem -Path . -Filter "*.json" -File
+(New-Object Windows.Forms.OpenFileDialog).ShowDialog()
+```
+
+40. 修改输出编码后，调用 Get-ChildItem，文件选择框的界面元素为英文❌
+
+```
+using assembly System.Windows.Forms
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+Get-ChildItem -Path . -Filter "*.json" -File
+[Windows.Forms.OpenFileDialog]::new().ShowDialog()
+```
