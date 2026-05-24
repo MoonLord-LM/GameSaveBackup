@@ -24,6 +24,16 @@
 
 ## 测试用例
 
+检查语言设置，均为中文
+```
+[System.Globalization.CultureInfo]::CurrentCulture
+[System.Globalization.CultureInfo]::CurrentUICulture
+[System.Globalization.CultureInfo]::InstalledUICulture
+[System.Threading.Thread]::CurrentThread.CurrentCulture
+[System.Threading.Thread]::CurrentThread.CurrentUICulture
+pause
+```
+
 1. 使用 Add-Type 和 New-Object 的写法，文件选择框的界面元素为中文✅
 
 ```
