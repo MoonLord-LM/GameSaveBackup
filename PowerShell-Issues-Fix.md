@@ -6,7 +6,7 @@
 
 在依次执行以下步骤后触发：  
 1. 使用 using assembly 引入 System.Windows.Forms  
-2. 修改控制台输出编码，设置 [Console]::OutputEncoding 的值或执行 chcp 命令  
+2. 修改控制台输出编码，例如设置 [Console]::OutputEncoding 的值或执行 chcp 命令  
 3. 使用 New-Object 创建 OpenFileDialog 文件选择框  
 
 此时，文件选择框强制显示为英文元素的界面，而不是根据系统语言设置的中文来显示  
