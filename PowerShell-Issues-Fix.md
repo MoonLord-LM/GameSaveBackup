@@ -245,3 +245,71 @@ Get-UICulture
 [Windows.Forms.OpenFileDialog]::new().ShowDialog()
 (New-Object Windows.Forms.OpenFileDialog).ShowDialog()
 ```
+
+25. 获取 Win32_OperatingSystem 对象，文件选择框的界面元素为中文✅
+
+```
+Add-Type -AssemblyName System.Windows.Forms
+Get-CimInstance Win32_OperatingSystem
+(New-Object Windows.Forms.OpenFileDialog).ShowDialog()
+```
+
+26. 获取 Win32_OperatingSystem 对象，文件选择框的界面元素为中文✅
+
+```
+Add-Type -AssemblyName System.Windows.Forms
+Get-CimInstance Win32_OperatingSystem
+[Windows.Forms.OpenFileDialog]::new().ShowDialog()
+```
+
+27. 获取 Win32_OperatingSystem 对象，文件选择框的界面元素为中文✅
+
+```
+using assembly System.Windows.Forms
+Get-CimInstance Win32_OperatingSystem
+(New-Object Windows.Forms.OpenFileDialog).ShowDialog()
+```
+
+28. 获取 Win32_OperatingSystem 对象，文件选择框的界面元素为中文✅
+
+```
+using assembly System.Windows.Forms
+Get-CimInstance Win32_OperatingSystem
+[Windows.Forms.OpenFileDialog]::new().ShowDialog()
+```
+
+29. 修改输出编码后，获取 Win32_OperatingSystem 对象，文件选择框的界面元素为英文❌
+
+```
+Add-Type -AssemblyName System.Windows.Forms
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+Get-CimInstance Win32_OperatingSystem
+(New-Object Windows.Forms.OpenFileDialog).ShowDialog()
+```
+
+30. 修改输出编码后，获取 Win32_OperatingSystem 对象，文件选择框的界面元素为英文❌
+
+```
+Add-Type -AssemblyName System.Windows.Forms
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+Get-CimInstance Win32_OperatingSystem
+[Windows.Forms.OpenFileDialog]::new().ShowDialog()
+```
+
+31. 修改输出编码后，获取 Win32_OperatingSystem 对象，文件选择框的界面元素为英文❌
+
+```
+using assembly System.Windows.Forms
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+Get-CimInstance Win32_OperatingSystem
+(New-Object Windows.Forms.OpenFileDialog).ShowDialog()
+```
+
+32. 修改输出编码后，获取 Win32_OperatingSystem 对象，文件选择框的界面元素为英文❌
+
+```
+using assembly System.Windows.Forms
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+Get-CimInstance Win32_OperatingSystem
+[Windows.Forms.OpenFileDialog]::new().ShowDialog()
+```
