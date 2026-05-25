@@ -32,25 +32,25 @@ $currentThreadUICulture = [System.Threading.Thread]::CurrentThread.CurrentUICult
 "[ Debug ] currentThreadCulture = $currentThreadCulture"
 "[ Debug ] currentThreadUICulture = $currentThreadUICulture"
 
-# 显示工作目录
-$scriptDirectory = $PSScriptRoot
-$callDirectory = Get-Location
+# 分析合适的工作目录
 $currentDirectory = [System.IO.Directory]::GetCurrentDirectory()
+$callDirectory = (Get-Location).Path
+$scriptDirectory = $PSScriptRoot
 $systemDirectory = [System.Environment]::SystemDirectory
-$suggestDirectory = $null
-foreach ($dir in @($scriptDirectory, $callDirectory, $currentDirectory)) {
+$workingDirectory = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop)
+foreach ($dir in @($currentDirectory, $callDirectory, $scriptDirectory)) {
     if ($dir) {
-        if ($dir -ne $systemDirectory) {
-            $suggestDirectory = $dir
+        if ($dir -ine $systemDirectory) {
+            $workingDirectory = $dir
             break
         }
     }
 }
-"[ Debug ] scriptDirectory = $scriptDirectory"
-"[ Debug ] callDirectory = $callDirectory"
 "[ Debug ] currentDirectory = $currentDirectory"
+"[ Debug ] callDirectory = $callDirectory"
+"[ Debug ] scriptDirectory = $scriptDirectory"
 "[ Debug ] systemDirectory = $systemDirectory"
-"[ Debug ] suggestDirectory = $suggestDirectory"
+"[ Debug ] workingDirectory = $workingDirectory"
 
 # 界面支持中英文，定义多语言文本资源
 $script:textResources = @{
