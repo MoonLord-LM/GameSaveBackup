@@ -20,17 +20,31 @@ $currentOutputEncoding = [System.Console]::OutputEncoding.EncodingName
 [System.Windows.Forms.Application]::EnableVisualStyles()
 [System.Windows.Forms.Application]::SetCompatibleTextRenderingDefault($false)
 
-# 显示当前语言
+# 分析合适的显示语言
 $currentCulture = [System.Globalization.CultureInfo]::CurrentCulture.Name
 $currentUICulture = [System.Globalization.CultureInfo]::CurrentUICulture.Name
 $installedUICulture = [System.Globalization.CultureInfo]::InstalledUICulture.Name
 $currentThreadCulture = [System.Threading.Thread]::CurrentThread.CurrentCulture.Name
 $currentThreadUICulture = [System.Threading.Thread]::CurrentThread.CurrentUICulture.Name
+$workingLang = 'en-US'
+$zhCNCount = 0;
+$enUSCount = 0;
+if ($currentCulture -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
+if ($currentUICulture -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
+if ($installedUICulture -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
+if ($currentThreadCulture -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
+if ($currentThreadUICulture -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
+if ($zhCNCount -ge $enUSCount) {
+    $workingLang = 'zh-CN'
+} else {
+    $workingLang = 'en-US'
+}
 "[ Debug ] currentCulture = $currentCulture"
 "[ Debug ] currentUICulture = $currentUICulture"
 "[ Debug ] installedUICulture = $installedUICulture"
 "[ Debug ] currentThreadCulture = $currentThreadCulture"
 "[ Debug ] currentThreadUICulture = $currentThreadUICulture"
+"[ Debug ] workingLang = $workingLang"
 
 # 分析合适的工作目录
 $currentDirectory = [System.IO.Directory]::GetCurrentDirectory()
@@ -61,7 +75,7 @@ foreach ($dir in @($currentDirectory, $callDirectory, $scriptDirectory)) {
 "[ Debug ] workingDirectory = $workingDirectory"
 
 # 界面支持中英文，定义多语言文本资源
-$script:textResources = @{
+$uiTextResources = @{
     'zh-CN' = @{
         FormTitle = "游戏存档备份工具"
         ConfigLabel = "配置文件:"
@@ -223,8 +237,9 @@ $script:textResources = @{
         INFO_SystemInfo = "System Version: [ {0} ]  PowerShell Version: [ {1} ]"
     }
 }
+$ui = $uiTextResources[$workingLang]
 
-# 内嵌的中英文游戏存档位置的默认 JSON 配置
+# 内嵌的中英文的默认 JSON 配置
 $script:defaultJsonConfigs = @{
     'zh-CN' = @'
 [
@@ -402,37 +417,13 @@ $script:defaultJsonConfigs = @{
 '@
 }
 
-# 根据系统语言，自动选择界面语言的中英文
-$script:uiLang = 'en-US'
-try {
-    $zhCNCount = 0;
-    $enUSCount = 0;
-    if ($currentCulture -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
-    if ($currentUICulture -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
-    if ($installedUICulture -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
-
-    if ($zhCNCount -ge $enUSCount) {
-        $script:uiLang = 'zh-CN'
-    } else {
-        $script:uiLang = 'en-US'
-    }
-} catch {
-    Write-Host ""
-    Write-Host "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
-    Write-Host "[ Error ] Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
-    Write-Host "[ Error ] Message: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host ""
-}
-Write-Host "[ Debug ] script:uiLang = $script:uiLang"
-$script:ui = $script:textResources[$script:uiLang]
-
 
 
 # ———————————————————————————————— 2: 窗体界面绘制 ————————————————————————————————
 
 # 创建主窗口
 $form = [System.Windows.Forms.Form]::new()
-$form.Text = $script:ui.FormTitle
+$form.Text = $ui.FormTitle
 $form.Size = [System.Drawing.Size]::new(1280, 720)
 $form.StartPosition = "CenterScreen"
 $form.Font = [System.Drawing.Font]::new("Microsoft YaHei", 10)
@@ -474,7 +465,7 @@ $topPanel.Controls.Add($topInfoPanel)
 
 # 顶部: 配置文件标签
 $configLabel = [System.Windows.Forms.Label]::new()
-$configLabel.Text = $script:ui.ConfigLabel
+$configLabel.Text = $ui.ConfigLabel
 $configLabel.Location = [System.Drawing.Point]::new(10, 8)
 $configLabel.Size = [System.Drawing.Size]::new(100, 40)
 $topInfoPanel.Controls.Add($configLabel)
@@ -495,7 +486,7 @@ $topPanel.Controls.Add($topButtonGroupPanel)
 
 # 顶部: 选择配置按钮
 $browseButton = [System.Windows.Forms.Button]::new()
-$browseButton.Text = $script:ui.BrowseButton
+$browseButton.Text = $ui.BrowseButton
 $browseButton.Location = [System.Drawing.Point]::new(5, 0)
 $browseButton.Size = [System.Drawing.Size]::new(130, 36)
 $browseButton.BackColor = [System.Drawing.Color]::LightGreen
@@ -503,7 +494,7 @@ $topButtonGroupPanel.Controls.Add($browseButton)
 
 # 顶部: 开始备份按钮
 $startButton = [System.Windows.Forms.Button]::new()
-$startButton.Text = $script:ui.StartButton
+$startButton.Text = $ui.StartButton
 $startButton.Location = [System.Drawing.Point]::new(140, 0)
 $startButton.Size = [System.Drawing.Size]::new(130, 36)
 $startButton.BackColor = [System.Drawing.Color]::LightBlue
@@ -512,7 +503,7 @@ $topButtonGroupPanel.Controls.Add($startButton)
 
 # 顶部: 复制日志按钮
 $copyLogButton = [System.Windows.Forms.Button]::new()
-$copyLogButton.Text = $script:ui.CopyLogButton
+$copyLogButton.Text = $ui.CopyLogButton
 $copyLogButton.Location = [System.Drawing.Point]::new(275, 0)
 $copyLogButton.Size = [System.Drawing.Size]::new(130, 36)
 $topButtonGroupPanel.Controls.Add($copyLogButton)
@@ -525,12 +516,12 @@ $centerPanel.Controls.Add($tabControl)
 
 # 中部: 日志标签页
 $logTabPage = [System.Windows.Forms.TabPage]::new()
-$logTabPage.Text = $script:ui.LogTabPage
+$logTabPage.Text = $ui.LogTabPage
 $tabControl.Controls.Add($logTabPage)
 
 # 中部: 游戏标签页
 $gameListTabPage = [System.Windows.Forms.TabPage]::new()
-$gameListTabPage.Text = $script:ui.GameListTabPage
+$gameListTabPage.Text = $ui.GameListTabPage
 
 # 中部: 日志显示区域
 $logTextBox = [System.Windows.Forms.RichTextBox]::new()
@@ -554,11 +545,11 @@ $gameDataGridView.ColumnHeadersHeight = 40
 $gameDataGridView.RowTemplate.Height = 30
 $gameDataGridView.Dock = "Fill"
 $gameDataGridView.ColumnCount = 3
-$gameDataGridView.Columns[0].Name = $script:ui.ColumnIndex
+$gameDataGridView.Columns[0].Name = $ui.ColumnIndex
 $gameDataGridView.Columns[0].Width = 60
-$gameDataGridView.Columns[1].Name = $script:ui.ColumnGameName
+$gameDataGridView.Columns[1].Name = $ui.ColumnGameName
 $gameDataGridView.Columns[1].Width = 320
-$gameDataGridView.Columns[2].Name = $script:ui.ColumnSavePath
+$gameDataGridView.Columns[2].Name = $ui.ColumnSavePath
 $gameDataGridView.Columns[2].Width = 780
 # 只允许单行选择
 $gameDataGridView.SelectionMode = [System.Windows.Forms.DataGridViewSelectionMode]::FullRowSelect
@@ -577,7 +568,7 @@ $gameListTabPage.Controls.Add($gameDataGridView)
 # 创建右键菜单（打开存档位置）
 $contextMenu = [System.Windows.Forms.ContextMenuStrip]::new()
 $openLocationMenuItem = [System.Windows.Forms.ToolStripMenuItem]::new()
-$openLocationMenuItem.Text = $script:ui.OpenSaveLocation
+$openLocationMenuItem.Text = $ui.OpenSaveLocation
 $contextMenu.Items.Add($openLocationMenuItem) | Out-Null
 $gameDataGridView.ContextMenuStrip = $contextMenu
 
@@ -703,7 +694,7 @@ try {
     }
     $script:windowsVersion = powershell -NoProfile -Command $getWindowsVersionCommand
     $script:powerShellVersion = "$($PSVersionTable.PSVersion.ToString()) $($PSVersionTable.PSEdition)"
-    Write-Log ($script:ui.INFO_SystemInfo -f $script:windowsVersion, $script:powerShellVersion) "Info"
+    Write-Log ($ui.INFO_SystemInfo -f $script:windowsVersion, $script:powerShellVersion) "Info"
 } catch {
     Write-Host ""
     Write-Host "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
@@ -715,7 +706,7 @@ try {
 # 展示机器名和用户名信息
 $script:machineName = & cmd /c hostname
 $script:userName = [Environment]::UserName
-Write-Log ($script:ui.MachineInfo -f $script:machineName, $script:userName) "Info"
+Write-Log ($ui.MachineInfo -f $script:machineName, $script:userName) "Info"
 
 # 配置文件路径
 $script:configPath = ""
@@ -766,13 +757,13 @@ function Validate-GameConfig {
 function Load-DefaultConfig {
     try {
         $script:configPath = ""
-        $script:configJsonArray = $script:defaultJsonConfigs[$script:uiLang] | ConvertFrom-Json
+        $script:configJsonArray = $script:defaultJsonConfigs[$workingLang] | ConvertFrom-Json
 
         # 使用统一的配置验证函数
         Validate-GameConfig -configArray $script:configJsonArray -uiResources $script:ui
 
-        $configTextBox.Text = $script:ui.BuiltInConfigDisplay -f $script:configJsonArray.Count
-        Write-Log ($script:ui.DefaultConfigLoaded -f $script:configJsonArray.Count) "Success"
+        $configTextBox.Text = $ui.BuiltInConfigDisplay -f $script:configJsonArray.Count
+        Write-Log ($ui.DefaultConfigLoaded -f $script:configJsonArray.Count) "Success"
 
         $gameDataGridView.SuspendLayout()
         try {
@@ -787,7 +778,7 @@ function Load-DefaultConfig {
         finally {
             $gameDataGridView.ResumeLayout()
         }
-        Write-Log $script:ui.GameListUpdated "Info"
+        Write-Log $ui.GameListUpdated "Info"
 
         if ($tabControl.TabPages.Contains($gameListTabPage) -eq $false) {
             $tabControl.Controls.Add($gameListTabPage)
@@ -807,7 +798,7 @@ function Load-DefaultConfig {
         Write-Host "[ Error ] Message: $($_.Exception.Message)" -ForegroundColor Red
         Write-Host ""
 
-        Write-Log ($script:ui.ERROR_DefaultConfigFailed + ": $($_.Exception.Message)") "Error"
+        Write-Log ($ui.ERROR_DefaultConfigFailed + ": $($_.Exception.Message)") "Error"
         $script:configPath = ""
         $script:configJsonArray = $null
         $configTextBox.Text = ""
@@ -829,7 +820,7 @@ function Load-JsonConfigFile {
         Validate-GameConfig -configArray $script:configJsonArray -uiResources $script:ui
 
         $configTextBox.Text = $script:configPath
-        Write-Log ($script:ui.ConfigLoaded -f $script:configJsonArray.Count) "Success"
+        Write-Log ($ui.ConfigLoaded -f $script:configJsonArray.Count) "Success"
 
         $gameDataGridView.SuspendLayout()
         try {
@@ -844,7 +835,7 @@ function Load-JsonConfigFile {
         finally {
             $gameDataGridView.ResumeLayout()
         }
-        Write-Log $script:ui.GameListUpdated "Info"
+        Write-Log $ui.GameListUpdated "Info"
 
         if ($tabControl.TabPages.Contains($gameListTabPage) -eq $false) {
             $tabControl.Controls.Add($gameListTabPage)
@@ -863,7 +854,7 @@ function Load-JsonConfigFile {
         Write-Host "[ Error ] Message: $($_.Exception.Message)" -ForegroundColor Red
         Write-Host ""
 
-        Write-Log ($script:ui.ERROR_ConfigLoadFailed + ": $($_.Exception.Message)") "Error"
+        Write-Log ($ui.ERROR_ConfigLoadFailed + ": $($_.Exception.Message)") "Error"
         $script:configPath = ""
         $script:configJsonArray = $null
         $configTextBox.Text = ""
@@ -874,23 +865,23 @@ function Load-JsonConfigFile {
 }
 
 # 查找并加载配置
-Write-Log $script:ui.CheckingConfig "Info"
+Write-Log $ui.CheckingConfig "Info"
 
 $script:cd = [System.IO.Directory]::GetCurrentDirectory()
 Write-Host "[ Debug ] current directory = $script:cd"
-Write-Log ($script:ui.INFO_BackupRootDir + ": " + $script:cd) "Info"
+Write-Log ($ui.INFO_BackupRootDir + ": " + $script:cd) "Info"
 
 $script:cdJsonFiles = [System.IO.Directory]::GetFiles($script:cd, "*.json" )
 if ($script:cdJsonFiles.Count -eq 0) {
-    Write-Log $script:ui.ConfigNotFound "Warning"
+    Write-Log $ui.ConfigNotFound "Warning"
     Load-DefaultConfig
 }
 elseif ($script:cdJsonFiles.Count -gt 1) {
-    Write-Log ($script:ui.INFO_MultipleConfigFound -f $script:cdJsonFiles.Count) "Warning"
+    Write-Log ($ui.INFO_MultipleConfigFound -f $script:cdJsonFiles.Count) "Warning"
     Load-DefaultConfig
 }
 else {
-    Write-Log ($script:ui.ConfigSelected + "$(Split-Path -Leaf $script:cdJsonFiles[0])") "Info"
+    Write-Log ($ui.ConfigSelected + "$(Split-Path -Leaf $script:cdJsonFiles[0])") "Info"
     Load-JsonConfigFile -ConfigPath $script:cdJsonFiles[0]
 }
 
@@ -902,14 +893,14 @@ else {
 $script:fileDialogInitialDirectory = $script:cd
 $browseButton.Add_Click({
     $fileDialog = [System.Windows.Forms.OpenFileDialog]::new()
-    $fileDialog.Filter = $script:ui.FileFilter
-    $fileDialog.Title = $script:ui.FileDialogTitle
+    $fileDialog.Filter = $ui.FileFilter
+    $fileDialog.Title = $ui.FileDialogTitle
     $fileDialog.InitialDirectory = $script:fileDialogInitialDirectory
 
     if ($fileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {  
         $script:configPath = $fileDialog.FileName
         $script:fileDialogInitialDirectory = Split-Path -Parent $script:configPath
-        Write-Log ($script:ui.ConfigSelected + "$(Split-Path -Leaf $script:configPath)") "Info"
+        Write-Log ($ui.ConfigSelected + "$(Split-Path -Leaf $script:configPath)") "Info"
         Load-JsonConfigFile -ConfigPath $script:configPath
     }
 })
@@ -929,7 +920,7 @@ $startButton.Add_Click({
     $progressBar.Value = 0
     $script:asyncProgressState['Value'] = 0  # 重置异步进度变量（通过 hashtable 引用）
 
-    Write-Log $script:ui.BackupStarted "Progress"
+    Write-Log $ui.BackupStarted "Progress"
 
     # 创建 Runspace 池来执行备份任务
     $runspacePool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1, 1)
@@ -1286,7 +1277,7 @@ $startButton.Add_Click({
 
     # 异步执行
     $script:asyncResult = $psInstance.BeginInvoke()
-    Write-Log $script:ui.RunspaceStarted "Progress"
+    Write-Log $ui.RunspaceStarted "Progress"
     
     # 等待任务完成并清理资源
     try {
@@ -1300,7 +1291,7 @@ $startButton.Add_Click({
         Write-Host "[ Debug ] EndInvoke result = $($result) (type: $($result.GetType()))"
     }
     catch {
-        Write-Log ($script:ui.ERROR_BackupTaskFailed -f $_) 'Error'
+        Write-Log ($ui.ERROR_BackupTaskFailed -f $_) 'Error'
     }
     finally {
         # 清理资源
@@ -1327,9 +1318,9 @@ $copyLogButton.Add_Click({
 
     if ($logTextBox.Text.Length -gt 0) {
         [System.Windows.Forms.Clipboard]::SetText($logTextBox.Text)
-        Write-Log $script:ui.LogCopied "Success"
+        Write-Log $ui.LogCopied "Success"
     } else {
-        Write-Log $script:ui.NoLog "Warning"
+        Write-Log $ui.NoLog "Warning"
     }
 })
 
@@ -1382,19 +1373,19 @@ $openLocationMenuItem.Add_Click({
         if (Test-Path $realPath) {
             # 打开文件夹
             Start-Process "explorer.exe" -ArgumentList $realPath
-            Write-Log ($script:ui.OpeningSaveLocation -f $gameName, $realPath) "Info"
+            Write-Log ($ui.OpeningSaveLocation -f $gameName, $realPath) "Info"
         } else {
             # 路径不存在，尝试打开父目录
             $parentDir = Split-Path -Parent $realPath
             if (Test-Path $parentDir) {
                 Start-Process "explorer.exe" -ArgumentList $parentDir
-                Write-Log ($script:ui.SaveLocationNotFound -f $gameName, $parentDir) "Warning"
+                Write-Log ($ui.SaveLocationNotFound -f $gameName, $parentDir) "Warning"
             } else {
-                Write-Log ($script:ui.SaveLocationNotExist -f $gameName, $realPath) "Error"
+                Write-Log ($ui.SaveLocationNotExist -f $gameName, $realPath) "Error"
 
                 $result = [System.Windows.Forms.MessageBox]::Show(
-                    ($script:ui.ConfirmCreateDirectory -f $realPath),
-                    $script:ui.ConfirmPrompt,
+                    ($ui.ConfirmCreateDirectory -f $realPath),
+                    $ui.ConfirmPrompt,
                     [System.Windows.Forms.MessageBoxButtons]::YesNo,
                     [System.Windows.Forms.MessageBoxIcon]::Question
                 )
@@ -1403,10 +1394,10 @@ $openLocationMenuItem.Add_Click({
                     try {
                         New-Item -ItemType Directory -Path $realPath -Force | Out-Null
                         Start-Process "explorer.exe" -ArgumentList $realPath
-                        Write-Log ($script:ui.DirectoryCreated -f $gameName, $realPath) "Success"
+                        Write-Log ($ui.DirectoryCreated -f $gameName, $realPath) "Success"
                     }
                     catch {
-                        Write-Log ($script:ui.FailedToCreateDirectory -f $gameName, $_) "Error"
+                        Write-Log ($ui.FailedToCreateDirectory -f $gameName, $_) "Error"
                     }
                 }
             }
