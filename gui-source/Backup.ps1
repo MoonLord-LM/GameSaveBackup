@@ -5,418 +5,428 @@
 
 # ———————————————————————————————— 1: 基础设置和常量定义 ————————————————————————————————
 
-# 加载窗体程序集
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
+try {
+    # 加载窗体程序集
+    Add-Type -AssemblyName System.Windows.Forms
+    Add-Type -AssemblyName System.Drawing
 
-# 设置字符编码 UTF-8
-$defaultOutputEncoding = [System.Console]::OutputEncoding.EncodingName
-[System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-$currentOutputEncoding = [System.Console]::OutputEncoding.EncodingName
-"[ Debug ] defaultOutputEncoding = $defaultOutputEncoding"
-"[ Debug ] currentOutputEncoding = $currentOutputEncoding"
+    # 设置字符编码 UTF-8
+    $defaultOutputEncoding = [System.Console]::OutputEncoding.EncodingName
+    [System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+    $currentOutputEncoding = [System.Console]::OutputEncoding.EncodingName
+    "[ Debug ] defaultOutputEncoding = $defaultOutputEncoding"
+    "[ Debug ] currentOutputEncoding = $currentOutputEncoding"
 
-# 设置更现代的窗口样式
-[System.Windows.Forms.Application]::EnableVisualStyles()
-[System.Windows.Forms.Application]::SetCompatibleTextRenderingDefault($false)
+    # 设置更现代的窗口样式
+    [System.Windows.Forms.Application]::EnableVisualStyles()
+    [System.Windows.Forms.Application]::SetCompatibleTextRenderingDefault($false)
 
-# 分析合适的显示语言
-$currentCulture = [System.Globalization.CultureInfo]::CurrentCulture.Name
-$currentUICulture = [System.Globalization.CultureInfo]::CurrentUICulture.Name
-$installedUICulture = [System.Globalization.CultureInfo]::InstalledUICulture.Name
-$currentThreadCulture = [System.Threading.Thread]::CurrentThread.CurrentCulture.Name
-$currentThreadUICulture = [System.Threading.Thread]::CurrentThread.CurrentUICulture.Name
-$workingLang = 'en-US'
-$zhCNCount = 0;
-$enUSCount = 0;
-if ($currentCulture -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
-if ($currentUICulture -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
-if ($installedUICulture -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
-if ($currentThreadCulture -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
-if ($currentThreadUICulture -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
-if ($zhCNCount -ge $enUSCount) {
-    $workingLang = 'zh-CN'
-} else {
+    # 分析合适的显示语言
+    $currentCulture = [System.Globalization.CultureInfo]::CurrentCulture.Name
+    $currentUICulture = [System.Globalization.CultureInfo]::CurrentUICulture.Name
+    $installedUICulture = [System.Globalization.CultureInfo]::InstalledUICulture.Name
+    $currentThreadCulture = [System.Threading.Thread]::CurrentThread.CurrentCulture.Name
+    $currentThreadUICulture = [System.Threading.Thread]::CurrentThread.CurrentUICulture.Name
     $workingLang = 'en-US'
-}
-"[ Debug ] currentCulture = $currentCulture"
-"[ Debug ] currentUICulture = $currentUICulture"
-"[ Debug ] installedUICulture = $installedUICulture"
-"[ Debug ] currentThreadCulture = $currentThreadCulture"
-"[ Debug ] currentThreadUICulture = $currentThreadUICulture"
-"[ Debug ] workingLang = $workingLang"
+    $zhCNCount = 0
+    $enUSCount = 0
+    if ($currentCulture -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
+    if ($currentUICulture -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
+    if ($installedUICulture -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
+    if ($currentThreadCulture -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
+    if ($currentThreadUICulture -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
+    if ($zhCNCount -ge $enUSCount) {
+        $workingLang = 'zh-CN'
+    } else {
+        $workingLang = 'en-US'
+    }
+    "[ Debug ] currentCulture = $currentCulture"
+    "[ Debug ] currentUICulture = $currentUICulture"
+    "[ Debug ] installedUICulture = $installedUICulture"
+    "[ Debug ] currentThreadCulture = $currentThreadCulture"
+    "[ Debug ] currentThreadUICulture = $currentThreadUICulture"
+    "[ Debug ] workingLang = $workingLang"
 
-# 分析合适的工作目录
-$currentDirectory = [System.IO.Directory]::GetCurrentDirectory()
-$callDirectory = (Get-Location).Path
-$scriptDirectory = $PSScriptRoot
-$systemDirectory = [System.Environment]::SystemDirectory
-$userDirectory = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::UserProfile)
-$tempDirectory = [System.IO.Path]::GetTempPath()
-$workingDirectory = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop)
-foreach ($dir in @($currentDirectory, $callDirectory, $scriptDirectory)) {
-    if ($dir) {
-        if ($dir -ine $systemDirectory) {
-            if ($dir -ine $userDirectory) {
-                if ($dir -ine $tempDirectory) {
-                    $workingDirectory = $dir
-                    break
+    # 分析合适的工作目录
+    $currentDirectory = [System.IO.Directory]::GetCurrentDirectory()
+    $callDirectory = (Get-Location).Path
+    $scriptDirectory = $PSScriptRoot
+    $systemDirectory = [System.Environment]::SystemDirectory
+    $userDirectory = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::UserProfile)
+    $tempDirectory = [System.IO.Path]::GetTempPath()
+    $workingDirectory = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop)
+    foreach ($dir in @($currentDirectory, $callDirectory, $scriptDirectory)) {
+        if ($dir) {
+            if ($dir -ine $systemDirectory) {
+                if ($dir -ine $userDirectory) {
+                    if ($dir -ine $tempDirectory) {
+                        $workingDirectory = $dir
+                        break
+                    }
                 }
             }
         }
     }
-}
-"[ Debug ] currentDirectory = $currentDirectory"
-"[ Debug ] callDirectory = $callDirectory"
-"[ Debug ] scriptDirectory = $scriptDirectory"
-"[ Debug ] systemDirectory = $systemDirectory"
-"[ Debug ] userDirectory = $userDirectory"
-"[ Debug ] tempDirectory = $tempDirectory"
-"[ Debug ] workingDirectory = $workingDirectory"
+    "[ Debug ] currentDirectory = $currentDirectory"
+    "[ Debug ] callDirectory = $callDirectory"
+    "[ Debug ] scriptDirectory = $scriptDirectory"
+    "[ Debug ] systemDirectory = $systemDirectory"
+    "[ Debug ] userDirectory = $userDirectory"
+    "[ Debug ] tempDirectory = $tempDirectory"
+    "[ Debug ] workingDirectory = $workingDirectory"
 
-# 界面支持中英文，定义多语言文本资源
-$uiTextResources = @{
-    'zh-CN' = @{
-        FormTitle = "游戏存档备份工具"
-        ConfigLabel = "配置文件:"
-        BrowseButton = "选择配置"
-        StartButton = "开始备份"
-        CopyLogButton = "复制日志"
-        LogTabPage = "运行日志"
-        GameListTabPage = "游戏列表"
-        MachineInfo = "机器名: [ {0} ]  用户名: [ {1} ]"
-        CheckingConfig = "正在检查配置文件..."
-        ConfigLoaded = "成功加载配置文件，共 {0} 个游戏"
-        GameListUpdated = "游戏列表已更新"
-        ConfigNotFound = "当前目录下未找到 JSON 配置文件，将使用内嵌默认配置"
-        ConfigSelected = "已选择配置文件: "
-        BackupStarted = "开始备份任务"
-        RunspaceStarted = "Runspace 已启动，开始监控备份任务"
-        LogCopied = "日志已复制到剪贴板"
-        NoLog = "当前没有日志内容"
-        ColumnIndex = "序号"
-        ColumnGameName = "游戏名称"
-        ColumnSavePath = "存档路径"
-        FileFilter = "JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*"
-        FileDialogTitle = "选择配置文件"
-        DefaultConfigLoaded = "已加载内嵌默认配置文件，共 {0} 个游戏"
-        OpenSaveLocation = "打开存档路径"
-        BuiltInConfigDisplay = "内置配置 ({0} 个游戏)"
-        OpeningSaveLocation = "正在打开存档位置: {0} - {1}"
-        SaveLocationNotFound = "存档路径不存在，打开父目录: {0} - {1}"
-        SaveLocationNotExist = "存档路径不存在: {0} - {1}"
-        DirectoryCreated = "目录已创建: {0} - {1}"
-        FailedToCreateDirectory = "创建目录失败: {0} - {1}"
-        ConfirmPrompt = "提示"
-        ConfirmCreateDirectory = "存档路径不存在:`n{0}`n`n是否要创建此目录？"
-        SaveLocationBatName = "存档位置.bat"
-        CreateBackupDir = "创建备份目录: {0}"
-        ERROR_GitMissing = "错误：缺少 git.exe 组件"
-        ERROR_GitDownload = "请从 https://git-scm.com/install/windows 下载"
-        ERROR_ConfigNotFound = "错误：选定的配置文件不存在"
-        ERROR_ConfigReadFailed = "读取配置文件失败"
-        INFO_UsingConfig = "使用配置文件"
-        INFO_GitCommand = "Git 命令"
-        INFO_RobocopyCommand = "Robocopy 命令"
-        INFO_GamesFound = "找到游戏配置数量"
-        INFO_MultipleConfigFound = "当前目录下找到 {0} 个 JSON 配置文件，请删除多余的，只保留一个"
-        ERROR_DefaultConfigFailed = "内嵌默认配置加载失败"
-        ERROR_ConfigLoadFailed = "配置文件加载失败"
-        PROGRESS_Processing = "处理"
-        INFO_IgnoreItem = "忽略项"
-        INFO_CurrentWorkingDir = "当前工作目录"
-        INFO_EnteringBackupDir = "进入备份目录"
-        INFO_BackupRootDir = "备份根目录"
-        ERROR_ConfigNotArrayFormat = "配置内容必须是数组格式"
-        ERROR_ConfigEmptyCount = "配置内容的配置项个数为零"
-        ERROR_ConfigItemNotObject = "第 {0} 个配置项不是 JSON 对象"
-        ERROR_ConfigItemMissingName = "第 {0} 个配置项缺少 'name' 属性"
-        ERROR_ConfigItemMissingSave = "第 {0} 个配置项缺少 'save' 属性"
-        ERROR_ConfigItemNameEmpty = "第 {0} 个配置项的 'name' 属性为空"
-        ERROR_ConfigItemSaveEmpty = "第 {0} 个配置项的 'save' 属性为空"
-        ERROR_ConfigItemNameIllegalChars = "第 {0} 个配置项的 'name' 属性包含 Windows 文件名非法字符（< > : "" / \ | ? *）"
-        ERROR_CreateBackupDirFailed = "创建备份目录失败: {0}"
-        ERROR_ErrorDetails = "错误详情: {0}"
-        INFO_FileTimeComparison = "本地文件修改时间:[{0}] 备份文件修改时间:[{1}]"
-        WARNING_BothMissing = "本地存档文件与备份文件都不存在，跳过操作"
-        WARNING_LocalMissing = "本地存档文件缺失，使用备份文件恢复"
-        INFO_BackupMissing = "备份文件缺失，进行备份"
-        WARNING_LocalOlder = "本地存档文件修改时间较旧，删除到回收站，并使用备份文件更新"
-        INFO_LocalNewer = "本地存档文件修改时间较新，进行备份"
-        INFO_SameTime = "本地存档文件与备份文件修改时间相同，跳过操作"
-        INFO_RobocopyReturn = "详细信息"
-        INFO_RobocopySuccess = "Robocopy 执行成功（返回码 {0}）"
-        INFO_RobocopyFailed = "Robocopy 执行失败（返回码 {0}）"
-        INFO_GitExecuting = "正在执行 Git 命令"
-        INFO_GitOutput = "Git 输出信息"
-        SUCCESS_GitCommit = "Git 提交完成"
-        SUCCESS_FinalCommit = "最终 Git 提交完成"
-        SUCCESS_BackupComplete = "备份完成"
-        ERROR_BackupTaskFailed = "备份任务失败: {0}"
-        SUCCESS_GitInitialized = "Git 仓库已初始化并配置"
-        INFO_SystemInfo = "系统版本: [ {0} ]  PowerShell 版本: [ {1} ]"
+    # 界面支持中英文，定义多语言文本资源
+    $uiTextResources = @{
+        'zh-CN' = @{
+            FormTitle = "游戏存档备份工具"
+            ConfigLabel = "配置文件:"
+            BrowseButton = "选择配置"
+            StartButton = "开始备份"
+            CopyLogButton = "复制日志"
+            LogTabPage = "运行日志"
+            GameListTabPage = "游戏列表"
+            MachineInfo = "机器名: [ {0} ]  用户名: [ {1} ]"
+            CheckingConfig = "正在检查配置文件..."
+            ConfigLoaded = "成功加载配置文件，共 {0} 个游戏"
+            GameListUpdated = "游戏列表已更新"
+            ConfigNotFound = "当前目录下未找到 JSON 配置文件，将使用内嵌默认配置"
+            ConfigSelected = "已选择配置文件: "
+            BackupStarted = "开始备份任务"
+            RunspaceStarted = "Runspace 已启动，开始监控备份任务"
+            LogCopied = "日志已复制到剪贴板"
+            NoLog = "当前没有日志内容"
+            ColumnIndex = "序号"
+            ColumnGameName = "游戏名称"
+            ColumnSavePath = "存档路径"
+            FileFilter = "JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*"
+            FileDialogTitle = "选择配置文件"
+            DefaultConfigLoaded = "已加载内嵌默认配置文件，共 {0} 个游戏"
+            OpenSaveLocation = "打开存档路径"
+            BuiltInConfigDisplay = "内置配置 ({0} 个游戏)"
+            OpeningSaveLocation = "正在打开存档位置: {0} - {1}"
+            SaveLocationNotFound = "存档路径不存在，打开父目录: {0} - {1}"
+            SaveLocationNotExist = "存档路径不存在: {0} - {1}"
+            DirectoryCreated = "目录已创建: {0} - {1}"
+            FailedToCreateDirectory = "创建目录失败: {0} - {1}"
+            ConfirmPrompt = "提示"
+            ConfirmCreateDirectory = "存档路径不存在:`n{0}`n`n是否要创建此目录？"
+            SaveLocationBatName = "存档位置.bat"
+            CreateBackupDir = "创建备份目录: {0}"
+            ERROR_GitMissing = "错误：缺少 git.exe 组件"
+            ERROR_GitDownload = "请从 https://git-scm.com/install/windows 下载"
+            ERROR_ConfigNotFound = "错误：选定的配置文件不存在"
+            ERROR_ConfigReadFailed = "读取配置文件失败"
+            INFO_UsingConfig = "使用配置文件"
+            INFO_GitCommand = "Git 命令"
+            INFO_RobocopyCommand = "Robocopy 命令"
+            INFO_GamesFound = "找到游戏配置数量"
+            INFO_MultipleConfigFound = "当前目录下找到 {0} 个 JSON 配置文件，请删除多余的，只保留一个"
+            ERROR_DefaultConfigFailed = "内嵌默认配置加载失败"
+            ERROR_ConfigLoadFailed = "配置文件加载失败"
+            PROGRESS_Processing = "处理"
+            INFO_IgnoreItem = "忽略项"
+            INFO_CurrentWorkingDir = "当前工作目录"
+            INFO_EnteringBackupDir = "进入备份目录"
+            INFO_BackupRootDir = "备份根目录"
+            ERROR_ConfigNotArrayFormat = "配置内容必须是数组格式"
+            ERROR_ConfigEmptyCount = "配置内容的配置项个数为零"
+            ERROR_ConfigItemNotObject = "第 {0} 个配置项不是 JSON 对象"
+            ERROR_ConfigItemMissingName = "第 {0} 个配置项缺少 'name' 属性"
+            ERROR_ConfigItemMissingSave = "第 {0} 个配置项缺少 'save' 属性"
+            ERROR_ConfigItemNameEmpty = "第 {0} 个配置项的 'name' 属性为空"
+            ERROR_ConfigItemSaveEmpty = "第 {0} 个配置项的 'save' 属性为空"
+            ERROR_ConfigItemNameIllegalChars = "第 {0} 个配置项的 'name' 属性包含 Windows 文件名非法字符（< > : "" / \ | ? *）"
+            ERROR_CreateBackupDirFailed = "创建备份目录失败: {0}"
+            ERROR_ErrorDetails = "错误详情: {0}"
+            INFO_FileTimeComparison = "本地文件修改时间:[{0}] 备份文件修改时间:[{1}]"
+            WARNING_BothMissing = "本地存档文件与备份文件都不存在，跳过操作"
+            WARNING_LocalMissing = "本地存档文件缺失，使用备份文件恢复"
+            INFO_BackupMissing = "备份文件缺失，进行备份"
+            WARNING_LocalOlder = "本地存档文件修改时间较旧，删除到回收站，并使用备份文件更新"
+            INFO_LocalNewer = "本地存档文件修改时间较新，进行备份"
+            INFO_SameTime = "本地存档文件与备份文件修改时间相同，跳过操作"
+            INFO_RobocopyReturn = "详细信息"
+            INFO_RobocopySuccess = "Robocopy 执行成功（返回码 {0}）"
+            INFO_RobocopyFailed = "Robocopy 执行失败（返回码 {0}）"
+            INFO_GitExecuting = "正在执行 Git 命令"
+            INFO_GitOutput = "Git 输出信息"
+            SUCCESS_GitCommit = "Git 提交完成"
+            SUCCESS_FinalCommit = "最终 Git 提交完成"
+            SUCCESS_BackupComplete = "备份完成"
+            ERROR_BackupTaskFailed = "备份任务失败: {0}"
+            SUCCESS_GitInitialized = "Git 仓库已初始化并配置"
+            INFO_SystemInfo = "系统版本: [ {0} ]  PowerShell 版本: [ {1} ]"
+        }
+        'en-US' = @{
+            FormTitle = "Game Save Backup Tool"
+            ConfigLabel = "Config File:"
+            BrowseButton = "Browse Config"
+            StartButton = "Start Backup"
+            CopyLogButton = "Copy Log"
+            LogTabPage = "Run Log"
+            GameListTabPage = "Game List"
+            MachineInfo = "Machine: [ {0} ]  User: [ {1} ]"
+            CheckingConfig = "Checking config file..."
+            ConfigLoaded = "Config file loaded successfully, {0} game(s) found"
+            GameListUpdated = "Game list updated"
+            ConfigNotFound = "No JSON config file found in current directory, will use embedded default config"
+            ConfigSelected = "Config file selected: "
+            BackupStarted = "Starting backup task"
+            RunspaceStarted = "Runspace started, monitoring backup task"
+            LogCopied = "Log copied to clipboard"
+            NoLog = "No log content"
+            ColumnIndex = "#"
+            ColumnGameName = "Game Name"
+            ColumnSavePath = "Save Path"
+            FileFilter = "JSON Files (*.json)|*.json|All Files (*.*)|*.*"
+            FileDialogTitle = "Select Config File"
+            DefaultConfigLoaded = "Embedded default config loaded, {0} game(s) found"
+            OpenSaveLocation = "Open Save Path"
+            BuiltInConfigDisplay = "Built-in Config ({0} games)"
+            OpeningSaveLocation = "Opening save location: {0} - {1}"
+            SaveLocationNotFound = "Save path not found, opening parent directory: {0} - {1}"
+            SaveLocationNotExist = "Save location does not exist: {0} - {1}"
+            DirectoryCreated = "Directory created: {0} - {1}"
+            FailedToCreateDirectory = "Failed to create directory: {0} - {1}"
+            ConfirmPrompt = "Confirm"
+            ConfirmCreateDirectory = "Archive path does not exist:`n{0}`n`nDo you want to create this directory?"
+            SaveLocationBatName = "SaveLocation.bat"
+            CreateBackupDir = "Creating backup directory: {0}"
+            ERROR_GitMissing = "Error: git.exe component is missing"
+            ERROR_GitDownload = "Please download from https://git-scm.com/install/windows"
+            ERROR_ConfigNotFound = "Error: Selected config file does not exist"
+            ERROR_ConfigReadFailed = "Failed to read config file"
+            INFO_UsingConfig = "Using config file"
+            INFO_GitCommand = "Git command"
+            INFO_RobocopyCommand = "Robocopy command"
+            INFO_GamesFound = "game(s) found in configuration"
+            INFO_MultipleConfigFound = "Found {0} JSON config files in current directory. Please remove extra files and keep only one"
+            ERROR_DefaultConfigFailed = "Failed to load embedded default config"
+            ERROR_ConfigLoadFailed = "Config file load failed"
+            PROGRESS_Processing = "Processing"
+            INFO_IgnoreItem = "Ignore item"
+            INFO_CurrentWorkingDir = "Current working directory"
+            INFO_EnteringBackupDir = "Entering backup directory"
+            INFO_BackupRootDir = "Backup root directory"
+            ERROR_ConfigNotArrayFormat = "Config content must be an array format"
+            ERROR_ConfigEmptyCount = "Config contains zero items"
+            ERROR_ConfigItemNotObject = "Item {0} is not a JSON object"
+            ERROR_ConfigItemMissingName = "Item {0} missing 'name' property"
+            ERROR_ConfigItemMissingSave = "Item {0} missing 'save' property"
+            ERROR_ConfigItemNameEmpty = "Item {0} has empty 'name' property"
+            ERROR_ConfigItemSaveEmpty = "Item {0} has empty 'save' property"
+            ERROR_ConfigItemNameIllegalChars = "Item {0} 'name' property contains illegal filename characters (<>:""/\|?*)"
+            ERROR_CreateBackupDirFailed = "Failed to create backup directory: {0}"
+            ERROR_ErrorDetails = "Error details: {0}"
+            INFO_FileTimeComparison = "Local file time:[{0}] Backup file time:[{1}]"
+            WARNING_BothMissing = "Both local save and backup files are missing, skipping"
+            WARNING_LocalMissing = "Local save file is missing, restoring from backup"
+            INFO_BackupMissing = "Backup file is missing, performing backup"
+            WARNING_LocalOlder = "Local save file is older, deleting to recycle bin and updating from backup"
+            INFO_LocalNewer = "Local save file is newer, performing backup"
+            INFO_SameTime = "Local and backup files have the same modification time, skipping"
+            INFO_RobocopyReturn = "Details"
+            INFO_RobocopySuccess = "Robocopy executed successfully (exit code {0})"
+            INFO_RobocopyFailed = "Robocopy execution failed (exit code {0})"
+            INFO_GitExecuting = "Executing Git command"
+            INFO_GitOutput = "Git output"
+            SUCCESS_GitCommit = "Git commit completed"
+            SUCCESS_FinalCommit = "Final Git commit completed"
+            SUCCESS_BackupComplete = "Backup completed successfully"
+            ERROR_BackupTaskFailed = "Backup task failed: {0}"
+            SUCCESS_GitInitialized = "Git repository initialized and configured"
+            INFO_SystemInfo = "System Version: [ {0} ]  PowerShell Version: [ {1} ]"
+        }
     }
-    'en-US' = @{
-        FormTitle = "Game Save Backup Tool"
-        ConfigLabel = "Config File:"
-        BrowseButton = "Browse Config"
-        StartButton = "Start Backup"
-        CopyLogButton = "Copy Log"
-        LogTabPage = "Run Log"
-        GameListTabPage = "Game List"
-        MachineInfo = "Machine: [ {0} ]  User: [ {1} ]"
-        CheckingConfig = "Checking config file..."
-        ConfigLoaded = "Config file loaded successfully, {0} game(s) found"
-        GameListUpdated = "Game list updated"
-        ConfigNotFound = "No JSON config file found in current directory, will use embedded default config"
-        ConfigSelected = "Config file selected: "
-        BackupStarted = "Starting backup task"
-        RunspaceStarted = "Runspace started, monitoring backup task"
-        LogCopied = "Log copied to clipboard"
-        NoLog = "No log content"
-        ColumnIndex = "#"
-        ColumnGameName = "Game Name"
-        ColumnSavePath = "Save Path"
-        FileFilter = "JSON Files (*.json)|*.json|All Files (*.*)|*.*"
-        FileDialogTitle = "Select Config File"
-        DefaultConfigLoaded = "Embedded default config loaded, {0} game(s) found"
-        OpenSaveLocation = "Open Save Path"
-        BuiltInConfigDisplay = "Built-in Config ({0} games)"
-        OpeningSaveLocation = "Opening save location: {0} - {1}"
-        SaveLocationNotFound = "Save path not found, opening parent directory: {0} - {1}"
-        SaveLocationNotExist = "Save location does not exist: {0} - {1}"
-        DirectoryCreated = "Directory created: {0} - {1}"
-        FailedToCreateDirectory = "Failed to create directory: {0} - {1}"
-        ConfirmPrompt = "Confirm"
-        ConfirmCreateDirectory = "Archive path does not exist:`n{0}`n`nDo you want to create this directory?"
-        SaveLocationBatName = "SaveLocation.bat"
-        CreateBackupDir = "Creating backup directory: {0}"
-        ERROR_GitMissing = "Error: git.exe component is missing"
-        ERROR_GitDownload = "Please download from https://git-scm.com/install/windows"
-        ERROR_ConfigNotFound = "Error: Selected config file does not exist"
-        ERROR_ConfigReadFailed = "Failed to read config file"
-        INFO_UsingConfig = "Using config file"
-        INFO_GitCommand = "Git command"
-        INFO_RobocopyCommand = "Robocopy command"
-        INFO_GamesFound = "game(s) found in configuration"
-        INFO_MultipleConfigFound = "Found {0} JSON config files in current directory. Please remove extra files and keep only one"
-        ERROR_DefaultConfigFailed = "Failed to load embedded default config"
-        ERROR_ConfigLoadFailed = "Config file load failed"
-        PROGRESS_Processing = "Processing"
-        INFO_IgnoreItem = "Ignore item"
-        INFO_CurrentWorkingDir = "Current working directory"
-        INFO_EnteringBackupDir = "Entering backup directory"
-        INFO_BackupRootDir = "Backup root directory"
-        ERROR_ConfigNotArrayFormat = "Config content must be an array format"
-        ERROR_ConfigEmptyCount = "Config contains zero items"
-        ERROR_ConfigItemNotObject = "Item {0} is not a JSON object"
-        ERROR_ConfigItemMissingName = "Item {0} missing 'name' property"
-        ERROR_ConfigItemMissingSave = "Item {0} missing 'save' property"
-        ERROR_ConfigItemNameEmpty = "Item {0} has empty 'name' property"
-        ERROR_ConfigItemSaveEmpty = "Item {0} has empty 'save' property"
-        ERROR_ConfigItemNameIllegalChars = "Item {0} 'name' property contains illegal filename characters (<>:""/\|?*)"
-        ERROR_CreateBackupDirFailed = "Failed to create backup directory: {0}"
-        ERROR_ErrorDetails = "Error details: {0}"
-        INFO_FileTimeComparison = "Local file time:[{0}] Backup file time:[{1}]"
-        WARNING_BothMissing = "Both local save and backup files are missing, skipping"
-        WARNING_LocalMissing = "Local save file is missing, restoring from backup"
-        INFO_BackupMissing = "Backup file is missing, performing backup"
-        WARNING_LocalOlder = "Local save file is older, deleting to recycle bin and updating from backup"
-        INFO_LocalNewer = "Local save file is newer, performing backup"
-        INFO_SameTime = "Local and backup files have the same modification time, skipping"
-        INFO_RobocopyReturn = "Details"
-        INFO_RobocopySuccess = "Robocopy executed successfully (exit code {0})"
-        INFO_RobocopyFailed = "Robocopy execution failed (exit code {0})"
-        INFO_GitExecuting = "Executing Git command"
-        INFO_GitOutput = "Git output"
-        SUCCESS_GitCommit = "Git commit completed"
-        SUCCESS_FinalCommit = "Final Git commit completed"
-        SUCCESS_BackupComplete = "Backup completed successfully"
-        ERROR_BackupTaskFailed = "Backup task failed: {0}"
-        SUCCESS_GitInitialized = "Git repository initialized and configured"
-        INFO_SystemInfo = "System Version: [ {0} ]  PowerShell Version: [ {1} ]"
-    }
-}
-$ui = $uiTextResources[$workingLang]
+    $ui = $uiTextResources[$workingLang]
 
-# 内嵌的中英文的默认 JSON 配置
-$defaultJsonConfigs = @{
-    'zh-CN' = @'
+    # 内嵌的中英文的默认 JSON 配置
+    $defaultJsonConfigs = @{
+        'zh-CN' = @'
 [
-  {
-    "name": "艾尔登法环",
-    "save": "%USERPROFILE%\\AppData\\Roaming\\EldenRing"
-  },
-  {
-    "name": "幻兽帕鲁",
-    "save": "%USERPROFILE%\\AppData\\Local\\Pal\\Saved\\SaveGames"
-  },
-  {
-    "name": "部落幸存者",
-    "save": "%USERPROFILE%\\AppData\\LocalLow\\SZSS INTERACTIVE\\Settlement Survival"
-  },
-  {
-    "name": "最后纪元",
-    "save": "%USERPROFILE%\\AppData\\LocalLow\\Eleventh Hour Games\\Last Epoch"
-  },
-  {
-    "name": "虐杀原形",
-    "save": "%USERPROFILE%\\Documents\\Prototype"
-  },
-  {
-    "name": "尼尔：机械纪元",
-    "save": "%USERPROFILE%\\Documents\\My Games\\NieR_Automata"
-  },
-  {
-    "name": "真三国无双 8：帝国",
-    "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\Dynasty Warriors 9 Empires"
-  },
-  {
-    "name": "无双大蛇 3",
-    "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\WARRIORS OROCHI 4"
-  },
-  {
-    "name": "真三国无双 5",
-    "save": "%USERPROFILE%\\Documents\\KOEI\\Shin Sangokumusou 5"
-  },
-  {
-    "name": "亿万僵尸",
-    "save": "%USERPROFILE%\\Documents\\My Games\\They Are Billions"
-  },
-  {
-    "name": "星球基地",
-    "save": "%USERPROFILE%\\Documents\\Planetbase"
-  },
-  {
-    "name": "缺氧",
-    "save": "%USERPROFILE%\\Documents\\Klei\\OxygenNotIncluded",
-    "ignore": [
-        "%USERPROFILE%\\Documents\\Klei\\OxygenNotIncluded\\RetiredColonies"
-    ]
-  },
-  {
-    "name": "饥荒联机版",
-    "save": "%USERPROFILE%\\Documents\\Klei\\DoNotStarveTogether"
-  },
-  {
-    "name": "博德之门 3",
-    "save": "%USERPROFILE%\\AppData\\Local\\Larian Studios\\Baldur's Gate 3"
-  },
-  {
-    "name": "三国志 8：重制版",
-    "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\SAN8R"
-  },
-  {
-    "name": "光与影：33 号远征队",
-    "save": "%USERPROFILE%\\AppData\\Local\\Sandfall\\Saved"
-  },
-  {
-    "name": "对马岛之魂",
-    "save": "%USERPROFILE%\\Documents\\Ghost of Tsushima DIRECTOR'S CUT"
-  },
-  {
-    "name": "纪念碑谷",
-    "save": "%USERPROFILE%\\AppData\\LocalLow\\ustwo games\\Monument Valley"
-  },
-  {
-    "name": "虫虫大作战",
-    "save": "%PROGRAMDATA%\\AlderGames\\BugBits"
-  },
-  {
-    "name": "棋弈无限：围棋",
-    "save": "%USERPROFILE%\\AppData\\LocalLow\\Studio Amateur\\JustGo"
-  }
+    {
+        "name": "艾尔登法环",
+        "save": "%USERPROFILE%\\AppData\\Roaming\\EldenRing"
+    },
+    {
+        "name": "幻兽帕鲁",
+        "save": "%USERPROFILE%\\AppData\\Local\\Pal\\Saved\\SaveGames"
+    },
+    {
+        "name": "部落幸存者",
+        "save": "%USERPROFILE%\\AppData\\LocalLow\\SZSS INTERACTIVE\\Settlement Survival"
+    },
+    {
+        "name": "最后纪元",
+        "save": "%USERPROFILE%\\AppData\\LocalLow\\Eleventh Hour Games\\Last Epoch"
+    },
+    {
+        "name": "虐杀原形",
+        "save": "%USERPROFILE%\\Documents\\Prototype"
+    },
+    {
+        "name": "尼尔：机械纪元",
+        "save": "%USERPROFILE%\\Documents\\My Games\\NieR_Automata"
+    },
+    {
+        "name": "真三国无双 8：帝国",
+        "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\Dynasty Warriors 9 Empires"
+    },
+    {
+        "name": "无双大蛇 3",
+        "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\WARRIORS OROCHI 4"
+    },
+    {
+        "name": "真三国无双 5",
+        "save": "%USERPROFILE%\\Documents\\KOEI\\Shin Sangokumusou 5"
+    },
+    {
+        "name": "亿万僵尸",
+        "save": "%USERPROFILE%\\Documents\\My Games\\They Are Billions"
+    },
+    {
+        "name": "星球基地",
+        "save": "%USERPROFILE%\\Documents\\Planetbase"
+    },
+    {
+        "name": "缺氧",
+        "save": "%USERPROFILE%\\Documents\\Klei\\OxygenNotIncluded",
+        "ignore": [
+            "%USERPROFILE%\\Documents\\Klei\\OxygenNotIncluded\\RetiredColonies"
+        ]
+    },
+    {
+        "name": "饥荒联机版",
+        "save": "%USERPROFILE%\\Documents\\Klei\\DoNotStarveTogether"
+    },
+    {
+        "name": "博德之门 3",
+        "save": "%USERPROFILE%\\AppData\\Local\\Larian Studios\\Baldur's Gate 3"
+    },
+    {
+        "name": "三国志 8：重制版",
+        "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\SAN8R"
+    },
+    {
+        "name": "光与影：33 号远征队",
+        "save": "%USERPROFILE%\\AppData\\Local\\Sandfall\\Saved"
+    },
+    {
+        "name": "对马岛之魂",
+        "save": "%USERPROFILE%\\Documents\\Ghost of Tsushima DIRECTOR'S CUT"
+    },
+    {
+        "name": "纪念碑谷",
+        "save": "%USERPROFILE%\\AppData\\LocalLow\\ustwo games\\Monument Valley"
+    },
+    {
+        "name": "虫虫大作战",
+        "save": "%PROGRAMDATA%\\AlderGames\\BugBits"
+    },
+    {
+        "name": "棋弈无限：围棋",
+        "save": "%USERPROFILE%\\AppData\\LocalLow\\Studio Amateur\\JustGo"
+    }
 ]
 '@
-    'en-US' = @'
+        'en-US' = @'
 [
-  {
-    "name": "Elden Ring",
-    "save": "%USERPROFILE%\\AppData\\Roaming\\EldenRing"
-  },
-  {
-    "name": "Palworld",
-    "save": "%USERPROFILE%\\AppData\\Local\\Pal\\Saved\\SaveGames"
-  },
-  {
-    "name": "Settlement Survival",
-    "save": "%USERPROFILE%\\AppData\\LocalLow\\SZSS INTERACTIVE\\Settlement Survival"
-  },
-  {
-    "name": "Last Epoch",
-    "save": "%USERPROFILE%\\AppData\\LocalLow\\Eleventh Hour Games\\Last Epoch"
-  },
-  {
-    "name": "Prototype",
-    "save": "%USERPROFILE%\\Documents\\Prototype"
-  },
-  {
-    "name": "NieR Automata",
-    "save": "%USERPROFILE%\\Documents\\My Games\\NieR_Automata"
-  },
-  {
-    "name": "Dynasty Warriors 9 Empires",
-    "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\Dynasty Warriors 9 Empires"
-  },
-  {
-    "name": "Warriors Orochi 4",
-    "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\WARRIORS OROCHI 4"
-  },
-  {
-    "name": "Shin Sangokumusou 5",
-    "save": "%USERPROFILE%\\Documents\\KOEI\\Shin Sangokumusou 5"
-  },
-  {
-    "name": "They Are Billions",
-    "save": "%USERPROFILE%\\Documents\\My Games\\They Are Billions"
-  },
-  {
-    "name": "Planetbase",
-    "save": "%USERPROFILE%\\Documents\\Planetbase"
-  },
-  {
-    "name": "Oxygen Not Included",
-    "save": "%USERPROFILE%\\Documents\\Klei\\OxygenNotIncluded",
-    "ignore": [
-        "%USERPROFILE%\\Documents\\Klei\\OxygenNotIncluded\\RetiredColonies"
-    ]
-  },
-  {
-    "name": "Don't Starve Together",
-    "save": "%USERPROFILE%\\Documents\\Klei\\DoNotStarveTogether"
-  },
-  {
-    "name": "Baldur's Gate 3",
-    "save": "%USERPROFILE%\\AppData\\Local\\Larian Studios\\Baldur's Gate 3"
-  },
-  {
-    "name": "Romance Of The Three Kingdoms 8 Remake",
-    "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\SAN8R"
-  },
-  {
-    "name": "Clair Obscur Expedition 33",
-    "save": "%USERPROFILE%\\AppData\\Local\\Sandfall\\Saved"
-  },
-  {
-    "name": "Ghost Of Tsushima",
-    "save": "%USERPROFILE%\\Documents\\Ghost of Tsushima DIRECTOR'S CUT"
-  },
-  {
-    "name": "Monument Valley",
-    "save": "%USERPROFILE%\\AppData\\LocalLow\\ustwo games\\Monument Valley"
-  },
-  {
-    "name": "BugBits",
-    "save": "%PROGRAMDATA%\\AlderGames\\BugBits"
-  },
-  {
-    "name": "JustGo",
-    "save": "%USERPROFILE%\\AppData\\LocalLow\\Studio Amateur\\JustGo"
-  }
+    {
+        "name": "Elden Ring",
+        "save": "%USERPROFILE%\\AppData\\Roaming\\EldenRing"
+    },
+    {
+        "name": "Palworld",
+        "save": "%USERPROFILE%\\AppData\\Local\\Pal\\Saved\\SaveGames"
+    },
+    {
+        "name": "Settlement Survival",
+        "save": "%USERPROFILE%\\AppData\\LocalLow\\SZSS INTERACTIVE\\Settlement Survival"
+    },
+    {
+        "name": "Last Epoch",
+        "save": "%USERPROFILE%\\AppData\\LocalLow\\Eleventh Hour Games\\Last Epoch"
+    },
+    {
+        "name": "Prototype",
+        "save": "%USERPROFILE%\\Documents\\Prototype"
+    },
+    {
+        "name": "NieR Automata",
+        "save": "%USERPROFILE%\\Documents\\My Games\\NieR_Automata"
+    },
+    {
+        "name": "Dynasty Warriors 9 Empires",
+        "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\Dynasty Warriors 9 Empires"
+    },
+    {
+        "name": "Warriors Orochi 4",
+        "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\WARRIORS OROCHI 4"
+    },
+    {
+        "name": "Shin Sangokumusou 5",
+        "save": "%USERPROFILE%\\Documents\\KOEI\\Shin Sangokumusou 5"
+    },
+    {
+        "name": "They Are Billions",
+        "save": "%USERPROFILE%\\Documents\\My Games\\They Are Billions"
+    },
+    {
+        "name": "Planetbase",
+        "save": "%USERPROFILE%\\Documents\\Planetbase"
+    },
+    {
+        "name": "Oxygen Not Included",
+        "save": "%USERPROFILE%\\Documents\\Klei\\OxygenNotIncluded",
+        "ignore": [
+            "%USERPROFILE%\\Documents\\Klei\\OxygenNotIncluded\\RetiredColonies"
+        ]
+    },
+    {
+        "name": "Don't Starve Together",
+        "save": "%USERPROFILE%\\Documents\\Klei\\DoNotStarveTogether"
+    },
+    {
+        "name": "Baldur's Gate 3",
+        "save": "%USERPROFILE%\\AppData\\Local\\Larian Studios\\Baldur's Gate 3"
+    },
+    {
+        "name": "Romance Of The Three Kingdoms 8 Remake",
+        "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\SAN8R"
+    },
+    {
+        "name": "Clair Obscur Expedition 33",
+        "save": "%USERPROFILE%\\AppData\\Local\\Sandfall\\Saved"
+    },
+    {
+        "name": "Ghost Of Tsushima",
+        "save": "%USERPROFILE%\\Documents\\Ghost of Tsushima DIRECTOR'S CUT"
+    },
+    {
+        "name": "Monument Valley",
+        "save": "%USERPROFILE%\\AppData\\LocalLow\\ustwo games\\Monument Valley"
+    },
+    {
+        "name": "BugBits",
+        "save": "%PROGRAMDATA%\\AlderGames\\BugBits"
+    },
+    {
+        "name": "JustGo",
+        "save": "%USERPROFILE%\\AppData\\LocalLow\\Studio Amateur\\JustGo"
+    }
 ]
 '@
+    }
+    $defaultJsonConfig = $defaultJsonConfigs[$workingLang]
+} catch {
+    ""
+    "[ Error ] Message: $($_.Exception.Message)"
+    "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)"
+    "[ Error ] Code: $($_.InvocationInfo.Line.Trim())"
+    ""
+    pause
+    exit
 }
-$defaultJsonConfig = $defaultJsonConfigs[$workingLang]
 
 
 
