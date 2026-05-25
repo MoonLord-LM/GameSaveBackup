@@ -105,7 +105,8 @@ try {
             ConfigLabel = "配置文件:"
             BrowseButton = "选择配置"
             StartButton = "开始备份"
-            CopyLogButton = "复制日志"
+            CopyLogMenu = "复制日志"
+            ClearLogMenu = "清空日志"
             LogTabPage = "运行日志"
             GameListTabPage = "游戏列表"
             MachineInfo = "机器名: [ {0} ]  用户名: [ {1} ]"
@@ -185,7 +186,8 @@ try {
             ConfigLabel = "Config File:"
             BrowseButton = "Browse Config"
             StartButton = "Start Backup"
-            CopyLogButton = "Copy Log"
+            CopyLogMenu = "Copy Log"
+            ClearLogMenu = "Clear Log"
             LogTabPage = "Run Log"
             GameListTabPage = "Game List"
             MachineInfo = "Machine: [ {0} ]  User: [ {1} ]"
@@ -522,7 +524,7 @@ try {
     # 顶部: 右侧按钮组
     $topButtonGroupPanel = [System.Windows.Forms.Panel]::new()
     $topButtonGroupPanel.Dock = "Right"
-    $topButtonGroupPanel.Width = 420
+    $topButtonGroupPanel.Width = 280
     $topPanel.Controls.Add($topButtonGroupPanel)
 
     # 顶部: 选择配置按钮
@@ -541,13 +543,6 @@ try {
     $startButton.BackColor = [System.Drawing.Color]::LightBlue
     $startButton.Enabled = $false
     $topButtonGroupPanel.Controls.Add($startButton)
-
-    # 顶部: 复制日志按钮
-    $copyLogButton = [System.Windows.Forms.Button]::new()
-    $copyLogButton.Text = $ui.CopyLogButton
-    $copyLogButton.Location = [System.Drawing.Point]::new(275, 0)
-    $copyLogButton.Size = [System.Drawing.Size]::new(130, 36)
-    $topButtonGroupPanel.Controls.Add($copyLogButton)
 
     # 中部: 标签页容器
     $tabControl = [System.Windows.Forms.TabControl]::new()
@@ -572,6 +567,15 @@ try {
     $logTextBox.BackColor = [System.Drawing.Color]::White
     $logTextBox.Dock = "Fill"
     $logTabPage.Controls.Add($logTextBox)
+
+    # 日志文本框的右键菜单
+    $copyLogMenuItem = [System.Windows.Forms.ToolStripMenuItem]::new()
+    $copyLogMenuItem.Text = $ui.CopyLogMenu
+    $clearLogMenuItem = [System.Windows.Forms.ToolStripMenuItem]::new()
+    $clearLogMenuItem.Text = $ui.ClearLogMenu
+    $logTextBox.ContextMenuStrip = [System.Windows.Forms.ContextMenuStrip]::new()
+    $logTextBox.ContextMenuStrip.Items.Add($copyLogMenuItem)
+    $logTextBox.ContextMenuStrip.Items.Add($clearLogMenuItem)
 
     # 中部: 游戏信息显示表格
     $gameDataGridView = [System.Windows.Forms.DataGridView]::new()
@@ -1347,17 +1351,19 @@ $startButton.Add_Click({
     }
 })
 
-# 复制日志按钮点击事件
-$copyLogButton.Add_Click({
-    # 切换到日志标签页
-    $tabControl.SelectedTab = $logTabPage
-
+# 日志右键菜单: 复制日志
+$copyLogMenuItem.Add_Click({
     if ($logTextBox.Text.Length -gt 0) {
         [System.Windows.Forms.Clipboard]::SetText($logTextBox.Text)
         Write-Log $ui.LogCopied "Success"
     } else {
         Write-Log $ui.NoLog "Warning"
     }
+})
+
+# 日志右键菜单: 清空日志
+$clearLogMenuItem.Add_Click({
+    $logTextBox.Clear()
 })
 
 # 右键菜单打开前的事件: 动态启用/禁用菜单项
