@@ -681,8 +681,8 @@ try {
         return $windowsVersion
     }
     $script:windowsVersion = powershell -NoProfile -Command $getWindowsVersionCommand
-    $script:psVersion = "$($PSVersionTable.PSVersion.ToString()) $($PSVersionTable.PSEdition)"
-    Write-Log ($script:ui.INFO_SystemInfo -f $script:windowsVersion, $script:psVersion) "Info"
+    $script:powerShellVersion = "$($PSVersionTable.PSVersion.ToString()) $($PSVersionTable.PSEdition)"
+    Write-Log ($script:ui.INFO_SystemInfo -f $script:windowsVersion, $script:powerShellVersion) "Info"
 } catch {
     Write-Host ""
     Write-Host "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
