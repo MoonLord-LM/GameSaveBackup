@@ -17,7 +17,7 @@ try {
     "[ Debug ] defaultOutputEncoding = $defaultOutputEncoding"
     "[ Debug ] currentOutputEncoding = $currentOutputEncoding"
 
-    # 检查环境信息
+    # 检查环境信息，使用单独进程隔离 Get-CimInstance 对语言的影响
     $windowsVersion = powershell -NoProfile -Command {
         $osInfo = Get-CimInstance Win32_OperatingSystem
         $currentVersion = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction SilentlyContinue
@@ -587,10 +587,10 @@ try {
     $gameDataGridView.Dock = "Fill"
     $gameDataGridView.ColumnCount = 3
     $gameDataGridView.Columns[0].Name = $ui.ColumnIndex
-    $gameDataGridView.Columns[0].Width = 60
     $gameDataGridView.Columns[1].Name = $ui.ColumnGameName
-    $gameDataGridView.Columns[1].Width = 320
     $gameDataGridView.Columns[2].Name = $ui.ColumnSavePath
+    $gameDataGridView.Columns[0].Width = 60
+    $gameDataGridView.Columns[1].Width = 320
     $gameDataGridView.Columns[2].Width = 780
     # 只允许单行选择
     $gameDataGridView.SelectionMode = [System.Windows.Forms.DataGridViewSelectionMode]::FullRowSelect
