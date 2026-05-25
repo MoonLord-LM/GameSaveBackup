@@ -17,6 +17,21 @@ try {
     "[ Debug ] defaultOutputEncoding = $defaultOutputEncoding"
     "[ Debug ] currentOutputEncoding = $currentOutputEncoding"
 
+    # 检查环境信息
+    $windowsVersion = powershell -NoProfile -Command {
+        $osInfo = Get-CimInstance Win32_OperatingSystem
+        $currentVersion = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction SilentlyContinue
+        $windowsVersion = "$($osInfo.Caption) $($currentVersion.DisplayVersion)"
+        return $windowsVersion
+    }
+    $powerShellVersion = "$($PSVersionTable.PSVersion.ToString()) $($PSVersionTable.PSEdition)"
+    $machineName = [System.Net.Dns]::GetHostName()
+    $userName = [Environment]::UserName
+    "[ Debug ] windowsVersion = $windowsVersion"
+    "[ Debug ] powerShellVersion = $powerShellVersion"
+    "[ Debug ] machineName = $machineName"
+    "[ Debug ] userName = $userName"
+
     # 禁用 DPI 自动缩放，必须在 EnableVisualStyles 之前调用
     # $win32APIDefinition = (
     #     "[DllImport(`"user32.dll`")]`r`n" +
@@ -444,165 +459,181 @@ try {
 
 # ———————————————————————————————— 2: 窗体界面绘制 ————————————————————————————————
 
-# 创建主窗口
-$form = [System.Windows.Forms.Form]::new()
-$form.Text = $ui.FormTitle
-$form.Size = [System.Drawing.Size]::new(1280, 720)
-$form.StartPosition = "CenterScreen"
-$form.Font = [System.Drawing.Font]::new("Microsoft YaHei", 10)
-$form.MinimumSize = [System.Drawing.Size]::new(1000, 600)
+try {
+    # 创建主窗口
+    $form = [System.Windows.Forms.Form]::new()
+    $form.Text = $ui.FormTitle
+    $form.Size = [System.Drawing.Size]::new(1280, 720)
+    $form.StartPosition = "CenterScreen"
+    $form.Font = [System.Drawing.Font]::new("Microsoft YaHei", 10)
+    $form.MinimumSize = [System.Drawing.Size]::new(1000, 600)
 
-# 启用双缓冲减少闪烁
-$flags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Instance
-$prop = [System.Windows.Forms.Control].GetProperty("DoubleBuffered", $flags)
-Write-Host "[ Debug ] DoubleBuffered default value = $($prop.GetValue($form))"
-$prop.SetValue($form, $true)
-Write-Host "[ Debug ] DoubleBuffered set value = $($prop.GetValue($form))"
+    # 启用双缓冲减少闪烁
+    $flags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Instance
+    $prop = [System.Windows.Forms.Control].GetProperty("DoubleBuffered", $flags)
+    $defaultDoubleBuffered = $prop.GetValue($form)
+    "[ Debug ] defaultDoubleBuffered = $defaultDoubleBuffered"
+    $prop.SetValue($form, $true)
+    $currentDoubleBuffered = $prop.GetValue($form)
+    "[ Debug ] currentDoubleBuffered = $currentDoubleBuffered"
 
-# 创建顶部面板（操作区）
-$topPanel = [System.Windows.Forms.Panel]::new()
-$topPanel.Dock = "Top"
-$topPanel.Height = 60
-$topPanel.Padding = [System.Windows.Forms.Padding]::new(10, 10, 10, 10)
+    # 创建顶部面板（操作区）
+    $topPanel = [System.Windows.Forms.Panel]::new()
+    $topPanel.Dock = "Top"
+    $topPanel.Height = 60
+    $topPanel.Padding = [System.Windows.Forms.Padding]::new(10, 10, 10, 10)
 
-# 创建中部面板（内容区）
-$centerPanel = [System.Windows.Forms.Panel]::new()
-$centerPanel.Dock = "Fill"
-$centerPanel.Padding = [System.Windows.Forms.Padding]::new(10, 0, 10, 0)
+    # 创建中部面板（内容区）
+    $centerPanel = [System.Windows.Forms.Panel]::new()
+    $centerPanel.Dock = "Fill"
+    $centerPanel.Padding = [System.Windows.Forms.Padding]::new(10, 0, 10, 0)
 
-# 创建底部面板（提示区）
-$bottomPanel = [System.Windows.Forms.Panel]::new()
-$bottomPanel.Dock = "Bottom"
-$bottomPanel.Height = 40
-$bottomPanel.Padding = [System.Windows.Forms.Padding]::new(10, 10, 10, 10)
+    # 创建底部面板（提示区）
+    $bottomPanel = [System.Windows.Forms.Panel]::new()
+    $bottomPanel.Dock = "Bottom"
+    $bottomPanel.Height = 40
+    $bottomPanel.Padding = [System.Windows.Forms.Padding]::new(10, 10, 10, 10)
 
-# 将三个面板添加到主窗口（注意顺序: 先添加 Fill，再添加 Top/Bottom）
-$form.Controls.Add($centerPanel)
-$form.Controls.Add($topPanel)
-$form.Controls.Add($bottomPanel)
+    # 将三个面板添加到主窗口（注意顺序: 先添加 Fill，再添加 Top/Bottom）
+    $form.Controls.Add($centerPanel)
+    $form.Controls.Add($topPanel)
+    $form.Controls.Add($bottomPanel)
 
-# 顶部: 左侧配置文件标签和文本框
-$topInfoPanel = [System.Windows.Forms.Panel]::new()
-$topInfoPanel.Dock = "Fill"
-$topPanel.Controls.Add($topInfoPanel)
+    # 顶部: 左侧配置文件标签和文本框
+    $topInfoPanel = [System.Windows.Forms.Panel]::new()
+    $topInfoPanel.Dock = "Fill"
+    $topPanel.Controls.Add($topInfoPanel)
 
-# 顶部: 配置文件标签
-$configLabel = [System.Windows.Forms.Label]::new()
-$configLabel.Text = $ui.ConfigLabel
-$configLabel.Location = [System.Drawing.Point]::new(10, 8)
-$configLabel.Size = [System.Drawing.Size]::new(100, 40)
-$topInfoPanel.Controls.Add($configLabel)
+    # 顶部: 配置文件标签
+    $configLabel = [System.Windows.Forms.Label]::new()
+    $configLabel.Text = $ui.ConfigLabel
+    $configLabel.Location = [System.Drawing.Point]::new(10, 8)
+    $configLabel.Size = [System.Drawing.Size]::new(100, 40)
+    $topInfoPanel.Controls.Add($configLabel)
 
-# 顶部: 配置文件文本框
-$configTextBox = [System.Windows.Forms.TextBox]::new()
-$configTextBox.Anchor = "Left, Right"
-$configTextBox.Location = [System.Drawing.Point]::new(120, 5)
-$configTextBox.Width = $topInfoPanel.Width - 130
-$configTextBox.ReadOnly = $true
-$topInfoPanel.Controls.Add($configTextBox)
+    # 顶部: 配置文件文本框
+    $configTextBox = [System.Windows.Forms.TextBox]::new()
+    $configTextBox.Anchor = "Left, Right"
+    $configTextBox.Location = [System.Drawing.Point]::new(120, 5)
+    $configTextBox.Width = $topInfoPanel.Width - 130
+    $configTextBox.ReadOnly = $true
+    $topInfoPanel.Controls.Add($configTextBox)
 
-# 顶部: 右侧按钮组
-$topButtonGroupPanel = [System.Windows.Forms.Panel]::new()
-$topButtonGroupPanel.Dock = "Right"
-$topButtonGroupPanel.Width = 420
-$topPanel.Controls.Add($topButtonGroupPanel)
+    # 顶部: 右侧按钮组
+    $topButtonGroupPanel = [System.Windows.Forms.Panel]::new()
+    $topButtonGroupPanel.Dock = "Right"
+    $topButtonGroupPanel.Width = 420
+    $topPanel.Controls.Add($topButtonGroupPanel)
 
-# 顶部: 选择配置按钮
-$browseButton = [System.Windows.Forms.Button]::new()
-$browseButton.Text = $ui.BrowseButton
-$browseButton.Location = [System.Drawing.Point]::new(5, 0)
-$browseButton.Size = [System.Drawing.Size]::new(130, 36)
-$browseButton.BackColor = [System.Drawing.Color]::LightGreen
-$topButtonGroupPanel.Controls.Add($browseButton)
+    # 顶部: 选择配置按钮
+    $browseButton = [System.Windows.Forms.Button]::new()
+    $browseButton.Text = $ui.BrowseButton
+    $browseButton.Location = [System.Drawing.Point]::new(5, 0)
+    $browseButton.Size = [System.Drawing.Size]::new(130, 36)
+    $browseButton.BackColor = [System.Drawing.Color]::LightGreen
+    $topButtonGroupPanel.Controls.Add($browseButton)
 
-# 顶部: 开始备份按钮
-$startButton = [System.Windows.Forms.Button]::new()
-$startButton.Text = $ui.StartButton
-$startButton.Location = [System.Drawing.Point]::new(140, 0)
-$startButton.Size = [System.Drawing.Size]::new(130, 36)
-$startButton.BackColor = [System.Drawing.Color]::LightBlue
-$startButton.Enabled = $false
-$topButtonGroupPanel.Controls.Add($startButton)
+    # 顶部: 开始备份按钮
+    $startButton = [System.Windows.Forms.Button]::new()
+    $startButton.Text = $ui.StartButton
+    $startButton.Location = [System.Drawing.Point]::new(140, 0)
+    $startButton.Size = [System.Drawing.Size]::new(130, 36)
+    $startButton.BackColor = [System.Drawing.Color]::LightBlue
+    $startButton.Enabled = $false
+    $topButtonGroupPanel.Controls.Add($startButton)
 
-# 顶部: 复制日志按钮
-$copyLogButton = [System.Windows.Forms.Button]::new()
-$copyLogButton.Text = $ui.CopyLogButton
-$copyLogButton.Location = [System.Drawing.Point]::new(275, 0)
-$copyLogButton.Size = [System.Drawing.Size]::new(130, 36)
-$topButtonGroupPanel.Controls.Add($copyLogButton)
+    # 顶部: 复制日志按钮
+    $copyLogButton = [System.Windows.Forms.Button]::new()
+    $copyLogButton.Text = $ui.CopyLogButton
+    $copyLogButton.Location = [System.Drawing.Point]::new(275, 0)
+    $copyLogButton.Size = [System.Drawing.Size]::new(130, 36)
+    $topButtonGroupPanel.Controls.Add($copyLogButton)
 
-# 中部: 标签页容器
-$tabControl = [System.Windows.Forms.TabControl]::new()
-$tabControl.Dock = "Fill"
-$tabControl.Padding = [System.Drawing.Point]::new(20, 3)
-$centerPanel.Controls.Add($tabControl)
+    # 中部: 标签页容器
+    $tabControl = [System.Windows.Forms.TabControl]::new()
+    $tabControl.Dock = "Fill"
+    $tabControl.Padding = [System.Drawing.Point]::new(20, 3)
+    $centerPanel.Controls.Add($tabControl)
 
-# 中部: 日志标签页
-$logTabPage = [System.Windows.Forms.TabPage]::new()
-$logTabPage.Text = $ui.LogTabPage
-$tabControl.Controls.Add($logTabPage)
+    # 中部: 日志标签页
+    $logTabPage = [System.Windows.Forms.TabPage]::new()
+    $logTabPage.Text = $ui.LogTabPage
+    $tabControl.Controls.Add($logTabPage)
 
-# 中部: 游戏标签页
-$gameListTabPage = [System.Windows.Forms.TabPage]::new()
-$gameListTabPage.Text = $ui.GameListTabPage
+    # 中部: 游戏标签页
+    $gameListTabPage = [System.Windows.Forms.TabPage]::new()
+    $gameListTabPage.Text = $ui.GameListTabPage
 
-# 中部: 日志显示区域
-$logTextBox = [System.Windows.Forms.RichTextBox]::new()
-$logTextBox.ReadOnly = $true
-$logTextBox.ScrollBars = [System.Windows.Forms.RichTextBoxScrollBars]::Vertical
-$logTextBox.BorderStyle = [System.Windows.Forms.BorderStyle]::None
-$logTextBox.BackColor = [System.Drawing.Color]::White
-$logTextBox.Dock = "Fill"
-$logTabPage.Controls.Add($logTextBox)
+    # 中部: 日志显示区域
+    $logTextBox = [System.Windows.Forms.RichTextBox]::new()
+    $logTextBox.ReadOnly = $true
+    $logTextBox.ScrollBars = [System.Windows.Forms.RichTextBoxScrollBars]::Vertical
+    $logTextBox.BorderStyle = [System.Windows.Forms.BorderStyle]::None
+    $logTextBox.BackColor = [System.Drawing.Color]::White
+    $logTextBox.Dock = "Fill"
+    $logTabPage.Controls.Add($logTextBox)
 
-# 中部: 游戏信息显示表格
-$gameDataGridView = [System.Windows.Forms.DataGridView]::new()
-$gameDataGridView.ReadOnly = $true
-$gameDataGridView.AllowUserToAddRows = $false
-$gameDataGridView.AllowUserToDeleteRows = $false
-$gameDataGridView.ScrollBars = [System.Windows.Forms.ScrollBars]::Both
-$gameDataGridView.BorderStyle = [System.Windows.Forms.BorderStyle]::None
-$gameDataGridView.BackgroundColor = [System.Drawing.Color]::White
-$gameDataGridView.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::LightGray
-$gameDataGridView.ColumnHeadersHeight = 40
-$gameDataGridView.RowTemplate.Height = 30
-$gameDataGridView.Dock = "Fill"
-$gameDataGridView.ColumnCount = 3
-$gameDataGridView.Columns[0].Name = $ui.ColumnIndex
-$gameDataGridView.Columns[0].Width = 60
-$gameDataGridView.Columns[1].Name = $ui.ColumnGameName
-$gameDataGridView.Columns[1].Width = 320
-$gameDataGridView.Columns[2].Name = $ui.ColumnSavePath
-$gameDataGridView.Columns[2].Width = 780
-# 只允许单行选择
-$gameDataGridView.SelectionMode = [System.Windows.Forms.DataGridViewSelectionMode]::FullRowSelect
-$gameDataGridView.MultiSelect = $false
-# 鼠标按下时自动选中一行（包括左键和右键）
-$gameDataGridView.Add_CellMouseDown({
-    param($eventSender, $e)
-    if ($e.RowIndex -ge 0) {
-        $gameDataGridView.ClearSelection()
-        $gameDataGridView.Rows[$e.RowIndex].Selected = $true
-        $gameDataGridView.CurrentCell = $gameDataGridView.Rows[$e.RowIndex].Cells[0]
+    # 中部: 游戏信息显示表格
+    $gameDataGridView = [System.Windows.Forms.DataGridView]::new()
+    $gameDataGridView.ReadOnly = $true
+    $gameDataGridView.AllowUserToAddRows = $false
+    $gameDataGridView.AllowUserToDeleteRows = $false
+    $gameDataGridView.ScrollBars = [System.Windows.Forms.ScrollBars]::Both
+    $gameDataGridView.BorderStyle = [System.Windows.Forms.BorderStyle]::None
+    $gameDataGridView.BackgroundColor = [System.Drawing.Color]::White
+    $gameDataGridView.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::LightGray
+    $gameDataGridView.ColumnHeadersHeight = 40
+    $gameDataGridView.RowTemplate.Height = 30
+    $gameDataGridView.Dock = "Fill"
+    $gameDataGridView.ColumnCount = 3
+    $gameDataGridView.Columns[0].Name = $ui.ColumnIndex
+    $gameDataGridView.Columns[0].Width = 60
+    $gameDataGridView.Columns[1].Name = $ui.ColumnGameName
+    $gameDataGridView.Columns[1].Width = 320
+    $gameDataGridView.Columns[2].Name = $ui.ColumnSavePath
+    $gameDataGridView.Columns[2].Width = 780
+    # 只允许单行选择
+    $gameDataGridView.SelectionMode = [System.Windows.Forms.DataGridViewSelectionMode]::FullRowSelect
+    $gameDataGridView.MultiSelect = $false
+    # 鼠标按下时自动选中一行（包括左键和右键）
+    $gameDataGridView.Add_CellMouseDown({
+        param($eventSender, $e)
+        if ($e.RowIndex -ge 0) {
+            $gameDataGridView.ClearSelection()
+            $gameDataGridView.Rows[$e.RowIndex].Selected = $true
+            $gameDataGridView.CurrentCell = $gameDataGridView.Rows[$e.RowIndex].Cells[0]
+        }
+    })
+    $gameListTabPage.Controls.Add($gameDataGridView)
+
+    # 创建右键菜单（打开存档位置）
+    $contextMenu = [System.Windows.Forms.ContextMenuStrip]::new()
+    $openLocationMenuItem = [System.Windows.Forms.ToolStripMenuItem]::new()
+    $openLocationMenuItem.Text = $ui.OpenSaveLocation
+    $contextMenu.Items.Add($openLocationMenuItem) | Out-Null
+    $gameDataGridView.ContextMenuStrip = $contextMenu
+
+    # 底部: 进度条
+    $progressBar = [System.Windows.Forms.ProgressBar]::new()
+    $progressBar.Dock = "Fill"
+    $progressBar.Style = [System.Windows.Forms.ProgressBarStyle]::Continuous
+    $progressBar.Minimum = 0
+    $progressBar.Maximum = 100
+    $progressBar.Visible = $false
+    $bottomPanel.Controls.Add($progressBar)
+} catch {
+    ""
+    "[ Error ] Message: $($_.Exception.Message)"
+    if ($_.InvocationInfo) {
+        "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)"
+        if($_.InvocationInfo.Line) {
+            "[ Error ] Code: $($_.InvocationInfo.Line.Trim())"
+        }
     }
-})
-$gameListTabPage.Controls.Add($gameDataGridView)
-
-# 创建右键菜单（打开存档位置）
-$contextMenu = [System.Windows.Forms.ContextMenuStrip]::new()
-$openLocationMenuItem = [System.Windows.Forms.ToolStripMenuItem]::new()
-$openLocationMenuItem.Text = $ui.OpenSaveLocation
-$contextMenu.Items.Add($openLocationMenuItem) | Out-Null
-$gameDataGridView.ContextMenuStrip = $contextMenu
-
-# 底部: 进度条
-$progressBar = [System.Windows.Forms.ProgressBar]::new()
-$progressBar.Dock = "Fill"
-$progressBar.Style = [System.Windows.Forms.ProgressBarStyle]::Continuous
-$progressBar.Minimum = 0
-$progressBar.Maximum = 100
-$progressBar.Visible = $false
-$bottomPanel.Controls.Add($progressBar)
+    ""
+    pause
+    exit 1
+}
 
 
 
@@ -708,28 +739,10 @@ $script:asyncProgressTimer.Interval = 100  # 更频繁刷新进度条
 $script:asyncProgressTimer.Start()
 
 # 展示系统版本和 PowerShell 版本信息
-try {
-    $getWindowsVersionCommand = {
-        $osInfo = Get-CimInstance Win32_OperatingSystem
-        $currentVersion = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction SilentlyContinue
-        $windowsVersion = "$($osInfo.Caption) $($currentVersion.DisplayVersion)"
-        return $windowsVersion
-    }
-    $script:windowsVersion = powershell -NoProfile -Command $getWindowsVersionCommand
-    $script:powerShellVersion = "$($PSVersionTable.PSVersion.ToString()) $($PSVersionTable.PSEdition)"
-    Write-Log ($ui.INFO_SystemInfo -f $script:windowsVersion, $script:powerShellVersion) "Info"
-} catch {
-    Write-Host ""
-    Write-Host "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
-    Write-Host "[ Error ] Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
-    Write-Host "[ Error ] Message: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host ""
-}
+Write-Log ($ui.INFO_SystemInfo -f $windowsVersion, $powerShellVersion) "Info"
 
 # 展示机器名和用户名信息
-$script:machineName = & cmd /c hostname
-$script:userName = [Environment]::UserName
-Write-Log ($ui.MachineInfo -f $script:machineName, $script:userName) "Info"
+Write-Log ($ui.MachineInfo -f $machineName, $userName) "Info"
 
 # 配置文件路径
 $script:configPath = ""
