@@ -240,7 +240,7 @@ $uiTextResources = @{
 $ui = $uiTextResources[$workingLang]
 
 # 内嵌的中英文的默认 JSON 配置
-$script:defaultJsonConfigs = @{
+$defaultJsonConfigs = @{
     'zh-CN' = @'
 [
   {
@@ -416,6 +416,7 @@ $script:defaultJsonConfigs = @{
 ]
 '@
 }
+$defaultJsonConfig = $defaultJsonConfigs[$workingLang]
 
 
 
@@ -757,7 +758,7 @@ function Validate-GameConfig {
 function Load-DefaultConfig {
     try {
         $script:configPath = ""
-        $script:configJsonArray = $script:defaultJsonConfigs[$workingLang] | ConvertFrom-Json
+        $script:configJsonArray = $defaultJsonConfig | ConvertFrom-Json
 
         # 使用统一的配置验证函数
         Validate-GameConfig -configArray $script:configJsonArray -uiResources $script:ui
