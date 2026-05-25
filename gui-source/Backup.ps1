@@ -6,21 +6,51 @@
 # ———————————————————————————————— 1: 基础设置和常量定义 ————————————————————————————————
 
 # 加载窗体程序集
-using assembly System.Windows.Forms
-using assembly System.Drawing
-
-# 使用命名空间简化代码
-using namespace System.Windows.Forms
-using namespace System.Drawing
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
 
 # 设置字符编码 UTF-8
-Get-Culture
-Get-UICulture
+$defaultOutputEncoding = [System.Console]::OutputEncoding.EncodingName
 [System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$currentOutputEncoding = [System.Console]::OutputEncoding.EncodingName
+"[ Debug ] defaultOutputEncoding = $defaultOutputEncoding"
+"[ Debug ] currentOutputEncoding = $currentOutputEncoding"
 
 # 设置更现代的窗口样式
-[Application]::EnableVisualStyles()
-[Application]::SetCompatibleTextRenderingDefault($false)
+[System.Windows.Forms.Application]::EnableVisualStyles()
+[System.Windows.Forms.Application]::SetCompatibleTextRenderingDefault($false)
+
+# 显示当前语言
+$currentCulture = [System.Globalization.CultureInfo]::CurrentCulture.Name
+$currentUICulture = [System.Globalization.CultureInfo]::CurrentUICulture.Name
+$installedUICulture = [System.Globalization.CultureInfo]::InstalledUICulture.Name
+$currentThreadCulture = [System.Threading.Thread]::CurrentThread.CurrentCulture.Name
+$currentThreadUICulture = [System.Threading.Thread]::CurrentThread.CurrentUICulture.Name
+"[ Debug ] currentCulture = $currentCulture"
+"[ Debug ] currentUICulture = $currentUICulture"
+"[ Debug ] installedUICulture = $installedUICulture"
+"[ Debug ] currentThreadCulture = $currentThreadCulture"
+"[ Debug ] currentThreadUICulture = $currentThreadUICulture"
+
+# 显示工作目录
+$scriptDirectory = $PSScriptRoot
+$callDirectory = Get-Location
+$currentDirectory = [System.IO.Directory]::GetCurrentDirectory()
+$systemDirectory = [System.Environment]::SystemDirectory
+$suggestDirectory = $null
+foreach ($dir in @($scriptDirectory, $callDirectory, $currentDirectory)) {
+    if ($dir) {
+        if ($dir -ne $systemDirectory) {
+            $suggestDirectory = $dir
+            break
+        }
+    }
+}
+"[ Debug ] scriptDirectory = $scriptDirectory"
+"[ Debug ] callDirectory = $callDirectory"
+"[ Debug ] currentDirectory = $currentDirectory"
+"[ Debug ] systemDirectory = $systemDirectory"
+"[ Debug ] suggestDirectory = $suggestDirectory"
 
 # 界面支持中英文，定义多语言文本资源
 $script:textResources = @{
@@ -373,17 +403,6 @@ $script:defaultJsonConfigs = @{
 # 根据系统语言，自动选择界面语言的中英文
 $script:uiLang = 'en-US'
 try {
-    $currentCulture = [System.Globalization.CultureInfo]::CurrentCulture.Name
-    $currentUICulture = [System.Globalization.CultureInfo]::CurrentUICulture.Name
-    $installedUICulture = [System.Globalization.CultureInfo]::InstalledUICulture.Name
-    $currentThreadCulture = [System.Threading.Thread]::CurrentThread.CurrentCulture.Name
-    $currentThreadUICulture = [System.Threading.Thread]::CurrentThread.CurrentUICulture.Name
-    Write-Host "[ Debug ] currentCulture = $currentCulture"
-    Write-Host "[ Debug ] currentUICulture = $currentUICulture"
-    Write-Host "[ Debug ] installedUICulture = $installedUICulture"
-    Write-Host "[ Debug ] currentThreadCulture = $currentThreadCulture"
-    Write-Host "[ Debug ] currentThreadUICulture = $currentThreadUICulture"
-
     $zhCNCount = 0;
     $enUSCount = 0;
     if ($currentCulture -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
@@ -410,36 +429,36 @@ $script:ui = $script:textResources[$script:uiLang]
 # ———————————————————————————————— 2: 窗体界面绘制 ————————————————————————————————
 
 # 创建主窗口
-$form = [Form]::new()
+$form = [System.Windows.Forms.Form]::new()
 $form.Text = $script:ui.FormTitle
-$form.Size = [Size]::new(1280, 720)
+$form.Size = [System.Drawing.Size]::new(1280, 720)
 $form.StartPosition = "CenterScreen"
-$form.Font = [Font]::new("Microsoft YaHei", 10)
-$form.MinimumSize = [Size]::new(1000, 600)
+$form.Font = [System.Drawing.Font]::new("Microsoft YaHei", 10)
+$form.MinimumSize = [System.Drawing.Size]::new(1000, 600)
 
 # 启用双缓冲减少闪烁
 $flags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Instance
-$prop = [Control].GetProperty("DoubleBuffered", $flags)
+$prop = [System.Windows.Forms.Control].GetProperty("DoubleBuffered", $flags)
 Write-Host "[ Debug ] DoubleBuffered default value = $($prop.GetValue($form))"
 $prop.SetValue($form, $true)
 Write-Host "[ Debug ] DoubleBuffered set value = $($prop.GetValue($form))"
 
 # 创建顶部面板（操作区）
-$topPanel = [Panel]::new()
+$topPanel = [System.Windows.Forms.Panel]::new()
 $topPanel.Dock = "Top"
 $topPanel.Height = 60
-$topPanel.Padding = [Padding]::new(10, 10, 10, 10)
+$topPanel.Padding = [System.Windows.Forms.Padding]::new(10, 10, 10, 10)
 
 # 创建中部面板（内容区）
-$centerPanel = [Panel]::new()
+$centerPanel = [System.Windows.Forms.Panel]::new()
 $centerPanel.Dock = "Fill"
-$centerPanel.Padding = [Padding]::new(10, 0, 10, 0)
+$centerPanel.Padding = [System.Windows.Forms.Padding]::new(10, 0, 10, 0)
 
 # 创建底部面板（提示区）
-$bottomPanel = [Panel]::new()
+$bottomPanel = [System.Windows.Forms.Panel]::new()
 $bottomPanel.Dock = "Bottom"
 $bottomPanel.Height = 40
-$bottomPanel.Padding = [Padding]::new(10, 10, 10, 10)
+$bottomPanel.Padding = [System.Windows.Forms.Padding]::new(10, 10, 10, 10)
 
 # 将三个面板添加到主窗口（注意顺序: 先添加 Fill，再添加 Top/Bottom）
 $form.Controls.Add($centerPanel)
@@ -447,88 +466,88 @@ $form.Controls.Add($topPanel)
 $form.Controls.Add($bottomPanel)
 
 # 顶部: 左侧配置文件标签和文本框
-$topInfoPanel = [Panel]::new()
+$topInfoPanel = [System.Windows.Forms.Panel]::new()
 $topInfoPanel.Dock = "Fill"
 $topPanel.Controls.Add($topInfoPanel)
 
 # 顶部: 配置文件标签
-$configLabel = [Label]::new()
+$configLabel = [System.Windows.Forms.Label]::new()
 $configLabel.Text = $script:ui.ConfigLabel
-$configLabel.Location = [Point]::new(10, 8)
-$configLabel.Size = [Size]::new(100, 40)
+$configLabel.Location = [System.Drawing.Point]::new(10, 8)
+$configLabel.Size = [System.Drawing.Size]::new(100, 40)
 $topInfoPanel.Controls.Add($configLabel)
 
 # 顶部: 配置文件文本框
-$configTextBox = [TextBox]::new()
+$configTextBox = [System.Windows.Forms.TextBox]::new()
 $configTextBox.Anchor = "Left, Right"
-$configTextBox.Location = [Point]::new(120, 5)
+$configTextBox.Location = [System.Drawing.Point]::new(120, 5)
 $configTextBox.Width = $topInfoPanel.Width - 130
 $configTextBox.ReadOnly = $true
 $topInfoPanel.Controls.Add($configTextBox)
 
 # 顶部: 右侧按钮组
-$topButtonGroupPanel = [Panel]::new()
+$topButtonGroupPanel = [System.Windows.Forms.Panel]::new()
 $topButtonGroupPanel.Dock = "Right"
 $topButtonGroupPanel.Width = 420
 $topPanel.Controls.Add($topButtonGroupPanel)
 
 # 顶部: 选择配置按钮
-$browseButton = [Button]::new()
+$browseButton = [System.Windows.Forms.Button]::new()
 $browseButton.Text = $script:ui.BrowseButton
-$browseButton.Location = [Point]::new(5, 0)
-$browseButton.Size = [Size]::new(130, 36)
-$browseButton.BackColor = [Color]::LightGreen
+$browseButton.Location = [System.Drawing.Point]::new(5, 0)
+$browseButton.Size = [System.Drawing.Size]::new(130, 36)
+$browseButton.BackColor = [System.Drawing.Color]::LightGreen
 $topButtonGroupPanel.Controls.Add($browseButton)
 
 # 顶部: 开始备份按钮
-$startButton = [Button]::new()
+$startButton = [System.Windows.Forms.Button]::new()
 $startButton.Text = $script:ui.StartButton
-$startButton.Location = [Point]::new(140, 0)
-$startButton.Size = [Size]::new(130, 36)
-$startButton.BackColor = [Color]::LightBlue
+$startButton.Location = [System.Drawing.Point]::new(140, 0)
+$startButton.Size = [System.Drawing.Size]::new(130, 36)
+$startButton.BackColor = [System.Drawing.Color]::LightBlue
 $startButton.Enabled = $false
 $topButtonGroupPanel.Controls.Add($startButton)
 
 # 顶部: 复制日志按钮
-$copyLogButton = [Button]::new()
+$copyLogButton = [System.Windows.Forms.Button]::new()
 $copyLogButton.Text = $script:ui.CopyLogButton
-$copyLogButton.Location = [Point]::new(275, 0)
-$copyLogButton.Size = [Size]::new(130, 36)
+$copyLogButton.Location = [System.Drawing.Point]::new(275, 0)
+$copyLogButton.Size = [System.Drawing.Size]::new(130, 36)
 $topButtonGroupPanel.Controls.Add($copyLogButton)
 
 # 中部: 标签页容器
-$tabControl = [TabControl]::new()
+$tabControl = [System.Windows.Forms.TabControl]::new()
 $tabControl.Dock = "Fill"
-$tabControl.Padding = [Point]::new(20, 3)
+$tabControl.Padding = [System.Drawing.Point]::new(20, 3)
 $centerPanel.Controls.Add($tabControl)
 
 # 中部: 日志标签页
-$logTabPage = [TabPage]::new()
+$logTabPage = [System.Windows.Forms.TabPage]::new()
 $logTabPage.Text = $script:ui.LogTabPage
 $tabControl.Controls.Add($logTabPage)
 
 # 中部: 游戏标签页
-$gameListTabPage = [TabPage]::new()
+$gameListTabPage = [System.Windows.Forms.TabPage]::new()
 $gameListTabPage.Text = $script:ui.GameListTabPage
 
 # 中部: 日志显示区域
-$logTextBox = [RichTextBox]::new()
+$logTextBox = [System.Windows.Forms.RichTextBox]::new()
 $logTextBox.ReadOnly = $true
-$logTextBox.ScrollBars = [RichTextBoxScrollBars]::Vertical
-$logTextBox.BorderStyle = [BorderStyle]::None
-$logTextBox.BackColor = [Color]::White
+$logTextBox.ScrollBars = [System.Windows.Forms.RichTextBoxScrollBars]::Vertical
+$logTextBox.BorderStyle = [System.Windows.Forms.BorderStyle]::None
+$logTextBox.BackColor = [System.Drawing.Color]::White
 $logTextBox.Dock = "Fill"
 $logTabPage.Controls.Add($logTextBox)
 
 # 中部: 游戏信息显示表格
-$gameDataGridView = [DataGridView]::new()
+$gameDataGridView = [System.Windows.Forms.DataGridView]::new()
 $gameDataGridView.ReadOnly = $true
 $gameDataGridView.AllowUserToAddRows = $false
 $gameDataGridView.AllowUserToDeleteRows = $false
-$gameDataGridView.ScrollBars = [ScrollBars]::Both
-$gameDataGridView.BorderStyle = [BorderStyle]::None
-$gameDataGridView.BackgroundColor = [Color]::White
-$gameDataGridView.ColumnHeadersDefaultCellStyle.BackColor = [Color]::LightGray
+$gameDataGridView.ScrollBars = [System.Windows.Forms.ScrollBars]::Both
+$gameDataGridView.BorderStyle = [System.Windows.Forms.BorderStyle]::None
+$gameDataGridView.BackgroundColor = [System.Drawing.Color]::White
+$gameDataGridView.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::LightGray
 $gameDataGridView.ColumnHeadersHeight = 40
 $gameDataGridView.RowTemplate.Height = 30
 $gameDataGridView.Dock = "Fill"
@@ -540,7 +559,7 @@ $gameDataGridView.Columns[1].Width = 320
 $gameDataGridView.Columns[2].Name = $script:ui.ColumnSavePath
 $gameDataGridView.Columns[2].Width = 780
 # 只允许单行选择
-$gameDataGridView.SelectionMode = [DataGridViewSelectionMode]::FullRowSelect
+$gameDataGridView.SelectionMode = [System.Windows.Forms.DataGridViewSelectionMode]::FullRowSelect
 $gameDataGridView.MultiSelect = $false
 # 鼠标按下时自动选中一行（包括左键和右键）
 $gameDataGridView.Add_CellMouseDown({
@@ -554,16 +573,16 @@ $gameDataGridView.Add_CellMouseDown({
 $gameListTabPage.Controls.Add($gameDataGridView)
 
 # 创建右键菜单（打开存档位置）
-$contextMenu = [ContextMenuStrip]::new()
-$openLocationMenuItem = [ToolStripMenuItem]::new()
+$contextMenu = [System.Windows.Forms.ContextMenuStrip]::new()
+$openLocationMenuItem = [System.Windows.Forms.ToolStripMenuItem]::new()
 $openLocationMenuItem.Text = $script:ui.OpenSaveLocation
 $contextMenu.Items.Add($openLocationMenuItem) | Out-Null
 $gameDataGridView.ContextMenuStrip = $contextMenu
 
 # 底部: 进度条
-$progressBar = [ProgressBar]::new()
+$progressBar = [System.Windows.Forms.ProgressBar]::new()
 $progressBar.Dock = "Fill"
-$progressBar.Style = [ProgressBarStyle]::Continuous
+$progressBar.Style = [System.Windows.Forms.ProgressBarStyle]::Continuous
 $progressBar.Minimum = 0
 $progressBar.Maximum = 100
 $progressBar.Visible = $false
@@ -581,12 +600,12 @@ $script:asyncResult = $null
 
 # 运行日志展示，根据日志等级设置颜色
 $script:LogColorMap = @{
-    Info     = [Color]::Black
-    Success  = [Color]::Green
-    Warning  = [Color]::DarkOrange
-    Error    = [Color]::Red
-    Progress = [Color]::Blue
-    Debug    = [Color]::Gray
+    Info     = [System.Drawing.Color]::Black
+    Success  = [System.Drawing.Color]::Green
+    Warning  = [System.Drawing.Color]::DarkOrange
+    Error    = [System.Drawing.Color]::Red
+    Progress = [System.Drawing.Color]::Blue
+    Debug    = [System.Drawing.Color]::Gray
 }
 function Write-Log {
     param(
@@ -596,7 +615,7 @@ function Write-Log {
 
     try {
         if ($logTextBox.InvokeRequired) {
-            $logTextBox.Invoke([Action]{
+            $logTextBox.Invoke([System.Action]{
                 Write-Log -Message $Message -Level $Level
             })
             return
@@ -606,7 +625,7 @@ function Write-Log {
         $color = if ($script:LogColorMap.ContainsKey($Level)) { 
             $script:LogColorMap[$Level] 
         } else { 
-            [Color]::Black 
+            [System.Drawing.Color]::Black 
         }
         $text = "[{0}] {1}`r`n" -f $timestamp, $Message
 
@@ -632,7 +651,7 @@ function Write-Log {
 
 # 运行日志的异步添加，使用队列和定时任务，实现固定频率刷新界面
 $script:asyncLogQueue = [System.Collections.Concurrent.ConcurrentBag[hashtable]]::new()
-$script:asyncLogTimer = [Timer]::new()
+$script:asyncLogTimer = [System.Windows.Forms.Timer]::new()
 $script:asyncLogTimer.Add_Tick({
     $logs = @()
     while ($script:asyncLogQueue.Count -gt 0) {
@@ -661,7 +680,7 @@ function Write-Log-Async {
 # 进度条的异步更新，使用 hashtable（引用类型）和定时任务
 # 注意：必须使用引用类型而非值类型(int)，因为 PowerShell 的 AddParameter 对值类型会复制副本
 $script:asyncProgressState = @{ Value = 0 }
-$script:asyncProgressTimer = [Timer]::new()
+$script:asyncProgressTimer = [System.Windows.Forms.Timer]::new()
 $script:asyncProgressTimer.Add_Tick({
     # 从共享 hashtable 读取最新进度值（引用类型，跨线程可见）
     $value = $script:asyncProgressState['Value']
@@ -869,8 +888,8 @@ elseif ($script:cdJsonFiles.Count -gt 1) {
     Load-DefaultConfig
 }
 else {
-    Write-Log ($script:ui.ConfigSelected + "$(Split-Path -Leaf $script:cdJsonFiles.FullName)") "Info"
-    Load-JsonConfigFile -ConfigPath $script:cdJsonFiles.FullName
+    Write-Log ($script:ui.ConfigSelected + "$(Split-Path -Leaf $script:cdJsonFiles[0])") "Info"
+    Load-JsonConfigFile -ConfigPath $script:cdJsonFiles[0]
 }
 
 
@@ -880,12 +899,12 @@ else {
 # 配置文件按钮点击事件
 $script:fileDialogInitialDirectory = $script:cd
 $browseButton.Add_Click({
-    $fileDialog = [OpenFileDialog]::new()
+    $fileDialog = [System.Windows.Forms.OpenFileDialog]::new()
     $fileDialog.Filter = $script:ui.FileFilter
     $fileDialog.Title = $script:ui.FileDialogTitle
     $fileDialog.InitialDirectory = $script:fileDialogInitialDirectory
 
-    if ($fileDialog.ShowDialog() -eq [DialogResult]::OK) {  
+    if ($fileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {  
         $script:configPath = $fileDialog.FileName
         $script:fileDialogInitialDirectory = Split-Path -Parent $script:configPath
         Write-Log ($script:ui.ConfigSelected + "$(Split-Path -Leaf $script:configPath)") "Info"
@@ -1270,7 +1289,7 @@ $startButton.Add_Click({
     # 等待任务完成并清理资源
     try {
         while (-not $script:asyncResult.IsCompleted) {
-            [Application]::DoEvents()
+            [System.Windows.Forms.Application]::DoEvents()
             Start-Sleep -Milliseconds 50
         }
         
@@ -1305,7 +1324,7 @@ $copyLogButton.Add_Click({
     $tabControl.SelectedTab = $logTabPage
 
     if ($logTextBox.Text.Length -gt 0) {
-        [Clipboard]::SetText($logTextBox.Text)
+        [System.Windows.Forms.Clipboard]::SetText($logTextBox.Text)
         Write-Log $script:ui.LogCopied "Success"
     } else {
         Write-Log $script:ui.NoLog "Warning"
@@ -1325,8 +1344,8 @@ $contextMenu.Add_Opening({
         $savePath = $selectedRow.Cells[2].Value
 
         # 还原环境变量显示
-        $realPath = $savePath -replace '\$env:USERPROFILE', $env:USERPROFILE
-        $realPath = $realPath -replace '\$env:PROGRAMDATA', $env:PROGRAMDATA
+        $realPath = $savePath -replace '%USERPROFILE%', $env:USERPROFILE
+        $realPath = $realPath -replace '%PROGRAMDATA%', $env:PROGRAMDATA
 
         # 只有当路径存在时才启用菜单项
         if (Test-Path $realPath) {
@@ -1354,8 +1373,8 @@ $openLocationMenuItem.Add_Click({
         $savePath = $selectedRow.Cells[2].Value
 
         # 还原环境变量显示
-        $realPath = $savePath -replace '\$env:USERPROFILE', $env:USERPROFILE
-        $realPath = $realPath -replace '\$env:PROGRAMDATA', $env:PROGRAMDATA
+        $realPath = $savePath -replace '%USERPROFILE%', $env:USERPROFILE
+        $realPath = $realPath -replace '%PROGRAMDATA%', $env:PROGRAMDATA
 
         # 检查路径是否存在
         if (Test-Path $realPath) {
@@ -1371,14 +1390,14 @@ $openLocationMenuItem.Add_Click({
             } else {
                 Write-Log ($script:ui.SaveLocationNotExist -f $gameName, $realPath) "Error"
 
-                $result = [MessageBox]::Show(
+                $result = [System.Windows.Forms.MessageBox]::Show(
                     ($script:ui.ConfirmCreateDirectory -f $realPath),
                     $script:ui.ConfirmPrompt,
-                    [MessageBoxButtons]::YesNo,
-                    [MessageBoxIcon]::Question
+                    [System.Windows.Forms.MessageBoxButtons]::YesNo,
+                    [System.Windows.Forms.MessageBoxIcon]::Question
                 )
 
-                if ($result -eq [DialogResult]::Yes) {
+                if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
                     try {
                         New-Item -ItemType Directory -Path $realPath -Force | Out-Null
                         Start-Process "explorer.exe" -ArgumentList $realPath
@@ -1400,4 +1419,4 @@ $openLocationMenuItem.Add_Click({
 
 # ———————————————————————————————— 5: 程序启动 ————————————————————————————————
 
-[Application]::Run($form);
+[System.Windows.Forms.Application]::Run($form);
