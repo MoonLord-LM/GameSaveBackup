@@ -37,14 +37,17 @@ $currentDirectory = [System.IO.Directory]::GetCurrentDirectory()
 $callDirectory = (Get-Location).Path
 $scriptDirectory = $PSScriptRoot
 $systemDirectory = [System.Environment]::SystemDirectory
+$userDirectory = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::UserProfile)
 $tempDirectory = [System.IO.Path]::GetTempPath()
 $workingDirectory = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop)
 foreach ($dir in @($currentDirectory, $callDirectory, $scriptDirectory)) {
     if ($dir) {
         if ($dir -ine $systemDirectory) {
-            if ($dir -ine $tempDirectory) {
-                $workingDirectory = $dir
-                break
+            if ($dir -ine $userDirectory) {
+                if ($dir -ine $tempDirectory) {
+                    $workingDirectory = $dir
+                    break
+                }
             }
         }
     }
@@ -53,12 +56,13 @@ foreach ($dir in @($currentDirectory, $callDirectory, $scriptDirectory)) {
 "[ Debug ] callDirectory = $callDirectory"
 "[ Debug ] scriptDirectory = $scriptDirectory"
 "[ Debug ] systemDirectory = $systemDirectory"
+"[ Debug ] userDirectory = $userDirectory"
+"[ Debug ] tempDirectory = $tempDirectory"
 "[ Debug ] workingDirectory = $workingDirectory"
 
 # 界面支持中英文，定义多语言文本资源
 $script:textResources = @{
     'zh-CN' = @{
-        # 界面元素使用
         FormTitle = "游戏存档备份工具"
         ConfigLabel = "配置文件:"
         BrowseButton = "选择配置"
@@ -93,7 +97,6 @@ $script:textResources = @{
         ConfirmCreateDirectory = "存档路径不存在:`n{0}`n`n是否要创建此目录？"
         SaveLocationBatName = "存档位置.bat"
         CreateBackupDir = "创建备份目录: {0}"
-        # 运行日志使用
         ERROR_GitMissing = "错误：缺少 git.exe 组件"
         ERROR_GitDownload = "请从 https://git-scm.com/install/windows 下载"
         ERROR_ConfigNotFound = "错误：选定的配置文件不存在"
@@ -140,7 +143,6 @@ $script:textResources = @{
         INFO_SystemInfo = "系统版本: [ {0} ]  PowerShell 版本: [ {1} ]"
     }
     'en-US' = @{
-        # 界面元素使用
         FormTitle = "Game Save Backup Tool"
         ConfigLabel = "Config File:"
         BrowseButton = "Browse Config"
@@ -175,7 +177,6 @@ $script:textResources = @{
         ConfirmCreateDirectory = "Archive path does not exist:`n{0}`n`nDo you want to create this directory?"
         SaveLocationBatName = "SaveLocation.bat"
         CreateBackupDir = "Creating backup directory: {0}"
-        # 运行日志使用
         ERROR_GitMissing = "Error: git.exe component is missing"
         ERROR_GitDownload = "Please download from https://git-scm.com/install/windows"
         ERROR_ConfigNotFound = "Error: Selected config file does not exist"
@@ -223,10 +224,9 @@ $script:textResources = @{
     }
 }
 
-# 内嵌的中英文默认 JSON 配置
+# 内嵌的中英文游戏存档位置的默认 JSON 配置
 $script:defaultJsonConfigs = @{
-    'zh-CN' =
-@'
+    'zh-CN' = @'
 [
   {
     "name": "艾尔登法环",
@@ -313,8 +313,7 @@ $script:defaultJsonConfigs = @{
   }
 ]
 '@
-    'en-US' =
-@'
+    'en-US' = @'
 [
   {
     "name": "Elden Ring",
