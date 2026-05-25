@@ -22,7 +22,7 @@ try {
         "[DllImport(`"user32.dll`")]`r`n" +
         "public static extern bool SetProcessDPIAware();"
     )
-    Add-Type -MemberDefinition $sig -Name "API" -Namespace "Win32" -PassThru | Out-Null
+    Add-Type -MemberDefinition $win32APIDefinition -Name "API" -Namespace "Win32" -PassThru | Out-Null
     [Win32.API]::SetProcessDPIAware() | Out-Null
 
     # 设置更现代的窗口样式
