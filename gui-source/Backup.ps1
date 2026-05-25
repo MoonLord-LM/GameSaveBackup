@@ -14,6 +14,8 @@ using namespace System.Windows.Forms
 using namespace System.Drawing
 
 # 设置字符编码 UTF-8
+Get-Culture
+Get-UICulture
 [System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 # 设置更现代的窗口样式
@@ -374,9 +376,13 @@ try {
     $currentCulture = [System.Globalization.CultureInfo]::CurrentCulture.Name
     $currentUICulture = [System.Globalization.CultureInfo]::CurrentUICulture.Name
     $installedUICulture = [System.Globalization.CultureInfo]::InstalledUICulture.Name
+    $currentThreadCulture = [System.Threading.Thread]::CurrentThread.CurrentCulture.Name
+    $currentThreadUICulture = [System.Threading.Thread]::CurrentThread.CurrentUICulture.Name
     Write-Host "[ Debug ] currentCulture = $currentCulture"
     Write-Host "[ Debug ] currentUICulture = $currentUICulture"
     Write-Host "[ Debug ] installedUICulture = $installedUICulture"
+    Write-Host "[ Debug ] currentThreadCulture = $currentThreadCulture"
+    Write-Host "[ Debug ] currentThreadUICulture = $currentThreadUICulture"
 
     $zhCNCount = 0;
     $enUSCount = 0;
@@ -668,9 +674,13 @@ $script:asyncProgressTimer.Start()
 
 # 展示系统版本和 PowerShell 版本信息
 try {
-    $script:osInfo = Get-WmiObject Win32_OperatingSystem
-    $script:releaseId = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction SilentlyContinue
-    $script:windowsVersion = "$($script:osInfo.Caption) $($script:releaseId.DisplayVersion)"
+    $getWindowsVersionCommand = {
+        $osInfo = Get-CimInstance Win32_OperatingSystem
+        $currentVersion = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction SilentlyContinue
+        $windowsVersion = "$($osInfo.Caption) $($currentVersion.DisplayVersion)"
+        return $windowsVersion
+    }
+    $script:windowsVersion = powershell -NoProfile -Command $getWindowsVersionCommand
     $script:psVersion = "$($PSVersionTable.PSVersion.ToString()) $($PSVersionTable.PSEdition)"
     Write-Log ($script:ui.INFO_SystemInfo -f $script:windowsVersion, $script:psVersion) "Info"
 } catch {
@@ -849,7 +859,7 @@ $script:cd = [System.IO.Directory]::GetCurrentDirectory()
 Write-Host "[ Debug ] current directory = $script:cd"
 Write-Log ($script:ui.INFO_BackupRootDir + ": " + $script:cd) "Info"
 
-$script:cdJsonFiles = Get-ChildItem -Path $script:cd -Filter "*.json" -File -ErrorAction SilentlyContinue
+$script:cdJsonFiles = [System.IO.Directory]::GetFiles($script:cd, "*.json" )
 if ($script:cdJsonFiles.Count -eq 0) {
     Write-Log $script:ui.ConfigNotFound "Warning"
     Load-DefaultConfig
@@ -870,14 +880,6 @@ else {
 # 配置文件按钮点击事件
 $script:fileDialogInitialDirectory = $script:cd
 $browseButton.Add_Click({
-    [System.Threading.Thread]::CurrentThread.CurrentUICulture = 'zh-CN'
-    $currentCulture = [System.Globalization.CultureInfo]::CurrentCulture.Name
-    $currentUICulture = [System.Globalization.CultureInfo]::CurrentUICulture.Name
-    $installedUICulture = [System.Globalization.CultureInfo]::InstalledUICulture.Name
-    Write-Host "[ Debug ] currentCulture = $currentCulture"
-    Write-Host "[ Debug ] currentUICulture = $currentUICulture"
-    Write-Host "[ Debug ] installedUICulture = $installedUICulture"
-
     $fileDialog = [OpenFileDialog]::new()
     $fileDialog.Filter = $script:ui.FileFilter
     $fileDialog.Title = $script:ui.FileDialogTitle
