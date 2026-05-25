@@ -421,11 +421,14 @@ try {
 } catch {
     ""
     "[ Error ] Message: $($_.Exception.Message)"
-    "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)"
-    "[ Error ] Code: $($_.InvocationInfo.Line.Trim())"
+    if ($_.InvocationInfo) {
+        "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)"
+        if($_.InvocationInfo.Line) {
+            "[ Error ] Code: $($_.InvocationInfo.Line.Trim())"
+        }
+    }
     ""
-    pause
-    exit
+    exit 1
 }
 
 
