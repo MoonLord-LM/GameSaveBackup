@@ -597,11 +597,11 @@ try {
     $gameDataGridView.MultiSelect = $false
     # 鼠标按下时自动选中一行（包括左键和右键）
     $gameDataGridView.Add_CellMouseDown({
-        param($eventSender, $e)
-        if ($e.RowIndex -ge 0) {
+        param($eventSender, $event)
+        if ($event.RowIndex -ge 0) {
             $gameDataGridView.ClearSelection()
-            $gameDataGridView.Rows[$e.RowIndex].Selected = $true
-            $gameDataGridView.CurrentCell = $gameDataGridView.Rows[$e.RowIndex].Cells[0]
+            $gameDataGridView.Rows[$event.RowIndex].Selected = $true
+            $gameDataGridView.CurrentCell = $gameDataGridView.Rows[$event.RowIndex].Cells[0]
         }
     })
     $gameListTabPage.Controls.Add($gameDataGridView)
