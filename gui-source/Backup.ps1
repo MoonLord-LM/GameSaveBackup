@@ -37,12 +37,15 @@ $currentDirectory = [System.IO.Directory]::GetCurrentDirectory()
 $callDirectory = (Get-Location).Path
 $scriptDirectory = $PSScriptRoot
 $systemDirectory = [System.Environment]::SystemDirectory
+$tempDirectory = [System.IO.Path]::GetTempPath()
 $workingDirectory = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop)
 foreach ($dir in @($currentDirectory, $callDirectory, $scriptDirectory)) {
     if ($dir) {
         if ($dir -ine $systemDirectory) {
-            $workingDirectory = $dir
-            break
+            if ($dir -ine $tempDirectory) {
+                $workingDirectory = $dir
+                break
+            }
         }
     }
 }
