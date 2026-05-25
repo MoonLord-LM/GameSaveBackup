@@ -17,6 +17,14 @@ try {
     "[ Debug ] defaultOutputEncoding = $defaultOutputEncoding"
     "[ Debug ] currentOutputEncoding = $currentOutputEncoding"
 
+    # 禁用 DPI 自动缩放，必须在 EnableVisualStyles 之前调用
+    $win32APIDefinition = (
+        "[DllImport(`"user32.dll`")]`r`n" +
+        "public static extern bool SetProcessDPIAware();"
+    )
+    Add-Type -MemberDefinition $sig -Name "API" -Namespace "Win32" -PassThru | Out-Null
+    [Win32.API]::SetProcessDPIAware() | Out-Null
+
     # 设置更现代的窗口样式
     [System.Windows.Forms.Application]::EnableVisualStyles()
     [System.Windows.Forms.Application]::SetCompatibleTextRenderingDefault($false)
@@ -428,6 +436,7 @@ try {
         }
     }
     ""
+    pause
     exit 1
 }
 
