@@ -58,13 +58,12 @@ Win11 + PowerShell 5.1 + 中文语言设置的环境中，运行 PowerShell 脚�
 
 检查系统和 PowerShell 版本：  
 ```
-$getWindowsVersionCommand = {
+$windowsVersion = powershell -NoProfile -Command {
     $osInfo = Get-CimInstance Win32_OperatingSystem
     $currentVersion = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction SilentlyContinue
     $windowsVersion = "$($osInfo.Caption) $($currentVersion.DisplayVersion)"
     return $windowsVersion
 }
-$windowsVersion = powershell -NoProfile -Command $getWindowsVersionCommand
 $windowsVersion
 $powerShellVersion = "$($PSVersionTable.PSVersion.ToString()) $($PSVersionTable.PSEdition)"
 $powerShellVersion
@@ -678,13 +677,12 @@ Get-CimInstance Win32_OperatingSystem
 ```
 Add-Type -AssemblyName System.Windows.Forms
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-$getWindowsVersionCommand = {
+$windowsVersion = powershell -NoProfile -Command {
     $osInfo = Get-CimInstance Win32_OperatingSystem
     $currentVersion = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction SilentlyContinue
     $windowsVersion = "$($osInfo.Caption) $($currentVersion.DisplayVersion)"
     return $windowsVersion
 }
-$windowsVersion = powershell -NoProfile -Command $getWindowsVersionCommand
 $windowsVersion
 (New-Object Windows.Forms.OpenFileDialog).ShowDialog()
 ```
@@ -694,13 +692,12 @@ $windowsVersion
 ```
 Add-Type -AssemblyName System.Windows.Forms
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-$getWindowsVersionCommand = {
+$windowsVersion = powershell -NoProfile -Command {
     $osInfo = Get-CimInstance Win32_OperatingSystem
     $currentVersion = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction SilentlyContinue
     $windowsVersion = "$($osInfo.Caption) $($currentVersion.DisplayVersion)"
     return $windowsVersion
 }
-$windowsVersion = powershell -NoProfile -Command $getWindowsVersionCommand
 $windowsVersion
 [Windows.Forms.OpenFileDialog]::new().ShowDialog()
 ```
@@ -710,13 +707,12 @@ $windowsVersion
 ```
 using assembly System.Windows.Forms
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-$getWindowsVersionCommand = {
+$windowsVersion = powershell -NoProfile -Command {
     $osInfo = Get-CimInstance Win32_OperatingSystem
     $currentVersion = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction SilentlyContinue
     $windowsVersion = "$($osInfo.Caption) $($currentVersion.DisplayVersion)"
     return $windowsVersion
 }
-$windowsVersion = powershell -NoProfile -Command $getWindowsVersionCommand
 $windowsVersion
 (New-Object Windows.Forms.OpenFileDialog).ShowDialog()
 ```
@@ -726,13 +722,12 @@ $windowsVersion
 ```
 using assembly System.Windows.Forms
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-$getWindowsVersionCommand = {
+$windowsVersion = powershell -NoProfile -Command {
     $osInfo = Get-CimInstance Win32_OperatingSystem
     $currentVersion = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction SilentlyContinue
     $windowsVersion = "$($osInfo.Caption) $($currentVersion.DisplayVersion)"
     return $windowsVersion
 }
-$windowsVersion = powershell -NoProfile -Command $getWindowsVersionCommand
 $windowsVersion
 [Windows.Forms.OpenFileDialog]::new().ShowDialog()
 ```
