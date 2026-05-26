@@ -17,7 +17,7 @@ try {
     "[ Debug ] defaultOutputEncoding = $defaultOutputEncoding"
     "[ Debug ] currentOutputEncoding = $currentOutputEncoding"
 
-    # 检查环境信息，使用单独进程隔离 Get-CimInstance 对语言的影响
+    # 获取环境信息，使用单独进程隔离 Get-CimInstance 对语言的影响
     $windowsVersion = powershell -NoProfile -Command {
         $osInfo = Get-CimInstance Win32_OperatingSystem
         $currentVersion = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction SilentlyContinue
@@ -574,8 +574,8 @@ try {
     $clearLogMenuItem = [System.Windows.Forms.ToolStripMenuItem]::new()
     $clearLogMenuItem.Text = $ui.ClearLogMenu
     $logTextBox.ContextMenuStrip = [System.Windows.Forms.ContextMenuStrip]::new()
-    $logTextBox.ContextMenuStrip.Items.Add($copyLogMenuItem)
-    $logTextBox.ContextMenuStrip.Items.Add($clearLogMenuItem)
+    $logTextBox.ContextMenuStrip.Items.Add($copyLogMenuItem) | Out-Null
+    $logTextBox.ContextMenuStrip.Items.Add($clearLogMenuItem) | Out-Null
 
     # 中部: 游戏信息显示表格
     $gameDataGridView = [System.Windows.Forms.DataGridView]::new()
