@@ -722,7 +722,7 @@ else {
     $selectInfoLabel1.AutoEllipsis = $true
     $selectTopPanel.Controls.Add($selectInfoLabel1)
     $selectInfoLabel2 = [System.Windows.Forms.Label]::new()
-    $selectInfoLabel2.Text = $workingDirectory
+    $selectInfoLabel2.Text = $backupDirectory
     $selectInfoLabel2.Dock = "Bottom"
     $selectInfoLabel2.Height = 28
     $selectInfoLabel2.AutoEllipsis = $true
@@ -742,7 +742,7 @@ else {
     # 确认按钮
     $selectOkButton = [System.Windows.Forms.Button]::new()
     $selectOkButton.Text = $ui.ConfirmButton
-    $selectOkButton.Location = [System.Drawing.Point]::new(345, 12)
+    $selectOkButton.Location = [System.Drawing.Point]::new(325, 12)
     $selectOkButton.Size = [System.Drawing.Size]::new(130, 36)
     $selectOkButton.DialogResult = "OK"
     $selectBottomPanel.Controls.Add($selectOkButton)
