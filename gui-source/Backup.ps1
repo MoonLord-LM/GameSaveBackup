@@ -133,6 +133,7 @@ try {
             DirectoryCreated = "目录已创建: {0} - {1}"
             FailedToCreateDirectory = "创建目录失败: {0} - {1}"
             ConfirmPrompt = "提示"
+            ConfirmButton = "确认"
             ConfirmCreateDirectory = "存档路径不存在:`n{0}`n`n是否要创建此目录？"
             SaveLocationBatName = "存档位置.bat"
             CreateBackupDir = "创建备份目录: {0}"
@@ -145,6 +146,8 @@ try {
             INFO_RobocopyCommand = "Robocopy 命令"
             INFO_GamesFound = "找到游戏配置数量"
             INFO_MultipleConfigFound = "当前目录下找到 {0} 个 JSON 配置文件，请删除多余的，只保留一个"
+            INFO_WorkingDirectory = "当前工作目录：{0}"
+            INFO_MultipleConfigSelect = "当前目录下找到 {0} 个 JSON 配置文件，请选择一个正确的配置文件"
             ERROR_DefaultConfigFailed = "内嵌默认配置加载失败"
             ERROR_ConfigLoadFailed = "配置文件加载失败"
             PROGRESS_Processing = "处理"
@@ -180,6 +183,8 @@ try {
             ERROR_BackupTaskFailed = "备份任务失败: {0}"
             SUCCESS_GitInitialized = "Git 仓库已初始化并配置"
             INFO_SystemInfo = "系统版本: [ {0} ]  PowerShell 版本: [ {1} ]"
+            ConfigFileName = "配置.json"
+            BackupDirName = "备份"
         }
         'en-US' = @{
             FormTitle = "Game Save Backup Tool"
@@ -214,6 +219,7 @@ try {
             DirectoryCreated = "Directory created: {0} - {1}"
             FailedToCreateDirectory = "Failed to create directory: {0} - {1}"
             ConfirmPrompt = "Confirm"
+            ConfirmButton = "Confirm"
             ConfirmCreateDirectory = "Archive path does not exist:`n{0}`n`nDo you want to create this directory?"
             SaveLocationBatName = "SaveLocation.bat"
             CreateBackupDir = "Creating backup directory: {0}"
@@ -226,6 +232,8 @@ try {
             INFO_RobocopyCommand = "Robocopy command"
             INFO_GamesFound = "game(s) found in configuration"
             INFO_MultipleConfigFound = "Found {0} JSON config files in current directory. Please remove extra files and keep only one"
+            INFO_WorkingDirectory = "Working Directory: {0}"
+            INFO_MultipleConfigSelect = "Found {0} JSON config files in current directory, please select the correct config file"
             ERROR_DefaultConfigFailed = "Failed to load embedded default config"
             ERROR_ConfigLoadFailed = "Config file load failed"
             PROGRESS_Processing = "Processing"
@@ -261,6 +269,8 @@ try {
             ERROR_BackupTaskFailed = "Backup task failed: {0}"
             SUCCESS_GitInitialized = "Git repository initialized and configured"
             INFO_SystemInfo = "System Version: [ {0} ]  PowerShell Version: [ {1} ]"
+            ConfigFileName = "config.json"
+            BackupDirName = "Backup"
         }
     }
     $ui = $uiTextResources[$workingLang]
@@ -459,25 +469,25 @@ try {
 
 
 
-# ———————————————————————————————— 2: 窗体界面绘制 ————————————————————————————————
+# ———————————————————————————————— 2: 主窗体界面绘制 ————————————————————————————————
 
 try {
     # 创建主窗口
-    $form = [System.Windows.Forms.Form]::new()
-    $form.Text = $ui.FormTitle
-    $form.Size = [System.Drawing.Size]::new(1280, 720)
-    $form.StartPosition = "CenterScreen"
-    $form.Font = [System.Drawing.Font]::new("Microsoft YaHei", 10)
-    $form.MinimumSize = [System.Drawing.Size]::new(1000, 600)
+    $mainForm = [System.Windows.Forms.Form]::new()
+    $mainForm.Text = $ui.FormTitle
+    $mainForm.Size = [System.Drawing.Size]::new(1280, 720)
+    $mainForm.StartPosition = "CenterScreen"
+    $mainForm.Font = [System.Drawing.Font]::new("Microsoft YaHei", 10)
+    $mainForm.MinimumSize = [System.Drawing.Size]::new(1000, 600)
 
     # 启用双缓冲减少闪烁
-    $flags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Instance
-    $prop = [System.Windows.Forms.Control].GetProperty("DoubleBuffered", $flags)
-    $defaultDoubleBuffered = $prop.GetValue($form)
-    "[ Debug ] defaultDoubleBuffered = $defaultDoubleBuffered"
-    $prop.SetValue($form, $true)
-    $currentDoubleBuffered = $prop.GetValue($form)
-    "[ Debug ] currentDoubleBuffered = $currentDoubleBuffered"
+    $doubleBufferedBindingFlags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Instance
+    $doubleBufferedProperty = [System.Windows.Forms.Control].GetProperty("DoubleBuffered", $doubleBufferedBindingFlags)
+    $mainFormDefaultDoubleBuffered = $doubleBufferedProperty.GetValue($mainForm)
+    "[ Debug ] mainFormDefaultDoubleBuffered = $mainFormDefaultDoubleBuffered"
+    $doubleBufferedProperty.SetValue($mainForm, $true)
+    $mainFormCurrentDoubleBuffered = $doubleBufferedProperty.GetValue($mainForm)
+    "[ Debug ] mainFormCurrentDoubleBuffered = $mainFormCurrentDoubleBuffered"
 
     # 创建顶部面板（操作区）
     $topPanel = [System.Windows.Forms.Panel]::new()
@@ -497,9 +507,9 @@ try {
     $bottomPanel.Padding = [System.Windows.Forms.Padding]::new(10, 10, 10, 10)
 
     # 将三个面板添加到主窗口（注意顺序: 先添加 Fill，再添加 Top/Bottom）
-    $form.Controls.Add($centerPanel)
-    $form.Controls.Add($topPanel)
-    $form.Controls.Add($bottomPanel)
+    $mainForm.Controls.Add($centerPanel)
+    $mainForm.Controls.Add($topPanel)
+    $mainForm.Controls.Add($bottomPanel)
 
     # 顶部: 左侧配置文件标签和文本框
     $topInfoPanel = [System.Windows.Forms.Panel]::new()
@@ -641,7 +651,123 @@ try {
 
 
 
-# ———————————————————————————————— 3: 初始化逻辑 ————————————————————————————————
+# ———————————————————————————————— 3: 配置初始化逻辑 ————————————————————————————————
+
+# 配置和备份文件，创建单独的目录存放
+$backupDirectory = [System.IO.Path]::Combine($workingDirectory, $ui.BackupDirName)
+"[ Debug ] backupDirectory = $backupDirectory"
+if (-not [System.IO.Directory]::Exists($backupDirectory)) {
+    [System.IO.Directory]::CreateDirectory($backupDirectory) | Out-Null
+}
+
+$jsonFiles = [System.IO.Directory]::GetFiles($backupDirectory, "*.json")
+$jsonFilesCount = $jsonFiles.Count
+"[ Debug ] jsonFilesCount = $jsonFilesCount"
+
+if ($jsonFilesCount -eq 0) {
+    # 没有 json 文件，新建默认的配置文件
+    $configFileName = $ui.ConfigFileName
+    $configFilePath = [System.IO.Path]::Combine($backupDirectory, $configFileName)
+    [System.IO.File]::WriteAllText($configFilePath, $defaultJsonConfig, [System.Text.Encoding]::UTF8)
+}
+elseif ($jsonFilesCount -eq 1) {
+    # 有一个 json 文件，视为配置文件
+    $configFilePath = $jsonFiles[0]
+}
+else {
+    # 有多个 json 文件，提示用户选择
+    $selectForm = [System.Windows.Forms.Form]::new()
+    $selectForm.Text = $ui.FormTitle
+    $selectForm.Size = [System.Drawing.Size]::new(640, 480)
+    $selectForm.StartPosition = "CenterScreen"
+    $selectForm.Font = [System.Drawing.Font]::new("Microsoft YaHei", 10)
+    $selectForm.FormBorderStyle = "FixedDialog"
+    $selectForm.MaximizeBox = $false
+    $selectForm.MinimizeBox = $false
+    $selectForm.TopMost = $true
+
+    # 启用双缓冲减少闪烁
+    $doubleBufferedBindingFlags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Instance
+    $doubleBufferedProperty = [System.Windows.Forms.Control].GetProperty("DoubleBuffered", $doubleBufferedBindingFlags)
+    $selectFormDefaultDoubleBuffered = $doubleBufferedProperty.GetValue($selectForm)
+    "[ Debug ] selectFormDefaultDoubleBuffered = $selectFormDefaultDoubleBuffered"
+    $doubleBufferedProperty.SetValue($selectForm, $true)
+    $selectFormCurrentDoubleBuffered = $doubleBufferedProperty.GetValue($selectForm)
+    "[ Debug ] selectFormCurrentDoubleBuffered = $selectFormCurrentDoubleBuffered"
+
+    # 顶部面板（提示区）
+    $topPanel = [System.Windows.Forms.Panel]::new()
+    $topPanel.Dock = "Top"
+    $topPanel.Height = 60
+    $topPanel.Padding = [System.Windows.Forms.Padding]::new(10, 10, 10, 10)
+
+    # 中间面板（内容区）
+    $centerPanel = [System.Windows.Forms.Panel]::new()
+    $centerPanel.Dock = "Fill"
+    $centerPanel.Padding = [System.Windows.Forms.Padding]::new(10, 0, 10, 0)
+
+    # 底部面板（操作区）
+    $bottomPanel = [System.Windows.Forms.Panel]::new()
+    $bottomPanel.Dock = "Bottom"
+    $bottomPanel.Height = 60
+    $bottomPanel.Padding = [System.Windows.Forms.Padding]::new(10, 10, 10, 10)
+
+    # 将三个面板添加到主窗口（注意顺序: 先添加 Fill，再添加 Top/Bottom）
+    $selectForm.Controls.Add($centerPanel)
+    $selectForm.Controls.Add($topPanel)
+    $selectForm.Controls.Add($bottomPanel)
+
+    # 提示信息
+    $infolabel = [System.Windows.Forms.Label]::new()
+    $infolabel.Text = "$($ui.INFO_WorkingDirectory -f $workingDirectory)`n$($ui.INFO_MultipleConfigSelect -f $jsonFilesCount)"
+    $infolabel.Location = [System.Drawing.Point]::new(10, 10)
+    $infolabel.AutoSize = $true
+    $topPanel.Controls.Add($infolabel)
+
+    # 列表框填充中间空间
+    $listBox = [System.Windows.Forms.ListBox]::new()
+    $listBox.Dock = "Fill"
+    $listBox.SelectionMode = "One"
+    $listBox.IntegralHeight = $false
+    foreach ($file in $jsonFiles) {
+        $listBox.Items.Add((Split-Path -Leaf $file)) | Out-Null
+    }
+    $listBox.SelectedIndex = 0
+    $centerPanel.Controls.Add($listBox)
+
+    # 确认按钮
+    $okButton = [System.Windows.Forms.Button]::new()
+    $okButton.Anchor = "Right"
+    $okButton.Location = [System.Drawing.Point]::new(480, 10)
+    $okButton.Text = $ui.ConfirmButton
+    $okButton.Size = [System.Drawing.Size]::new(130, 36)
+    $okButton.DialogResult = "OK"
+    $bottomPanel.Controls.Add($okButton)
+    $selectForm.AcceptButton = $okButton
+
+    # 双击列表项等同于确认
+    $listBox.Add_DoubleClick({
+        $selectForm.DialogResult = "OK"
+        $selectForm.Close()
+        $selectForm.Dispose()
+    })
+
+    # 显示对话框
+    $result = $selectForm.ShowDialog()
+    if ($result -eq [System.Windows.Forms.DialogResult]::OK -and $listBox.SelectedIndex -ge 0) {
+        $configFilePath = $jsonFiles[$listBox.SelectedIndex]
+    }
+    $selectForm.Dispose()
+}
+"[ Debug ] configFilePath = $configFilePath"
+
+$batFileCount = [System.IO.Directory]::GetFiles($workingDirectory, "*.bat")
+$ps1FileCount = [System.IO.Directory]::GetFiles($workingDirectory, "*.ps1")
+$jsonFiles = [System.IO.Directory]::GetFiles($workingDirectory, "*.json")
+$directories = [System.IO.Directory]::GetDirectories($workingDirectory).Count
+$directories = [System.IO.Directory]::GetDirectories($workingDirectory).Count
+
+
 
 # 定义变量
 $script:configJsonArray = $null
@@ -911,7 +1037,7 @@ $script:cd = [System.IO.Directory]::GetCurrentDirectory()
 Write-Host "[ Debug ] current directory = $script:cd"
 Write-Log ($ui.INFO_BackupRootDir + ": " + $script:cd) "Info"
 
-$script:cdJsonFiles = [System.IO.Directory]::GetFiles($script:cd, "*.json" )
+$script:cdJsonFiles = [System.IO.Directory]::GetFiles($backupDirectory, "*.json" )
 if ($script:cdJsonFiles.Count -eq 0) {
     Write-Log $ui.ConfigNotFound "Warning"
     Load-DefaultConfig
@@ -1454,4 +1580,4 @@ $openLocationMenuItem.Add_Click({
 
 # ———————————————————————————————— 5: 程序启动 ————————————————————————————————
 
-[System.Windows.Forms.Application]::Run($form);
+[System.Windows.Forms.Application]::Run($mainForm);
