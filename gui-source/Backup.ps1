@@ -1047,19 +1047,19 @@ $startButton.Add_Click({
 
     # 添加要执行的脚本和参数
     $psInstance.AddScript({
-        param($configJsonArray, $machineName, $userName, $uiResources, $backupDirectory, $logQueue, $progressQueue)
+        param($ui, $config, $machineName, $userName, $backupDirectory, $asyncShowLogQueue, $asyncProgressState)
 
         # Runspace 内必须定义 Show-Log-Async（主脚本的函数在此不可见）
         function Show-Log-Async {
             param([string]$Message = '', [string]$Level = 'Info')
-            $logQueue.Enqueue(@{ Message = $Message; Level = $Level })
+            $asyncShowLogQueue.Enqueue(@{ Message = $Message; Level = $Level })
         }
 
         function Invoke-GitCommand {
             param([string]$Arguments, [string]$ErrorMessage)
 
             try {
-                Show-Log-Async ($uiResources.INFO_GitCommand + ": git $Arguments") 'Debug'
+                Show-Log-Async ($ui.INFO_GitCommand + ": git $Arguments") 'Debug'
 
                 $output = & git $Arguments.Split(' ') 2>&1 | Out-String
                 $exitCode = $LASTEXITCODE
@@ -1068,7 +1068,7 @@ $startButton.Add_Click({
                     throw "$ErrorMessage (Exit Code: $exitCode): $output"
                 }
                 if ($output -and $output.Trim()) {
-                    Show-Log-Async ($uiResources.INFO_GitOutput + ":`r`n" + $output) 'Debug'
+                    Show-Log-Async ($ui.INFO_GitOutput + ":`r`n" + $output) 'Debug'
                 }
                 return $output
             }
@@ -1081,21 +1081,20 @@ $startButton.Add_Click({
         # 切换到备份根目录（同步进程 CWD 和 PowerShell Location，git/robocopy 等外部程序依赖进程 CWD）
         [System.IO.Directory]::SetCurrentDirectory($backupDirectory)
         Set-Location -LiteralPath $backupDirectory
-        Show-Log-Async ($uiResources.INFO_CurrentWorkingDir + ": " + $backupDirectory) 'Info'
-        Show-Log-Async ($uiResources.INFO_BackupRootDir + ": " + $backupDirectory) 'Info'
+        Show-Log-Async ($ui.INFO_CurrentWorkingDir + ": " + $backupDirectory) 'Info'
+        Show-Log-Async ($ui.INFO_BackupRootDir + ": " + $backupDirectory) 'Info'
 
         # 检查 Git
         $gitExe = Get-Command git -ErrorAction SilentlyContinue
         if (-not $gitExe) {
-            Show-Log-Async $uiResources.ERROR_GitMissing 'Error'
-            Show-Log-Async $uiResources.ERROR_GitDownload 'Error'
+            Show-Log-Async $ui.ERROR_GitMissing 'Error'
+            Show-Log-Async $ui.ERROR_GitDownload 'Error'
             return
         }
 
         # 使用已加载的配置数组
-        $config = $configJsonArray
         $totalGames = $config.Count
-        Show-Log-Async ($uiResources.INFO_GamesFound + ": " + $totalGames) 'Info'
+        Show-Log-Async ($ui.INFO_GamesFound + ": " + $totalGames) 'Info'
 
         # 初始化 Git
         if (-not (Test-Path ".git")) {
@@ -1108,7 +1107,7 @@ $startButton.Add_Click({
                 $null = & git config --local i18n.logoutputencoding utf-8 2>&1 | Out-String
                 $null = & git config --local i18n.commitencoding utf-8 2>&1 | Out-String
 
-                Show-Log-Async $uiResources.SUCCESS_GitInitialized 'Success'
+                Show-Log-Async $ui.SUCCESS_GitInitialized 'Success'
             }
             catch {
                 Show-Log-Async ("Failed to initialize Git repository: $_") 'Error'
@@ -1122,8 +1121,8 @@ $startButton.Add_Click({
             $save = $game.save
             $ignore = $game.ignore
 
-            # 显示当前处理的遊戲
-            Show-Log-Async ($uiResources.PROGRESS_Processing + ": " + $gameIndex + " / " + $totalGames + " - '" + $name + "' @ '" + $save + "'") 'Progress'
+            # 显示当前处理的游戏
+            Show-Log-Async ($ui.PROGRESS_Processing + ": " + $gameIndex + " / " + $totalGames + " - '" + $name + "' @ '" + $save + "'") 'Progress'
 
             # 替换环境变量
             $saveExpanded = $save -replace "%USERPROFILE%", $env:USERPROFILE
@@ -1137,13 +1136,13 @@ $startButton.Add_Click({
             $ignoreArgs += "存档位置.bat"
 
             # 获取当前语言对应的 bat 文件名（用于创建文件）
-            $saveLocationBatName = $uiResources.SaveLocationBatName
+            $saveLocationBatName = $ui.SaveLocationBatName
 
             if ($ignore) {
                 foreach ($item in $ignore) {
                     $itemExpanded = $item -replace "%USERPROFILE%", $env:USERPROFILE
                     $itemExpanded = $itemExpanded -replace "%PROGRAMDATA%", $env:PROGRAMDATA
-                    Show-Log-Async ($uiResources.INFO_IgnoreItem + ": '" + $itemExpanded + "'") 'Debug'
+                    Show-Log-Async ($ui.INFO_IgnoreItem + ": '" + $itemExpanded + "'") 'Debug'
                     $ignoreArgs += "/XF"
                     $ignoreArgs += $itemExpanded
                     $ignoreArgs += "/XD"
@@ -1184,33 +1183,33 @@ $startButton.Add_Click({
                 catch {}
             }
 
-            Show-Log-Async ($uiResources.INFO_FileTimeComparison -f $maxLocalTimeString, $maxBackupTimeString) 'Info'
+            Show-Log-Async ($ui.INFO_FileTimeComparison -f $maxLocalTimeString, $maxBackupTimeString) 'Info'
 
             # 创建备份目录
             if (-not (Test-Path $backupDir)) {
                 try {
-                    Show-Log-Async ($uiResources.CreateBackupDir -f $backupDir) 'Info'
+                    Show-Log-Async ($ui.CreateBackupDir -f $backupDir) 'Info'
                     New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
                 }
                 catch {
                     $errorMsg = $_.Exception.Message
-                    Show-Log-Async ($uiResources.ERROR_CreateBackupDirFailed -f $backupDir) 'Error'
-                    Show-Log-Async ($uiResources.ERROR_ErrorDetails -f $errorMsg) 'Error'
+                    Show-Log-Async ($ui.ERROR_CreateBackupDirFailed -f $backupDir) 'Error'
+                    Show-Log-Async ($ui.ERROR_ErrorDetails -f $errorMsg) 'Error'
                     continue
                 }
             }
 
             # 进入备份目录
             Set-Location -LiteralPath $backupDir
-            Show-Log-Async ($uiResources.INFO_EnteringBackupDir + ": " + (Get-Location).Path) 'Info'
+            Show-Log-Async ($ui.INFO_EnteringBackupDir + ": " + (Get-Location).Path) 'Info'
 
             # 判断备份策略
             if ($null -eq $maxLocalTime) {
                 if ($null -eq $maxBackupTime) {
-                    Show-Log-Async $uiResources.WARNING_BothMissing 'Warning'
+                    Show-Log-Async $ui.WARNING_BothMissing 'Warning'
                 }
                 else {
-                    Show-Log-Async $uiResources.WARNING_LocalMissing 'Warning'
+                    Show-Log-Async $ui.WARNING_LocalMissing 'Warning'
                     $sh = New-Object -ComObject Shell.Application
                     try {
                         $sh.Namespace(10).MoveHere($saveExpanded)
@@ -1220,23 +1219,23 @@ $startButton.Add_Click({
                     }
 
                     $robocopyCommand = "robocopy . `"$saveExpanded`" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
-                    Show-Log-Async ($uiResources.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
+                    Show-Log-Async ($ui.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
 
                     $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
                     $robocopyExitCode = $LASTEXITCODE
 
                     # 记录 Robocopy 状态（包含返回码）
                     if ($robocopyExitCode -ge 8) {
-                        Show-Log-Async ($uiResources.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
+                        Show-Log-Async ($ui.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
                     } else {
-                        Show-Log-Async ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
+                        Show-Log-Async ($ui.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
                     }
 
-                    Show-Log-Async ($uiResources.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
+                    Show-Log-Async ($ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
                 }
             }
             elseif ($null -eq $maxBackupTime) {
-                Show-Log-Async $uiResources.INFO_BackupMissing 'Info'
+                Show-Log-Async $ui.INFO_BackupMissing 'Info'
                 if (-not (Test-Path $saveLocationBatName)) {
                     $batContent = "if not exist `"" + $saveExpanded + "`" mkdir `"" + $saveExpanded + "`"`r`n"
                     $batContent += "`"explorer.exe`" `"" + $saveExpanded + "`""
@@ -1245,19 +1244,19 @@ $startButton.Add_Click({
                 }
 
                 $robocopyCommand = "robocopy `"$saveExpanded`" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
-                Show-Log-Async ($uiResources.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
+                Show-Log-Async ($ui.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
 
                 $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
                 $robocopyExitCode = $LASTEXITCODE
 
                 # 记录 Robocopy 状态（包含返回码）
                 if ($robocopyExitCode -ge 8) {
-                    Show-Log-Async ($uiResources.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
+                    Show-Log-Async ($ui.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
                 } else {
-                    Show-Log-Async ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
+                    Show-Log-Async ($ui.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
                 }
 
-                Show-Log-Async ($uiResources.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
+                Show-Log-Async ($ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
 
                 try {
                     $null = Invoke-GitCommand -Arguments "add ." -ErrorMessage "Git add failed"
@@ -1266,7 +1265,7 @@ $startButton.Add_Click({
                     if ($LASTEXITCODE -ne 0) {
                         $commitMsg = "Update - " + $name + " on " + $machineName + " by " + $userName
                         $null = Invoke-GitCommand -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed"
-                        Show-Log-Async $uiResources.SUCCESS_GitCommit 'Success'
+                        Show-Log-Async $ui.SUCCESS_GitCommit 'Success'
                     }
                 }
                 catch {
@@ -1274,7 +1273,7 @@ $startButton.Add_Click({
                 }
             }
             elseif ($maxLocalTime -lt $maxBackupTime) {
-                Show-Log-Async $uiResources.WARNING_LocalOlder 'Warning'
+                Show-Log-Async $ui.WARNING_LocalOlder 'Warning'
                 $sh = New-Object -ComObject Shell.Application
                 try {
                     $sh.Namespace(10).MoveHere($saveExpanded)
@@ -1284,46 +1283,46 @@ $startButton.Add_Click({
                 }
 
                 $robocopyCommand = "robocopy . `"$saveExpanded`" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
-                Show-Log-Async ($uiResources.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
+                Show-Log-Async ($ui.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
 
                 $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
                 $robocopyExitCode = $LASTEXITCODE
 
                 # 记录 Robocopy 状态（包含返回码）
                 if ($robocopyExitCode -ge 8) {
-                    Show-Log-Async ($uiResources.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
+                    Show-Log-Async ($ui.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
                 } else {
-                    Show-Log-Async ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
+                    Show-Log-Async ($ui.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
                 }
 
-                Show-Log-Async ($uiResources.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
+                Show-Log-Async ($ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
             }
             elseif ($maxLocalTime -gt $maxBackupTime) {
-                Show-Log-Async $uiResources.INFO_LocalNewer 'Info'
+                Show-Log-Async $ui.INFO_LocalNewer 'Info'
 
                 $robocopyCommand = "robocopy `"$saveExpanded`" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
-                Show-Log-Async ($uiResources.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
+                Show-Log-Async ($ui.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
 
                 $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
                 $robocopyExitCode = $LASTEXITCODE
 
                 # 记录 Robocopy 状态（包含返回码）
                 if ($robocopyExitCode -ge 8) {
-                    Show-Log-Async ($uiResources.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
+                    Show-Log-Async ($ui.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
                 } else {
-                    Show-Log-Async ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
+                    Show-Log-Async ($ui.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
                 }
 
-                Show-Log-Async ($uiResources.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
+                Show-Log-Async ($ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
 
                 try {
                     $null = Invoke-GitCommand -Arguments "add ." -ErrorMessage "Git add failed"
 
                     $diffResult = & git diff --cached --quiet 2>&1
                     if ($LASTEXITCODE -ne 0) {
-                        $commitMsg = "Update - " + $name + " on " + $machineName + " by " + $userName
+                        $commitMsg = "Update - " + $name + " on " + $machineName + " by " $userName
                         $null = Invoke-GitCommand -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed"
-                        Show-Log-Async $uiResources.SUCCESS_GitCommit 'Success'
+                        Show-Log-Async $ui.SUCCESS_GitCommit 'Success'
                     }
                 }
                 catch {
@@ -1331,12 +1330,12 @@ $startButton.Add_Click({
                 }
             }
             else {
-                Show-Log-Async $uiResources.INFO_SameTime 'Success'
+                Show-Log-Async $ui.INFO_SameTime 'Success'
             }
 
             # 更新进度条（通过共享 hashtable 传递给UI线程）
             try {
-                $progressQueue['Value'] = [int](($gameIndex / $totalGames) * 100)
+                $asyncProgressState['Value'] = [int](($gameIndex / $totalGames) * 100)
             }
             catch {
                 # 进度更新失败不影响主流程
@@ -1345,7 +1344,7 @@ $startButton.Add_Click({
 
         # 恢复工作目录到备份根目录
         Set-Location -LiteralPath $backupDirectory
-        Show-Log-Async ($uiResources.INFO_CurrentWorkingDir + ": " + (Get-Location).Path) 'Info'
+        Show-Log-Async ($ui.INFO_CurrentWorkingDir + ": " + (Get-Location).Path) 'Info'
 
         # 最终 Git 提交
         try {
@@ -1355,7 +1354,7 @@ $startButton.Add_Click({
             if ($LASTEXITCODE -ne 0) {
                 $commitMsg = "Update - on " + $machineName + " by " + $userName
                 $null = Invoke-GitCommand -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Final Git commit failed"
-                Show-Log-Async $uiResources.SUCCESS_FinalCommit 'Success'
+                Show-Log-Async $ui.SUCCESS_FinalCommit 'Success'
             }
         }
         catch {
@@ -1373,19 +1372,19 @@ $startButton.Add_Click({
             Show-Log-Async ("Git clean failed: $_") 'Warning'
         }
 
-        Show-Log-Async $uiResources.SUCCESS_BackupComplete 'Success'
+        Show-Log-Async $ui.SUCCESS_BackupComplete 'Success'
         
         # 返回成功标记
         return $true
     })
 
-    $psInstance.AddParameter('configJsonArray', $config)
+    $psInstance.AddParameter('ui', $ui)
+    $psInstance.AddParameter('config', $config)
     $psInstance.AddParameter('machineName', $machineName)
     $psInstance.AddParameter('userName', $userName)
-    $psInstance.AddParameter('uiResources', $ui)
     $psInstance.AddParameter('backupDirectory', $backupDirectory)
-    $psInstance.AddParameter('logQueue', $asyncShowLogQueue)
-    $psInstance.AddParameter('progressQueue', $asyncProgressState)
+    $psInstance.AddParameter('asyncShowLogQueue', $asyncShowLogQueue)
+    $psInstance.AddParameter('asyncProgressState', $asyncProgressState)
 
     # 异步执行
     $asyncResult = $psInstance.BeginInvoke()
@@ -1395,7 +1394,7 @@ $startButton.Add_Click({
     try {
         while (-not $asyncResult.IsCompleted) {
             [System.Windows.Forms.Application]::DoEvents()
-            Start-Sleep -Milliseconds 50
+            Start-Sleep -Milliseconds 100
         }
         $backupResult = $psInstance.EndInvoke($asyncResult)
         "[ Debug ] backupResult = $backupResult"
