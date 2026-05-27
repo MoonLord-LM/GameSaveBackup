@@ -917,8 +917,8 @@ try {
                 }
 
                 # 对 name 和 save 进行前后 trim 处理
-                $game.name = [string]$game.name.Trim()
-                $game.save = [string]$game.save.Trim()
+                if ($game.name) { $game.name = $game.name.Trim() }
+                if ($game.save) { $game.save = $game.save.Trim() }
 
                 if ([string]::IsNullOrEmpty($game.name)) {
                     throw ($ui.ERROR_ConfigItemNameEmpty -f ($i + 1))
