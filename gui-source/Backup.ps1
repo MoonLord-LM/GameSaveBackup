@@ -697,44 +697,44 @@ try {
     $asyncShowLogTimer.Start()
 
     # 中部: 游戏信息显示表格
-    $gameDataGridView = [System.Windows.Forms.DataGridView]::new()
-    $gameDataGridView.ReadOnly = $true
-    $gameDataGridView.AllowUserToAddRows = $false
-    $gameDataGridView.AllowUserToDeleteRows = $false
-    $gameDataGridView.ScrollBars = [System.Windows.Forms.ScrollBars]::Both
-    $gameDataGridView.BorderStyle = [System.Windows.Forms.BorderStyle]::None
-    $gameDataGridView.BackgroundColor = [System.Drawing.Color]::White
-    $gameDataGridView.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::LightGray
-    $gameDataGridView.ColumnHeadersHeight = 40
-    $gameDataGridView.RowTemplate.Height = 30
-    $gameDataGridView.Dock = "Fill"
-    $gameDataGridView.ColumnCount = 3
-    $gameDataGridView.Columns[0].Name = $ui.ColumnIndex
-    $gameDataGridView.Columns[1].Name = $ui.ColumnGameName
-    $gameDataGridView.Columns[2].Name = $ui.ColumnSavePath
-    $gameDataGridView.Columns[0].Width = 60
-    $gameDataGridView.Columns[1].Width = 320
-    $gameDataGridView.Columns[2].Width = 780
+    $dataGridView = [System.Windows.Forms.DataGridView]::new()
+    $dataGridView.ReadOnly = $true
+    $dataGridView.AllowUserToAddRows = $false
+    $dataGridView.AllowUserToDeleteRows = $false
+    $dataGridView.ScrollBars = [System.Windows.Forms.ScrollBars]::Both
+    $dataGridView.BorderStyle = [System.Windows.Forms.BorderStyle]::None
+    $dataGridView.BackgroundColor = [System.Drawing.Color]::White
+    $dataGridView.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::LightGray
+    $dataGridView.ColumnHeadersHeight = 40
+    $dataGridView.RowTemplate.Height = 30
+    $dataGridView.Dock = "Fill"
+    $dataGridView.ColumnCount = 3
+    $dataGridView.Columns[0].Name = $ui.ColumnIndex
+    $dataGridView.Columns[1].Name = $ui.ColumnGameName
+    $dataGridView.Columns[2].Name = $ui.ColumnSavePath
+    $dataGridView.Columns[0].Width = 60
+    $dataGridView.Columns[1].Width = 320
+    $dataGridView.Columns[2].Width = 780
     # 只允许单行选择
-    $gameDataGridView.SelectionMode = [System.Windows.Forms.DataGridViewSelectionMode]::FullRowSelect
-    $gameDataGridView.MultiSelect = $false
+    $dataGridView.SelectionMode = [System.Windows.Forms.DataGridViewSelectionMode]::FullRowSelect
+    $dataGridView.MultiSelect = $false
     # 鼠标按下时自动选中一行（包括左键和右键）
-    $gameDataGridView.Add_CellMouseDown({
+    $dataGridView.Add_CellMouseDown({
         param($eventSender, $event)
         if ($event.RowIndex -ge 0) {
-            $gameDataGridView.ClearSelection()
-            $gameDataGridView.Rows[$event.RowIndex].Selected = $true
-            $gameDataGridView.CurrentCell = $gameDataGridView.Rows[$event.RowIndex].Cells[0]
+            $dataGridView.ClearSelection()
+            $dataGridView.Rows[$event.RowIndex].Selected = $true
+            $dataGridView.CurrentCell = $dataGridView.Rows[$event.RowIndex].Cells[0]
         }
     })
-    $gameListTabPage.Controls.Add($gameDataGridView)
+    $gameListTabPage.Controls.Add($dataGridView)
 
     # 创建右键菜单（打开存档位置）
     $contextMenu = [System.Windows.Forms.ContextMenuStrip]::new()
     $openLocationMenuItem = [System.Windows.Forms.ToolStripMenuItem]::new()
     $openLocationMenuItem.Text = $ui.OpenSaveLocation
     $contextMenu.Items.Add($openLocationMenuItem) | Out-Null
-    $gameDataGridView.ContextMenuStrip = $contextMenu
+    $dataGridView.ContextMenuStrip = $contextMenu
 
     # 底部: 进度条
     $progressBar = [System.Windows.Forms.ProgressBar]::new()
@@ -953,18 +953,18 @@ try {
             $configTextBox.Text = $FilePath
             Show-Log ($ui.ConfigLoaded -f $config.Count) "Success"
 
-            $gameDataGridView.SuspendLayout()
+            $dataGridView.SuspendLayout()
             try {
-                $gameDataGridView.Rows.Clear()
+                $dataGridView.Rows.Clear()
                 for ($i = 0; $i -lt $config.Count; $i++) {
                     $game = $config[$i]
                     $gameName = $game.name
                     $savePath = $game.save
-                    $gameDataGridView.Rows.Add(($i + 1), $gameName, $savePath) | Out-Null
+                    $dataGridView.Rows.Add(($i + 1), $gameName, $savePath) | Out-Null
                 }
             }
             finally {
-                $gameDataGridView.ResumeLayout()
+                $dataGridView.ResumeLayout()
             }
             Show-Log ($ui.GameListUpdated) "Info"
 
@@ -984,7 +984,7 @@ try {
             $script:configFilePath = ""
             $script:config = $null
             $configTextBox.Text = ""
-            $gameDataGridView.Rows.Clear()
+            $dataGridView.Rows.Clear()
             $tabControl.Controls.Remove($gameListTabPage)
             $startButton.Enabled = $false
         }
@@ -1439,12 +1439,12 @@ $clearLogMenuItem.Add_Click({
 $contextMenu.Add_Opening({
     try {
         # 检查是否有选中的行
-        if ($gameDataGridView.SelectedRows.Count -eq 0) {
+        if ($dataGridView.SelectedRows.Count -eq 0) {
             $openLocationMenuItem.Enabled = $false
             return
         }
 
-        $selectedRow = $gameDataGridView.SelectedRows[0]
+        $selectedRow = $dataGridView.SelectedRows[0]
         $savePath = $selectedRow.Cells[2].Value
 
         # 还原环境变量显示
@@ -1469,11 +1469,11 @@ $contextMenu.Add_Opening({
 $openLocationMenuItem.Add_Click({
     try {
         # 获取选中的行
-        if ($gameDataGridView.SelectedRows.Count -eq 0) {
+        if ($dataGridView.SelectedRows.Count -eq 0) {
             return
         }
 
-        $selectedRow = $gameDataGridView.SelectedRows[0]
+        $selectedRow = $dataGridView.SelectedRows[0]
         $gameName = $selectedRow.Cells[1].Value
         $savePath = $selectedRow.Cells[2].Value
 
