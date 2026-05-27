@@ -1,0 +1,1 @@
+[{"name": "Valid Game 1", "save": "%USERPROFILE%\\Path1", "ignore": ["%USERPROFILE%\\Path1\\Temp"]}, {"name": "Game 2", "save": "%USERPROFILE%\\Path2", "ignore": "string-value"}, {"name": "Valid Game 3", "save": "%USERPROFILE%\\Path3", "ignore": []}, {"name": "Game 4", "save": "%USERPROFILE%\\Path4", "ignore": {"nested": "object"}}]

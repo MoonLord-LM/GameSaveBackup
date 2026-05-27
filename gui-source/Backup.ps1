@@ -149,12 +149,12 @@ try {
             INFO_MultipleConfigFound = "当前目录下找到 {0} 个 JSON 配置文件，请删除多余的，只保留一个"
             INFO_MultipleConfigSelect = "当前位置存在 {0} 个配置文件，请选择"
             ERROR_DefaultConfigFailed = "内嵌默认配置加载失败"
-            ERROR_ConfigLoadFailed = "配置文件加载失败"
+            ERROR_ConfigLoadFailed = "配置文件加载失败: {0}"
             PROGRESS_Processing = "处理"
             INFO_IgnoreItem = "忽略项"
             INFO_CurrentWorkingDir = "当前工作目录"
             INFO_EnteringBackupDir = "进入备份目录"
-            INFO_BackupRootDir = "备份根目录"
+            INFO_BackupRootDir = "备份根目录: {0}"
             ERROR_ConfigNotArrayFormat = "配置内容必须是数组格式"
             ERROR_ConfigEmptyCount = "配置内容的配置项个数为零"
             ERROR_ConfigItemNotObject = "第 {0} 个配置项不是 JSON 对象"
@@ -163,6 +163,8 @@ try {
             ERROR_ConfigItemNameEmpty = "第 {0} 个配置项的 'name' 属性为空"
             ERROR_ConfigItemSaveEmpty = "第 {0} 个配置项的 'save' 属性为空"
             ERROR_ConfigItemNameIllegalChars = "第 {0} 个配置项的 'name' 属性包含 Windows 文件名非法字符（< > : "" / \ | ? *）"
+            ERROR_ConfigItemInvalidIgnore = "第 {0} 个配置项的 'ignore' 属性必须是数组格式"
+            ERROR_ConfigItemInvalidIgnoreElement = "第 {0} 个配置项的 'ignore' 数组中包含空元素或非字符串元素"
             ERROR_CreateBackupDirFailed = "创建备份目录失败: {0}"
             ERROR_ErrorDetails = "错误详情: {0}"
             INFO_FileTimeComparison = "本地文件修改时间:[{0}] 备份文件修改时间:[{1}]"
@@ -235,12 +237,12 @@ try {
             INFO_MultipleConfigFound = "Found {0} JSON config files in current directory. Please remove extra files and keep only one"
             INFO_MultipleConfigSelect = "Location: {0} config files found, please select"
             ERROR_DefaultConfigFailed = "Failed to load embedded default config"
-            ERROR_ConfigLoadFailed = "Config file load failed"
+            ERROR_ConfigLoadFailed = "Config file load failed: {0}"
             PROGRESS_Processing = "Processing"
             INFO_IgnoreItem = "Ignore item"
             INFO_CurrentWorkingDir = "Current working directory"
             INFO_EnteringBackupDir = "Entering backup directory"
-            INFO_BackupRootDir = "Backup root directory"
+            INFO_BackupRootDir = "Backup root directory: {0}"
             ERROR_ConfigNotArrayFormat = "Config content must be an array format"
             ERROR_ConfigEmptyCount = "Config contains zero items"
             ERROR_ConfigItemNotObject = "Item {0} is not a JSON object"
@@ -249,6 +251,8 @@ try {
             ERROR_ConfigItemNameEmpty = "Item {0} has empty 'name' property"
             ERROR_ConfigItemSaveEmpty = "Item {0} has empty 'save' property"
             ERROR_ConfigItemNameIllegalChars = "Item {0} 'name' property contains illegal filename characters (<>:""/\|?*)"
+            ERROR_ConfigItemInvalidIgnore = "Item {0} 'ignore' property must be an array format"
+            ERROR_ConfigItemInvalidIgnoreElement = "Item {0} 'ignore' array contains empty or non-string elements"
             ERROR_CreateBackupDirFailed = "Failed to create backup directory: {0}"
             ERROR_ErrorDetails = "Error details: {0}"
             INFO_FileTimeComparison = "Local file time:[{0}] Backup file time:[{1}]"
@@ -884,7 +888,7 @@ try {
     # 显示环境信息
     Show-Log ($ui.INFO_SystemInfo -f $windowsVersion, $powerShellVersion) "Info"
     Show-Log ($ui.MachineInfo -f $machineName, $userName) "Info"
-    Show-Log ($ui.INFO_BackupRootDir + ": " + $backupDirectory) "Info"
+    Show-Log ($ui.INFO_BackupRootDir -f $backupDirectory) "Info"
     Show-Log ($ui.ConfigSelected -f "[$(Split-Path -Leaf $configFilePath)]") "Info"
 
     # 加载配置文件
@@ -909,10 +913,10 @@ try {
                 if ($game -isnot [PSCustomObject]) {
                     throw ($ui.ERROR_ConfigItemNotObject -f ($i + 1))
                 }
-                if (-not $game.PSObject.Properties.Match('name')) {
+                if ($game.PSObject.Properties.Match('name').Count -eq 0) {
                     throw ($ui.ERROR_ConfigItemMissingName -f ($i + 1))
                 }
-                if (-not $game.PSObject.Properties.Match('save')) {
+                if ($game.PSObject.Properties.Match('save').Count -eq 0) {
                     throw ($ui.ERROR_ConfigItemMissingSave -f ($i + 1))
                 }
 
@@ -928,6 +932,21 @@ try {
                 }
                 if ($game.name.IndexOfAny([System.IO.Path]::GetInvalidFileNameChars()) -ge 0) {
                     throw ($ui.ERROR_ConfigItemNameIllegalChars -f ($i + 1))
+                }
+
+                # 验证 ignore 必须为非空字符串构成的数组格式
+                if ($game.PSObject.Properties.Match('ignore').Count -gt 0) {
+                    if ($game.ignore -isnot [System.Array]) {
+                        throw ($ui.ERROR_ConfigItemInvalidIgnore -f ($i + 1))
+                    }
+                    for ($j = 0; $j -lt $game.ignore.Count; $j++) {
+                        $ignoreItem = [string]$game.ignore[$j]
+                        if ($ignoreItem) { $ignoreItem = $ignoreItem.Trim() }
+                        $game.ignore[$j] = $ignoreItem
+                        if ([string]::IsNullOrEmpty($ignoreItem)) {
+                            throw ($ui.ERROR_ConfigItemInvalidIgnoreElement -f ($i + 1))
+                        }
+                    }
                 }
             }
 
@@ -948,7 +967,7 @@ try {
             finally {
                 $gameDataGridView.ResumeLayout()
             }
-            Show-Log $ui.GameListUpdated "Info"
+            Show-Log ($ui.GameListUpdated) "Info"
 
             if ($tabControl.TabPages.Contains($gameListTabPage) -eq $false) {
                 $tabControl.Controls.Add($gameListTabPage)
@@ -971,7 +990,7 @@ try {
             }
             ""
 
-            Show-Log ($ui.ERROR_ConfigLoadFailed + ": $($_.Exception.Message)") "Error"
+            Show-Log ($ui.ERROR_ConfigLoadFailed -f $_.Exception.Message) "Error"
             $script:configFilePath = ""
             $script:config = $null
             $configTextBox.Text = ""
@@ -1010,7 +1029,7 @@ $browseButton.Add_Click({
     if ($fileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {  
         $script:configFilePath = $fileDialog.FileName
         $script:fileDialogInitialDirectory = Split-Path -Parent $script:configFilePath
-        Show-Log ($ui.ConfigSelected + "$(Split-Path -Leaf $script:configFilePath)") "Info"
+        Show-Log ($ui.ConfigSelected -f "[$(Split-Path -Leaf $script:configFilePath)]") "Info"
         Load-Config -FilePath $script:configFilePath
     }
 })

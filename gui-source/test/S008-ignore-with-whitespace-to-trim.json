@@ -1,0 +1,1 @@
+[{"name": "Game 1", "save": "%USERPROFILE%\\Path1", "ignore": ["   path with spaces   ", "\tpath with tabs\t", "  valid-path  "]}, {"name": "Game 2", "save": "%USERPROFILE%\\Path2"}]
