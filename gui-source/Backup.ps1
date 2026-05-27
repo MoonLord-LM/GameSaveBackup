@@ -776,7 +776,17 @@ try {
     $backupRunspacePool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1, 1)
     $backupRunspacePool.ApartmentState = [System.Threading.ApartmentState]::STA
     $backupRunspacePool.Open()
+
+    # 窗口关闭时的清理工作
     $mainForm.Add_FormClosing({
+        if ($asyncShowLogTimer) {
+            $asyncShowLogTimer.Stop()
+            $asyncShowLogTimer.Dispose()
+        }
+        if ($asyncProgressTimer) {
+            $asyncProgressTimer.Stop()
+            $asyncProgressTimer.Dispose()
+        }
         if ($backupRunspacePool) {
             $backupRunspacePool.Close()
             $backupRunspacePool.Dispose()
