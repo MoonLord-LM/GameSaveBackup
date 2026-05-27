@@ -761,228 +761,234 @@ try {
 
 # ———————————————————————————————— 3: 配置初始化和启动过程 ————————————————————————————————
 
-# 配置和备份文件，创建单独的目录存放
-$backupDirectory = [System.IO.Path]::Combine($workingDirectory, $ui.BackupDirName)
-"[ Debug ] backupDirectory = $backupDirectory"
-if (-not [System.IO.Directory]::Exists($backupDirectory)) {
-    [System.IO.Directory]::CreateDirectory($backupDirectory) | Out-Null
-}
-
-$jsonFiles = [System.IO.Directory]::GetFiles($backupDirectory, "*.json")
-$jsonFilesCount = $jsonFiles.Count
-"[ Debug ] jsonFilesCount = $jsonFilesCount"
-
-if ($jsonFilesCount -eq 0) {
-    # 没有 json 文件，新建默认的配置文件
-    $configFileName = $ui.ConfigFileName
-    $configFilePath = [System.IO.Path]::Combine($backupDirectory, $configFileName)
-    [System.IO.File]::WriteAllText($configFilePath, $defaultJsonConfig, [System.Text.Encoding]::UTF8)
-}
-elseif ($jsonFilesCount -eq 1) {
-    # 有一个 json 文件，视为配置文件
-    $configFilePath = $jsonFiles[0]
-}
-else {
-    # 有多个 json 文件，提示用户选择
-    $selectForm = [System.Windows.Forms.Form]::new()
-    $selectForm.Text = $ui.FormTitle
-    $selectForm.Size = [System.Drawing.Size]::new(800, 450)
-    $selectForm.StartPosition = "CenterScreen"
-    $selectForm.Font = [System.Drawing.Font]::new("Microsoft YaHei", 10)
-    $selectForm.FormBorderStyle = "FixedDialog"
-    $selectForm.MaximizeBox = $false
-    $selectForm.MinimizeBox = $false
-    $selectForm.TopMost = $true
-
-    # 启用双缓冲减少闪烁
-    $doubleBufferedBindingFlags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Instance
-    $doubleBufferedProperty = [System.Windows.Forms.Control].GetProperty("DoubleBuffered", $doubleBufferedBindingFlags)
-    $selectFormDefaultDoubleBuffered = $doubleBufferedProperty.GetValue($selectForm)
-    "[ Debug ] selectFormDefaultDoubleBuffered = $selectFormDefaultDoubleBuffered"
-    $doubleBufferedProperty.SetValue($selectForm, $true)
-    $selectFormCurrentDoubleBuffered = $doubleBufferedProperty.GetValue($selectForm)
-    "[ Debug ] selectFormCurrentDoubleBuffered = $selectFormCurrentDoubleBuffered"
-
-    # 顶部面板（提示区）
-    $selectTopPanel = [System.Windows.Forms.Panel]::new()
-    $selectTopPanel.Dock = "Top"
-    $selectTopPanel.Height = 80
-    $selectTopPanel.Padding = [System.Windows.Forms.Padding]::new(10, 10, 10, 10)
-
-    # 中间面板（内容区）
-    $selectCenterPanel = [System.Windows.Forms.Panel]::new()
-    $selectCenterPanel.Dock = "Fill"
-    $selectCenterPanel.Padding = [System.Windows.Forms.Padding]::new(10, 0, 10, 0)
-
-    # 底部面板（操作区）
-    $selectBottomPanel = [System.Windows.Forms.Panel]::new()
-    $selectBottomPanel.Dock = "Bottom"
-    $selectBottomPanel.Height = 60
-    $selectBottomPanel.Padding = [System.Windows.Forms.Padding]::new(10, 10, 10, 10)
-
-    # 将三个面板添加到主窗口（注意顺序: 先添加 Fill，再添加 Top/Bottom）
-    $selectForm.Controls.Add($selectCenterPanel)
-    $selectForm.Controls.Add($selectTopPanel)
-    $selectForm.Controls.Add($selectBottomPanel)
-
-    # 提示信息
-    $selectInfoLabel1 = [System.Windows.Forms.Label]::new()
-    $selectInfoLabel1.Text = "$($ui.INFO_MultipleConfigSelect -f $jsonFilesCount)"
-    $selectInfoLabel1.Dock = "Bottom"
-    $selectInfoLabel1.Height = 28
-    $selectInfoLabel1.AutoEllipsis = $true
-    $selectTopPanel.Controls.Add($selectInfoLabel1)
-    $selectInfoLabel2 = [System.Windows.Forms.Label]::new()
-    $selectInfoLabel2.Text = $backupDirectory
-    $selectInfoLabel2.Dock = "Bottom"
-    $selectInfoLabel2.Height = 28
-    $selectInfoLabel2.AutoEllipsis = $true
-    $selectTopPanel.Controls.Add($selectInfoLabel2)
-
-    # 列表框填充中间空间
-    $selectListBox = [System.Windows.Forms.ListBox]::new()
-    $selectListBox.Dock = "Fill"
-    $selectListBox.SelectionMode = "One"
-    $selectListBox.IntegralHeight = $false
-    foreach ($file in $jsonFiles) {
-        $selectListBox.Items.Add((Split-Path -Leaf $file)) | Out-Null
+try {
+    # 配置文件和备份文件，创建单独的目录存放
+    $backupDirectory = [System.IO.Path]::Combine($workingDirectory, $ui.BackupDirName)
+    "[ Debug ] backupDirectory = $backupDirectory"
+    if (-not [System.IO.Directory]::Exists($backupDirectory)) {
+        [System.IO.Directory]::CreateDirectory($backupDirectory) | Out-Null
     }
-    $selectListBox.SelectedIndex = 0
-    $selectCenterPanel.Controls.Add($selectListBox)
 
-    # 确认按钮
-    $selectOkButton = [System.Windows.Forms.Button]::new()
-    $selectOkButton.Text = $ui.ConfirmButton
-    $selectOkButton.Location = [System.Drawing.Point]::new(325, 12)
-    $selectOkButton.Size = [System.Drawing.Size]::new(130, 36)
-    $selectOkButton.DialogResult = "OK"
-    $selectBottomPanel.Controls.Add($selectOkButton)
-    $selectForm.AcceptButton = $selectOkButton
+    $jsonFiles = [System.IO.Directory]::GetFiles($backupDirectory, "*.json")
+    $jsonFilesCount = $jsonFiles.Count
+    "[ Debug ] jsonFilesCount = $jsonFilesCount"
 
-    # 双击列表项等同于确认
-    $selectListBox.Add_DoubleClick({
-        $selectForm.DialogResult = "OK"
-        $selectForm.Close()
+    if ($jsonFilesCount -eq 0) {
+        # 没有 json 文件，新建默认的配置文件
+        $configFileName = $ui.ConfigFileName
+        $configFilePath = [System.IO.Path]::Combine($backupDirectory, $configFileName)
+        [System.IO.File]::WriteAllText($configFilePath, $defaultJsonConfig, [System.Text.Encoding]::UTF8)
+    }
+    elseif ($jsonFilesCount -eq 1) {
+        # 有一个 json 文件，视为配置文件
+        $configFilePath = $jsonFiles[0]
+    }
+    else {
+        # 有多个 json 文件，提示用户选择
+        $selectForm = [System.Windows.Forms.Form]::new()
+        $selectForm.Text = $ui.FormTitle
+        $selectForm.Size = [System.Drawing.Size]::new(800, 450)
+        $selectForm.StartPosition = "CenterScreen"
+        $selectForm.Font = [System.Drawing.Font]::new("Microsoft YaHei", 10)
+        $selectForm.FormBorderStyle = "FixedDialog"
+        $selectForm.MaximizeBox = $false
+        $selectForm.MinimizeBox = $false
+        $selectForm.TopMost = $true
+
+        # 启用双缓冲减少闪烁
+        $doubleBufferedBindingFlags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Instance
+        $doubleBufferedProperty = [System.Windows.Forms.Control].GetProperty("DoubleBuffered", $doubleBufferedBindingFlags)
+        $selectFormDefaultDoubleBuffered = $doubleBufferedProperty.GetValue($selectForm)
+        "[ Debug ] selectFormDefaultDoubleBuffered = $selectFormDefaultDoubleBuffered"
+        $doubleBufferedProperty.SetValue($selectForm, $true)
+        $selectFormCurrentDoubleBuffered = $doubleBufferedProperty.GetValue($selectForm)
+        "[ Debug ] selectFormCurrentDoubleBuffered = $selectFormCurrentDoubleBuffered"
+
+        # 顶部面板（提示区）
+        $selectTopPanel = [System.Windows.Forms.Panel]::new()
+        $selectTopPanel.Dock = "Top"
+        $selectTopPanel.Height = 80
+        $selectTopPanel.Padding = [System.Windows.Forms.Padding]::new(10, 10, 10, 10)
+
+        # 中间面板（内容区）
+        $selectCenterPanel = [System.Windows.Forms.Panel]::new()
+        $selectCenterPanel.Dock = "Fill"
+        $selectCenterPanel.Padding = [System.Windows.Forms.Padding]::new(10, 0, 10, 0)
+
+        # 底部面板（操作区）
+        $selectBottomPanel = [System.Windows.Forms.Panel]::new()
+        $selectBottomPanel.Dock = "Bottom"
+        $selectBottomPanel.Height = 60
+        $selectBottomPanel.Padding = [System.Windows.Forms.Padding]::new(10, 10, 10, 10)
+
+        # 将三个面板添加到主窗口（注意顺序: 先添加 Fill，再添加 Top/Bottom）
+        $selectForm.Controls.Add($selectCenterPanel)
+        $selectForm.Controls.Add($selectTopPanel)
+        $selectForm.Controls.Add($selectBottomPanel)
+
+        # 提示信息
+        $selectInfoLabel1 = [System.Windows.Forms.Label]::new()
+        $selectInfoLabel1.Text = "$($ui.INFO_MultipleConfigSelect -f $jsonFilesCount)"
+        $selectInfoLabel1.Dock = "Bottom"
+        $selectInfoLabel1.Height = 28
+        $selectInfoLabel1.AutoEllipsis = $true
+        $selectTopPanel.Controls.Add($selectInfoLabel1)
+        $selectInfoLabel2 = [System.Windows.Forms.Label]::new()
+        $selectInfoLabel2.Text = $backupDirectory
+        $selectInfoLabel2.Dock = "Bottom"
+        $selectInfoLabel2.Height = 28
+        $selectInfoLabel2.AutoEllipsis = $true
+        $selectTopPanel.Controls.Add($selectInfoLabel2)
+
+        # 列表框填充中间空间
+        $selectListBox = [System.Windows.Forms.ListBox]::new()
+        $selectListBox.Dock = "Fill"
+        $selectListBox.SelectionMode = "One"
+        $selectListBox.IntegralHeight = $false
+        foreach ($file in $jsonFiles) {
+            $selectListBox.Items.Add((Split-Path -Leaf $file)) | Out-Null
+        }
+        $selectListBox.SelectedIndex = 0
+        $selectCenterPanel.Controls.Add($selectListBox)
+
+        # 确认按钮
+        $selectOkButton = [System.Windows.Forms.Button]::new()
+        $selectOkButton.Text = $ui.ConfirmButton
+        $selectOkButton.Location = [System.Drawing.Point]::new(325, 12)
+        $selectOkButton.Size = [System.Drawing.Size]::new(130, 36)
+        $selectOkButton.DialogResult = "OK"
+        $selectBottomPanel.Controls.Add($selectOkButton)
+        $selectForm.AcceptButton = $selectOkButton
+
+        # 双击列表项等同于确认
+        $selectListBox.Add_DoubleClick({
+            $selectForm.DialogResult = "OK"
+            $selectForm.Close()
+            $selectForm.Dispose()
+        })
+
+        # 显示对话框
+        if ($selectForm.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK -and $selectListBox.SelectedIndex -ge 0) {
+            $configFilePath = $jsonFiles[$selectListBox.SelectedIndex]
+        } else {
+            ""
+            "[ Error ] Config file not selected"
+            ""
+            [System.Windows.Forms.MessageBox]::Show($ui.ERROR_ConfigNotSelected, $ui.FormTitle, "OK", "Error")
+            exit 1
+        }
         $selectForm.Dispose()
-    })
-
-    # 显示对话框
-    if ($selectForm.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK -and $selectListBox.SelectedIndex -ge 0) {
-        $configFilePath = $jsonFiles[$selectListBox.SelectedIndex]
-    } else {
-        ""
-        "[ Error ] Config file not selected"
-        ""
-        [System.Windows.Forms.MessageBox]::Show($ui.ERROR_ConfigNotSelected, $ui.FormTitle, "OK", "Error")
-        exit 1
     }
-    $selectForm.Dispose()
-}
-"[ Debug ] configFilePath = $configFilePath"
+    "[ Debug ] configFilePath = $configFilePath"
 
-# 加载 JSON 配置文件的通用函数（首次启动和后续修改配置都调用此函数）
-function Load-Config {
-    param([string]$ConfigPath = '')
+    # 显示环境信息
+    Show-Log ($ui.INFO_SystemInfo -f $windowsVersion, $powerShellVersion) "Info"
+    Show-Log ($ui.MachineInfo -f $machineName, $userName) "Info"
+    Show-Log ($ui.INFO_BackupRootDir + ": " + $backupDirectory) "Info"
+    Show-Log ($ui.ConfigSelected + "$(Split-Path -Leaf $configFilePath)") "Info"
 
-    try {
-        # 校验参数
-        if ([string]::IsNullOrEmpty($ConfigPath)) {
-            throw $ui.ERROR_ConfigNotSelected
-        }
-        if (-not [System.IO.File]::Exists($ConfigPath)) {
-            throw $ui.ERROR_ConfigNotFound
-        }
+    # 加载配置文件
+    function Load-Config {
+        param([string]$FilePath = '')
 
-        # 读取并解析 JSON 配置文件
-        $script:config = Get-Content -Path $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
-
-        # 验证配置格式
-        if ($script:config -isnot [System.Array]) {
-            throw $ui.ERROR_ConfigNotArrayFormat
-        }
-        if ($script:config.Count -eq 0) {
-            throw $ui.ERROR_ConfigEmptyCount
-        }
-        for ($i = 0; $i -lt $script:config.Count; $i++) {
-            $game = $script:config[$i]
-            if ($game -isnot [PSCustomObject]) {
-                throw ($ui.ERROR_ConfigItemNotObject -f ($i + 1))
-            }
-            if (-not $game.PSObject.Properties.Match('name')) {
-                throw ($ui.ERROR_ConfigItemMissingName -f ($i + 1))
-            }
-            if (-not $game.PSObject.Properties.Match('save')) {
-                throw ($ui.ERROR_ConfigItemMissingSave -f ($i + 1))
-            }
-            if ([string]::IsNullOrEmpty($game.name)) {
-                throw ($ui.ERROR_ConfigItemNameEmpty -f ($i + 1))
-            }
-            if ([string]::IsNullOrEmpty($game.save)) {
-                throw ($ui.ERROR_ConfigItemSaveEmpty -f ($i + 1))
-            }
-            if ($game.name.IndexOfAny([System.IO.Path]::GetInvalidFileNameChars()) -ge 0) {
-                throw ($ui.ERROR_ConfigItemNameIllegalChars -f ($i + 1))
-            }
-        }
-
-        # 更新全局变量
-        $script:configFilePath = $ConfigPath
-
-        # 更新 UI 界面
-        $configTextBox.Text = $ConfigPath
-        Show-Log ($ui.ConfigLoaded -f $script:config.Count) "Success"
-
-        $gameDataGridView.SuspendLayout()
         try {
-            $gameDataGridView.Rows.Clear()
+            if (-not [System.IO.File]::Exists($FilePath)) {
+                throw $ui.ERROR_ConfigNotFound
+            }
+
+            $script:config = Get-Content -Path $FilePath -Raw -Encoding UTF8 | ConvertFrom-Json
+
+            if ($script:config -isnot [System.Array]) {
+                throw $ui.ERROR_ConfigNotArrayFormat
+            }
+            if ($script:config.Count -eq 0) {
+                throw $ui.ERROR_ConfigEmptyCount
+            }
             for ($i = 0; $i -lt $script:config.Count; $i++) {
                 $game = $script:config[$i]
-                $gameName = $game.name
-                $savePath = $game.save
-                $gameDataGridView.Rows.Add(($i + 1), $gameName, $savePath) | Out-Null
+                if ($game -isnot [PSCustomObject]) {
+                    throw ($ui.ERROR_ConfigItemNotObject -f ($i + 1))
+                }
+                if (-not $game.PSObject.Properties.Match('name')) {
+                    throw ($ui.ERROR_ConfigItemMissingName -f ($i + 1))
+                }
+                if (-not $game.PSObject.Properties.Match('save')) {
+                    throw ($ui.ERROR_ConfigItemMissingSave -f ($i + 1))
+                }
+                if ([string]::IsNullOrEmpty($game.name)) {
+                    throw ($ui.ERROR_ConfigItemNameEmpty -f ($i + 1))
+                }
+                if ([string]::IsNullOrEmpty($game.save)) {
+                    throw ($ui.ERROR_ConfigItemSaveEmpty -f ($i + 1))
+                }
+                if ($game.name.IndexOfAny([System.IO.Path]::GetInvalidFileNameChars()) -ge 0) {
+                    throw ($ui.ERROR_ConfigItemNameIllegalChars -f ($i + 1))
+                }
             }
-        }
-        finally {
-            $gameDataGridView.ResumeLayout()
-        }
-        Show-Log $ui.GameListUpdated "Info"
 
-        if ($tabControl.TabPages.Contains($gameListTabPage) -eq $false) {
-            $tabControl.Controls.Add($gameListTabPage)
-        }
-        $tabControl.SelectedTab = $gameListTabPage
+            # 更新 UI 界面
+            $configTextBox.Text = $FilePath
+            Show-Log ($ui.ConfigLoaded -f $script:config.Count) "Success"
 
-        if ($script:config.Count -ge 1) {
-            $startButton.Enabled = $true
-        } else {
+            $gameDataGridView.SuspendLayout()
+            try {
+                $gameDataGridView.Rows.Clear()
+                for ($i = 0; $i -lt $script:config.Count; $i++) {
+                    $game = $script:config[$i]
+                    $gameName = $game.name
+                    $savePath = $game.save
+                    $gameDataGridView.Rows.Add(($i + 1), $gameName, $savePath) | Out-Null
+                }
+            }
+            finally {
+                $gameDataGridView.ResumeLayout()
+            }
+            Show-Log $ui.GameListUpdated "Info"
+
+            if ($tabControl.TabPages.Contains($gameListTabPage) -eq $false) {
+                $tabControl.Controls.Add($gameListTabPage)
+            }
+            $tabControl.SelectedTab = $gameListTabPage
+
+            if ($script:config.Count -ge 1) {
+                $startButton.Enabled = $true
+            } else {
+                $startButton.Enabled = $false
+            }
+        } catch {
+            ""
+            "[ Error ] Message: $($_.Exception.Message)"
+            if ($_.InvocationInfo) {
+                "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)"
+                if($_.InvocationInfo.Line) {
+                    "[ Error ] Code: $($_.InvocationInfo.Line.Trim())"
+                }
+            }
+            ""
+
+            Show-Log ($ui.ERROR_ConfigLoadFailed + ": $($_.Exception.Message)") "Error"
+            $script:configFilePath = ""
+            $script:config = $null
+            $configTextBox.Text = ""
+            $gameDataGridView.Rows.Clear()
+            $tabControl.Controls.Remove($gameListTabPage)
             $startButton.Enabled = $false
         }
-    } catch {
-        Write-Host ""
-        Write-Host "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
-        Write-Host "[ Error ] Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
-        Write-Host "[ Error ] Message: $($_.Exception.Message)" -ForegroundColor Red
-        Write-Host ""
-
-        Show-Log ($ui.ERROR_ConfigLoadFailed + ": $($_.Exception.Message)") "Error"
-        $script:configFilePath = ""
-        $script:config = $null
-        $configTextBox.Text = ""
-        $gameDataGridView.Rows.Clear()
-        $tabControl.Controls.Remove($gameListTabPage)
-        $startButton.Enabled = $false
     }
+    Load-Config -FilePath $configFilePath
+} catch {
+    ""
+    "[ Error ] Message: $($_.Exception.Message)"
+    if ($_.InvocationInfo) {
+        "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)"
+        if($_.InvocationInfo.Line) {
+            "[ Error ] Code: $($_.InvocationInfo.Line.Trim())"
+        }
+    }
+    ""
+    pause
+    exit 1
 }
-
-# 显示环境信息
-Show-Log ($ui.INFO_SystemInfo -f $windowsVersion, $powerShellVersion) "Info"
-Show-Log ($ui.MachineInfo -f $machineName, $userName) "Info"
-Show-Log ($ui.INFO_BackupRootDir + ": " + $backupDirectory) "Info"
-Show-Log ($ui.ConfigSelected + "$(Split-Path -Leaf $configFilePath)") "Info"
-
-# 首次启动：加载配置文件（调用统一的 Load-Config 函数）
-$script:configFilePath = $configFilePath
-Load-Config -ConfigPath $configFilePath
 
 
 
@@ -997,10 +1003,10 @@ $browseButton.Add_Click({
     $fileDialog.InitialDirectory = $script:fileDialogInitialDirectory
 
     if ($fileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {  
-        $configFilePath = $fileDialog.FileName
-        $script:fileDialogInitialDirectory = Split-Path -Parent $configFilePath
-        Show-Log ($ui.ConfigSelected + "$(Split-Path -Leaf $configFilePath)") "Info"
-        Load-Config -ConfigPath $configFilePath
+        $script:configFilePath = $fileDialog.FileName
+        $script:fileDialogInitialDirectory = Split-Path -Parent $script:configFilePath
+        Show-Log ($ui.ConfigSelected + "$(Split-Path -Leaf $script:configFilePath)") "Info"
+        Load-Config -FilePath $script:configFilePath
     }
 })
 
