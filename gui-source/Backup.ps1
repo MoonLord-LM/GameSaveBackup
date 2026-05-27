@@ -146,8 +146,7 @@ try {
             INFO_RobocopyCommand = "Robocopy 命令"
             INFO_GamesFound = "找到游戏配置数量"
             INFO_MultipleConfigFound = "当前目录下找到 {0} 个 JSON 配置文件，请删除多余的，只保留一个"
-            INFO_WorkingDirectory = "当前位置：{0}"
-            INFO_MultipleConfigSelect = "存在 {0} 个配置文件，请选择"
+            INFO_MultipleConfigSelect = "当前位置 存在 {0} 个配置文件，请选择"
             ERROR_DefaultConfigFailed = "内嵌默认配置加载失败"
             ERROR_ConfigLoadFailed = "配置文件加载失败"
             PROGRESS_Processing = "处理"
@@ -232,8 +231,7 @@ try {
             INFO_RobocopyCommand = "Robocopy command"
             INFO_GamesFound = "game(s) found in configuration"
             INFO_MultipleConfigFound = "Found {0} JSON config files in current directory. Please remove extra files and keep only one"
-            INFO_WorkingDirectory = "Location: {0}"
-            INFO_MultipleConfigSelect = "{0} config files found, please select"
+            INFO_MultipleConfigSelect = "Location: {0} config files found, please select"
             ERROR_DefaultConfigFailed = "Failed to load embedded default config"
             ERROR_ConfigLoadFailed = "Config file load failed"
             PROGRESS_Processing = "Processing"
@@ -525,7 +523,6 @@ try {
 
     # 顶部: 配置文件文本框
     $configTextBox = [System.Windows.Forms.TextBox]::new()
-    $configTextBox.Anchor = "Left, Right"
     $configTextBox.Location = [System.Drawing.Point]::new(120, 5)
     $configTextBox.Width = $topInfoPanel.Width - 130
     $configTextBox.ReadOnly = $true
@@ -719,14 +716,14 @@ else {
 
     # 提示信息
     $infolabel1 = [System.Windows.Forms.Label]::new()
-    $infolabel1.Text = "$($ui.INFO_WorkingDirectory -f $workingDirectory)"
-    $infolabel1.Dock = "Top"
+    $infolabel1.Text = "$($ui.INFO_MultipleConfigSelect -f $jsonFilesCount)"
+    $infolabel1.Dock = "Bottom"
     $infolabel1.Height = 28
     $infolabel1.AutoEllipsis = $true
     $topPanel.Controls.Add($infolabel1)
     $infolabel2 = [System.Windows.Forms.Label]::new()
-    $infolabel2.Text = "$($ui.INFO_MultipleConfigSelect -f $jsonFilesCount)"
-    $infolabel2.Dock = "Top"
+    $infolabel2.Text = $workingDirectory
+    $infolabel2.Dock = "Bottom"
     $infolabel2.Height = 28
     $infolabel2.AutoEllipsis = $true
     $topPanel.Controls.Add($infolabel2)
