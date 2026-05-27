@@ -140,6 +140,7 @@ try {
             ERROR_GitMissing = "错误：缺少 git.exe 组件"
             ERROR_GitDownload = "请从 https://git-scm.com/install/windows 下载"
             ERROR_ConfigNotFound = "错误：选定的配置文件不存在"
+            ERROR_ConfigNotSelected = "未选择配置文件"
             ERROR_ConfigReadFailed = "读取配置文件失败"
             INFO_UsingConfig = "使用配置文件"
             INFO_GitCommand = "Git 命令"
@@ -225,6 +226,7 @@ try {
             ERROR_GitMissing = "Error: git.exe component is missing"
             ERROR_GitDownload = "Please download from https://git-scm.com/install/windows"
             ERROR_ConfigNotFound = "Error: Selected config file does not exist"
+            ERROR_ConfigNotSelected = "Config file not selected"
             ERROR_ConfigReadFailed = "Failed to read config file"
             INFO_UsingConfig = "Using config file"
             INFO_GitCommand = "Git command"
@@ -461,7 +463,7 @@ try {
         }
     }
     ""
-    pause
+    [System.Windows.Forms.MessageBox]::Show($_.Exception.Message, $ui.FormTitle, "OK", "Error")
     exit 1
 }
 
@@ -762,7 +764,7 @@ else {
         ""
         "[ Error ] Config file not selected"
         ""
-        pause
+        [System.Windows.Forms.MessageBox]::Show($ui.ERROR_ConfigNotSelected, $ui.FormTitle, "OK", "Error")
         exit 1
     }
     $selectForm.Dispose()
