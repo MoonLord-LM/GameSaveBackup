@@ -734,8 +734,8 @@ try {
     $asyncProgressTimer = [System.Windows.Forms.Timer]::new()
     $asyncProgressTimer.Add_Tick({
         $value = $asyncProgressState['Value']
-        $value = [Math]::Max($value, 0)
-        $value = [Math]::Min($value, 100)
+        $value = [Math]::Max($value, $progressBar.Minimum)
+        $value = [Math]::Min($value, $progressBar.Maximum)
         if ($value -ne $asyncProgressState['LastValue']) {
             $progressBar.Value = $value
             $asyncProgressState['LastValue'] = $value
