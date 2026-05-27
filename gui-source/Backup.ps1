@@ -3,9 +3,44 @@
 
 
 
-# ———————————————————————————————— 1: 基础设置和常量定义 ————————————————————————————————
+# ———————————————————————————————— 1: 基础设置和公共资源 ————————————————————————————————
 
 try {
+    # 异常处理
+    function Handle-Exception {
+        param([Parameter(Mandatory=$true)][System.Management.Automation.ErrorRecord]$ErrorRecord)
+
+        ""
+        "[ Error ] Message: $($ErrorRecord.Exception.Message)"
+        if ($ErrorRecord.InvocationInfo) {
+            "[ Error ] Line: $($ErrorRecord.InvocationInfo.ScriptLineNumber)"
+            if ($ErrorRecord.InvocationInfo.Line) {
+                "[ Error ] Code: $($ErrorRecord.InvocationInfo.Line.Trim())"
+            }
+        }
+        ""
+    }
+
+    # 禁用 DPI 自动缩放，需要在 EnableVisualStyles 之前调用
+    function Disable-DPI-Scaling {
+        $win32APIDefinition = (
+            "[DllImport(`"user32.dll`")]`r`n" +
+            "public static extern bool SetProcessDPIAware();"
+        )
+        Add-Type -MemberDefinition $win32APIDefinition -Name "API" -Namespace "Win32" -PassThru | Out-Null
+        [Win32.API]::SetProcessDPIAware() | Out-Null
+    }
+
+    # 启用双缓冲，减少界面闪烁
+    function Enable-Double-Buffered {
+        param([Parameter(Mandatory=$true)][System.Windows.Forms.Control]$Control)
+
+        $doubleBufferedBindingFlags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Instance
+        $doubleBufferedProperty = [System.Windows.Forms.Control].GetProperty("DoubleBuffered", $doubleBufferedBindingFlags)
+        $doubleBufferedProperty.SetValue($Control, $true)
+        $doubleBufferedProperty.GetValue($Control)
+    }
+
     # 加载窗体程序集
     Add-Type -AssemblyName System.Windows.Forms
     Add-Type -AssemblyName System.Drawing
@@ -32,15 +67,8 @@ try {
     "[ Debug ] machineName = $machineName"
     "[ Debug ] userName = $userName"
 
-    # 禁用 DPI 自动缩放，必须在 EnableVisualStyles 之前调用
-    # $win32APIDefinition = (
-    #     "[DllImport(`"user32.dll`")]`r`n" +
-    #     "public static extern bool SetProcessDPIAware();"
-    # )
-    # Add-Type -MemberDefinition $win32APIDefinition -Name "API" -Namespace "Win32" -PassThru | Out-Null
-    # [Win32.API]::SetProcessDPIAware() | Out-Null
-
     # 设置更现代的窗口样式
+    # Disable-DPI-Scaling
     [System.Windows.Forms.Application]::EnableVisualStyles()
     [System.Windows.Forms.Application]::SetCompatibleTextRenderingDefault($false)
 
@@ -458,15 +486,7 @@ try {
     }
     $defaultJsonConfig = $defaultJsonConfigs[$workingLang]
 } catch {
-    ""
-    "[ Error ] Message: $($_.Exception.Message)"
-    if ($_.InvocationInfo) {
-        "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)"
-        if($_.InvocationInfo.Line) {
-            "[ Error ] Code: $($_.InvocationInfo.Line.Trim())"
-        }
-    }
-    ""
+    Handle-Exception $_
     [System.Windows.Forms.MessageBox]::Show($_.Exception.Message, $ui.FormTitle, "OK", "Error")
     exit 1
 }
@@ -485,13 +505,7 @@ try {
     $mainForm.MinimumSize = [System.Drawing.Size]::new(1000, 600)
 
     # 启用双缓冲减少闪烁
-    $doubleBufferedBindingFlags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Instance
-    $doubleBufferedProperty = [System.Windows.Forms.Control].GetProperty("DoubleBuffered", $doubleBufferedBindingFlags)
-    $mainFormDefaultDoubleBuffered = $doubleBufferedProperty.GetValue($mainForm)
-    "[ Debug ] mainFormDefaultDoubleBuffered = $mainFormDefaultDoubleBuffered"
-    $doubleBufferedProperty.SetValue($mainForm, $true)
-    $mainFormCurrentDoubleBuffered = $doubleBufferedProperty.GetValue($mainForm)
-    "[ Debug ] mainFormCurrentDoubleBuffered = $mainFormCurrentDoubleBuffered"
+    "[ Debug ] mainFormDoubleBuffered = $(Enable-Double-Buffered $mainForm)"
 
     # 创建顶部面板（操作区）
     $topPanel = [System.Windows.Forms.Panel]::new()
@@ -748,15 +762,7 @@ try {
     $asyncProgressTimer.Interval = 50
     $asyncProgressTimer.Start()
 } catch {
-    ""
-    "[ Error ] Message: $($_.Exception.Message)"
-    if ($_.InvocationInfo) {
-        "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)"
-        if($_.InvocationInfo.Line) {
-            "[ Error ] Code: $($_.InvocationInfo.Line.Trim())"
-        }
-    }
-    ""
+    Handle-Exception $_
     pause
     exit 1
 }
@@ -800,13 +806,7 @@ try {
         $selectForm.TopMost = $true
 
         # 启用双缓冲减少闪烁
-        $doubleBufferedBindingFlags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Instance
-        $doubleBufferedProperty = [System.Windows.Forms.Control].GetProperty("DoubleBuffered", $doubleBufferedBindingFlags)
-        $selectFormDefaultDoubleBuffered = $doubleBufferedProperty.GetValue($selectForm)
-        "[ Debug ] selectFormDefaultDoubleBuffered = $selectFormDefaultDoubleBuffered"
-        $doubleBufferedProperty.SetValue($selectForm, $true)
-        $selectFormCurrentDoubleBuffered = $doubleBufferedProperty.GetValue($selectForm)
-        "[ Debug ] selectFormCurrentDoubleBuffered = $selectFormCurrentDoubleBuffered"
+        "[ Debug ] selectFormDoubleBuffered = $(Enable-Double-Buffered $selectForm)"
 
         # 顶部面板（提示区）
         $selectTopPanel = [System.Windows.Forms.Panel]::new()
@@ -979,16 +979,7 @@ try {
                 $startButton.Enabled = $false
             }
         } catch {
-            ""
-            "[ Error ] Message: $($_.Exception.Message)"
-            if ($_.InvocationInfo) {
-                "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)"
-                if($_.InvocationInfo.Line) {
-                    "[ Error ] Code: $($_.InvocationInfo.Line.Trim())"
-                }
-            }
-            ""
-
+            Handle-Exception $_
             Show-Log ($ui.ERROR_ConfigLoadFailed -f $_.Exception.Message) "Error"
             $script:configFilePath = ""
             $script:config = $null
@@ -1000,15 +991,7 @@ try {
     }
     Load-Config -FilePath $configFilePath
 } catch {
-    ""
-    "[ Error ] Message: $($_.Exception.Message)"
-    if ($_.InvocationInfo) {
-        "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)"
-        if($_.InvocationInfo.Line) {
-            "[ Error ] Code: $($_.InvocationInfo.Line.Trim())"
-        }
-    }
-    ""
+    Handle-Exception $_
     pause
     exit 1
 }
@@ -1027,7 +1010,7 @@ $browseButton.Add_Click({
 
     if ($fileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {  
         $script:configFilePath = $fileDialog.FileName
-        $script:fileDialogInitialDirectory = Split-Path -Parent $fileDialogInitialDirectory
+        $script:fileDialogInitialDirectory = $(Split-Path -Parent $fileDialog.FileName)
         Show-Log ($ui.ConfigSelected -f "[$(Split-Path -Leaf $configFilePath)]") "Info"
         Load-Config -FilePath $configFilePath
     }
@@ -1476,6 +1459,7 @@ $contextMenu.Add_Opening({
         }
     }
     catch {
+        Handle-Exception $_
         # 出现错误时禁用菜单项
         $openLocationMenuItem.Enabled = $false
     }
