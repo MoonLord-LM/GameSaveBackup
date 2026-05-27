@@ -914,76 +914,20 @@ function Validate-GameConfig {
 }
 
 # 配置文件路径
-$script:configPath = ""
 $script:configJsonArray = $null
-
-# 加载内嵌的默认配置
-function Load-DefaultConfig {
-    try {
-        $script:configPath = ""
-        $script:configJsonArray = $defaultJsonConfig | ConvertFrom-Json
-
-        # 使用统一的配置验证函数
-        Validate-GameConfig -configArray $script:configJsonArray -uiResources $script:ui
-
-        $configTextBox.Text = $ui.BuiltInConfigDisplay -f $script:configJsonArray.Count
-        Show-Log ($ui.DefaultConfigLoaded -f $script:configJsonArray.Count) "Success"
-
-        $gameDataGridView.SuspendLayout()
-        try {
-            $gameDataGridView.Rows.Clear()
-            for ($i = 0; $i -lt $script:configJsonArray.Count; $i++) {
-                $game = $script:configJsonArray[$i]
-                $gameName = $game.name
-                $savePath = $game.save
-                $gameDataGridView.Rows.Add(($i + 1), $gameName, $savePath) | Out-Null
-            }
-        }
-        finally {
-            $gameDataGridView.ResumeLayout()
-        }
-        Show-Log $ui.GameListUpdated "Info"
-
-        if ($tabControl.TabPages.Contains($gameListTabPage) -eq $false) {
-            $tabControl.Controls.Add($gameListTabPage)
-        }
-        $tabControl.SelectedTab = $gameListTabPage
-
-        if ($script:configJsonArray.Count -ge 1) {
-            $startButton.Enabled = $true
-        } else {
-            $startButton.Enabled = $false
-        }
-    }
-    catch {
-        Write-Host ""
-        Write-Host "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
-        Write-Host "[ Error ] Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
-        Write-Host "[ Error ] Message: $($_.Exception.Message)" -ForegroundColor Red
-        Write-Host ""
-
-        Show-Log ($ui.ERROR_DefaultConfigFailed + ": $($_.Exception.Message)") "Error"
-        $script:configPath = ""
-        $script:configJsonArray = $null
-        $configTextBox.Text = ""
-        $gameDataGridView.Rows.Clear()
-        $tabControl.Controls.Remove($gameListTabPage)
-        $startButton.Enabled = $false
-    }
-}
 
 # 加载外部的 JSON 配置
 function Load-JsonConfigFile {
     param([string]$ConfigPath)
 
     try {
-        $script:configPath = $ConfigPath
-        $script:configJsonArray = Get-Content -Path $script:configPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $configFilePath = $ConfigPath
+        $script:configJsonArray = Get-Content -Path $configFilePath -Raw -Encoding UTF8 | ConvertFrom-Json
 
         # 使用统一的配置验证函数
         Validate-GameConfig -configArray $script:configJsonArray -uiResources $script:ui
 
-        $configTextBox.Text = $script:configPath
+        $configTextBox.Text = $configFilePath
         Show-Log ($ui.ConfigLoaded -f $script:configJsonArray.Count) "Success"
 
         $gameDataGridView.SuspendLayout()
@@ -1019,7 +963,7 @@ function Load-JsonConfigFile {
         Write-Host ""
 
         Show-Log ($ui.ERROR_ConfigLoadFailed + ": $($_.Exception.Message)") "Error"
-        $script:configPath = ""
+        $configFilePath = ""
         $script:configJsonArray = $null
         $configTextBox.Text = ""
         $gameDataGridView.Rows.Clear()
@@ -1031,32 +975,17 @@ function Load-JsonConfigFile {
 # 查找并加载配置
 Show-Log ($ui.INFO_SystemInfo -f $windowsVersion, $powerShellVersion) "Info"
 Show-Log ($ui.MachineInfo -f $machineName, $userName) "Info"
-Show-Log $ui.CheckingConfig "Info"
-
-$script:cd = [System.IO.Directory]::GetCurrentDirectory()
-Write-Host "[ Debug ] current directory = $script:cd"
-Show-Log ($ui.INFO_BackupRootDir + ": " + $script:cd) "Info"
-
-$script:cdJsonFiles = [System.IO.Directory]::GetFiles($backupDirectory, "*.json" )
-if ($script:cdJsonFiles.Count -eq 0) {
-    Show-Log $ui.ConfigNotFound "Warning"
-    Load-DefaultConfig
-}
-elseif ($script:cdJsonFiles.Count -gt 1) {
-    Show-Log ($ui.INFO_MultipleConfigFound -f $script:cdJsonFiles.Count) "Warning"
-    Load-DefaultConfig
-}
-else {
-    Show-Log ($ui.ConfigSelected + "$(Split-Path -Leaf $script:cdJsonFiles[0])") "Info"
-    Load-JsonConfigFile -ConfigPath $script:cdJsonFiles[0]
-}
+Show-Log ($ui.CheckingConfig) "Info"
+Show-Log ($ui.INFO_BackupRootDir + ": " + $backupDirectory) "Info"
+Show-Log ($ui.ConfigSelected + "$(Split-Path -Leaf $configFilePath)") "Info"
+Load-JsonConfigFile -ConfigPath $configFilePath
 
 
 
 # ———————————————————————————————— 4: 事件处理和功能实现 ————————————————————————————————
 
 # 配置文件按钮点击事件
-$script:fileDialogInitialDirectory = $script:cd
+$script:fileDialogInitialDirectory = $backupDirectory
 $browseButton.Add_Click({
     $fileDialog = [System.Windows.Forms.OpenFileDialog]::new()
     $fileDialog.Filter = $ui.FileFilter
@@ -1064,10 +993,10 @@ $browseButton.Add_Click({
     $fileDialog.InitialDirectory = $script:fileDialogInitialDirectory
 
     if ($fileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {  
-        $script:configPath = $fileDialog.FileName
-        $script:fileDialogInitialDirectory = Split-Path -Parent $script:configPath
-        Show-Log ($ui.ConfigSelected + "$(Split-Path -Leaf $script:configPath)") "Info"
-        Load-JsonConfigFile -ConfigPath $script:configPath
+        $configFilePath = $fileDialog.FileName
+        $script:fileDialogInitialDirectory = Split-Path -Parent $configFilePath
+        Show-Log ($ui.ConfigSelected + "$(Split-Path -Leaf $configFilePath)") "Info"
+        Load-JsonConfigFile -ConfigPath $configFilePath
     }
 })
 
@@ -1098,7 +1027,7 @@ $startButton.Add_Click({
 
     # 添加要执行的脚本和参数
     $psInstance.AddScript({
-        param($configJsonArray, $machineName, $userName, $uiResources, $backupRootDir, $logQueue, $progressQueue)
+        param($configJsonArray, $machineName, $userName, $uiResources, $backupDirectory, $logQueue, $progressQueue)
 
         # Runspace 内必须定义 Show-Log-Async（主脚本的函数在此不可见）
         function Show-Log-Async {
@@ -1133,10 +1062,10 @@ $startButton.Add_Click({
         }
 
         # 切换到备份根目录（同步进程 CWD 和 PowerShell Location，git/robocopy 等外部程序依赖进程 CWD）
-        [System.IO.Directory]::SetCurrentDirectory($backupRootDir)
-        Set-Location -LiteralPath $backupRootDir
-        Show-Log-Async ($uiResources.INFO_CurrentWorkingDir + ": " + $backupRootDir) 'Info'
-        Show-Log-Async ($uiResources.INFO_BackupRootDir + ": " + $backupRootDir) 'Info'
+        [System.IO.Directory]::SetCurrentDirectory($backupDirectory)
+        Set-Location -LiteralPath $backupDirectory
+        Show-Log-Async ($uiResources.INFO_CurrentWorkingDir + ": " + $backupDirectory) 'Info'
+        Show-Log-Async ($uiResources.INFO_BackupRootDir + ": " + $backupDirectory) 'Info'
 
         # 检查 Git
         $gitExe = Get-Command git -ErrorAction SilentlyContinue
@@ -1206,7 +1135,7 @@ $startButton.Add_Click({
             }
 
             # 构建备份目录（在备份根目录下）
-            $backupDir = Join-Path $backupRootDir $name
+            $backupDir = Join-Path $backupDirectory $name
 
             # 获取本地文件修改时间
             $maxLocalTime = $null
@@ -1398,7 +1327,7 @@ $startButton.Add_Click({
         }
 
         # 恢复工作目录到备份根目录
-        Set-Location -LiteralPath $backupRootDir
+        Set-Location -LiteralPath $backupDirectory
         Show-Log-Async ($uiResources.INFO_CurrentWorkingDir + ": " + (Get-Location).Path) 'Info'
 
         # 最终 Git 提交
@@ -1437,7 +1366,7 @@ $startButton.Add_Click({
     $psInstance.AddParameter('machineName', $script:machineName)
     $psInstance.AddParameter('userName', $script:userName)
     $psInstance.AddParameter('uiResources', $script:ui)
-    $psInstance.AddParameter('backupRootDir', $script:cd)
+    $psInstance.AddParameter('backupDirectory', $backupDirectory)
     $psInstance.AddParameter('logQueue', $asyncShowLogQueue)
     $psInstance.AddParameter('progressQueue', $asyncProgressState)
 
