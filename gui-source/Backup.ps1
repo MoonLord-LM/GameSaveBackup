@@ -620,6 +620,7 @@ try {
     function Show-Log {
         param([string]$Message = '', [string]$Level = 'Info')
 
+        if ($logTextBox.IsDisposed) { return }
         if ($logTextBox.InvokeRequired) {
             $logTextBox.Invoke([System.Action]{
                 Show-Log -Message $Message -Level $Level
@@ -636,6 +637,7 @@ try {
 
         $logTextBox.SuspendLayout()
         try {
+            if ($logTextBox.IsDisposed) { return }
             $logTextBox.SelectionStart = $logTextBox.TextLength
             $logTextBox.SelectionLength = 0
             $logTextBox.SelectionColor = $logColor
@@ -649,6 +651,7 @@ try {
     function Show-Log-Batch {
         param([System.Collections.Generic.List[hashtable]]$Logs)
 
+        if ($logTextBox.IsDisposed) { return }
         if ($logTextBox.InvokeRequired) {
             $logTextBox.Invoke([System.Action]{
                 Show-Log-Batch -Logs $Logs
@@ -668,6 +671,7 @@ try {
                     [System.Drawing.Color]::Black
                 }
                 $logText = "[{0}] {1}`r`n" -f $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $log.Message
+                if ($logTextBox.IsDisposed) { return }
                 $logTextBox.SelectionStart = $logTextBox.TextLength
                 $logTextBox.SelectionLength = 0
                 $logTextBox.SelectionColor = $logColor
@@ -697,7 +701,7 @@ try {
             Show-Log-Batch -Logs $logs
         }
     })
-    $asyncShowLogTimer.Interval = 50
+    $asyncShowLogTimer.Interval = 100
     $asyncShowLogTimer.Start()
 
     # 中部: 游戏信息显示表格
@@ -763,8 +767,19 @@ try {
             $asyncProgressState['LastValue'] = $value
         }
     })
-    $asyncProgressTimer.Interval = 50
+    $asyncProgressTimer.Interval = 100
     $asyncProgressTimer.Start()
+
+    # 执行备份的 Runspace 线程池
+    $backupRunspacePool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1, 1)
+    $backupRunspacePool.ApartmentState = [System.Threading.ApartmentState]::STA
+    $backupRunspacePool.Open()
+    $mainForm.Add_FormClosing({
+        if ($backupRunspacePool) {
+            $backupRunspacePool.Close()
+            $backupRunspacePool.Dispose()
+        }
+    })
 } catch {
     Handle-Exception $_
     pause
@@ -1022,6 +1037,9 @@ $browseButton.Add_Click({
 
 # 开始备份按钮
 $isBackupRunning = $false
+$backupPsInstance = $null
+$backupAsyncResult = $null
+$backupResultTimer = $null
 $startButton.Add_Click({
     if ($isBackupRunning) {
         return
@@ -1036,16 +1054,7 @@ $startButton.Add_Click({
     $asyncProgressState['Value'] = 0
     Show-Log $ui.BackupStarted "Progress"
 
-    # 创建 Runspace 池来执行备份任务
-    $runspacePool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1, 1)
-    $runspacePool.Open()
-
-    # 创建 PowerShell 实例
-    $psInstance = [System.Management.Automation.PowerShell]::Create()
-    $psInstance.RunspacePool = $runspacePool
-
-    # 添加要执行的脚本和参数
-    $psInstance.AddScript({
+    $backupPs = {
         param($ui, $config, $machineName, $userName, $backupDirectory, $asyncShowLogQueue, $asyncProgressState)
 
         # Runspace 内必须定义 Show-Log-Async（主脚本的函数在此不可见）
@@ -1319,7 +1328,7 @@ $startButton.Add_Click({
 
                     $diffResult = & git diff --cached --quiet 2>&1
                     if ($LASTEXITCODE -ne 0) {
-                        $commitMsg = "Update - " + $name + " on " + $machineName + " by " $userName
+                        $commitMsg = "Update - " + $name + " on " + $machineName + " by " + $userName
                         $null = Invoke-GitCommand -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed"
                         Show-Log-Async $ui.SUCCESS_GitCommit 'Success'
                     }
@@ -1370,53 +1379,48 @@ $startButton.Add_Click({
         catch {
             Show-Log-Async ("Git clean failed: $_") 'Warning'
         }
+    }
 
-        Show-Log-Async $ui.SUCCESS_BackupComplete 'Success'
-        
-        # 返回成功标记
-        return $true
-    })
+    # 创建执行实例
+    $script:backupPsInstance = [System.Management.Automation.PowerShell]::Create()
+    $backupPsInstance.RunspacePool = $backupRunspacePool
+    $backupPsInstance.AddScript($backupPs)
+    $backupPsInstance.AddParameter('ui', $ui)
+    $backupPsInstance.AddParameter('config', $config)
+    $backupPsInstance.AddParameter('machineName', $machineName)
+    $backupPsInstance.AddParameter('userName', $userName)
+    $backupPsInstance.AddParameter('backupDirectory', $backupDirectory)
+    $backupPsInstance.AddParameter('asyncShowLogQueue', $asyncShowLogQueue)
+    $backupPsInstance.AddParameter('asyncProgressState', $asyncProgressState)
 
-    $psInstance.AddParameter('ui', $ui)
-    $psInstance.AddParameter('config', $config)
-    $psInstance.AddParameter('machineName', $machineName)
-    $psInstance.AddParameter('userName', $userName)
-    $psInstance.AddParameter('backupDirectory', $backupDirectory)
-    $psInstance.AddParameter('asyncShowLogQueue', $asyncShowLogQueue)
-    $psInstance.AddParameter('asyncProgressState', $asyncProgressState)
-
-    # 异步执行
-    $asyncResult = $psInstance.BeginInvoke()
+    # 开始异步执行
+    $script:backupAsyncResult = $backupPsInstance.BeginInvoke()
     Show-Log $ui.RunspaceStarted "Progress"
 
-    # 等待任务完成并清理资源
-    try {
-        while (-not $asyncResult.IsCompleted) {
-            [System.Windows.Forms.Application]::DoEvents()
-            Start-Sleep -Milliseconds 100
+    # 轮询任务进度
+    $script:backupResultTimer = [System.Windows.Forms.Timer]::new()
+    $backupResultTimer.Interval = 200
+    $backupResultTimer.Add_Tick({
+        if ($backupAsyncResult.IsCompleted) {
+            $this.Stop()
+            try {
+                $backupPsInstance.EndInvoke($backupAsyncResult)
+                Show-Log $ui.SUCCESS_BackupComplete 'Success'
+            }
+            catch {
+                Handle-Exception $_
+                Show-Log ($ui.ERROR_BackupTaskFailed -f $_) 'Error'
+            }
+            finally {
+                if ($backupPsInstance) { $backupPsInstance.Dispose() }
+                $startButton.Enabled = $true
+                $browseButton.Enabled = $true
+                $script:isBackupRunning = $false
+                $this.Dispose()
+            }
         }
-        $backupResult = $psInstance.EndInvoke($asyncResult)
-        "[ Debug ] backupResult = $backupResult"
-    }
-    catch {
-        Show-Log ($ui.ERROR_BackupTaskFailed -f $_) 'Error'
-    }
-    finally {
-        # 清理资源
-        if ($psInstance) {
-            $psInstance.Dispose()
-        }
-        if ($runspacePool) {
-            $runspacePool.Close()
-            $runspacePool.Dispose()
-        }
-        
-        # 恢复 UI 状态
-        $startButton.Enabled = $true
-        $browseButton.Enabled = $true
-        $progressBar.Value = 100
-        $script:isBackupRunning = $false
-    }
+    })
+    $backupResultTimer.Start()
 })
 
 # 日志右键菜单: 复制日志
