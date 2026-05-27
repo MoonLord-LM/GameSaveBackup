@@ -771,34 +771,20 @@ else {
 }
 "[ Debug ] configFilePath = $configFilePath"
 
-$batFileCount = [System.IO.Directory]::GetFiles($workingDirectory, "*.bat")
-$ps1FileCount = [System.IO.Directory]::GetFiles($workingDirectory, "*.ps1")
-$jsonFiles = [System.IO.Directory]::GetFiles($workingDirectory, "*.json")
-$directories = [System.IO.Directory]::GetDirectories($workingDirectory).Count
-$directories = [System.IO.Directory]::GetDirectories($workingDirectory).Count
 
 
-
-# 定义变量
-$script:configJsonArray = $null
-$script:asyncResult = $null
-
-
-
-# 运行日志展示，根据日志等级设置颜色
-$script:LogColorMap = @{
-    Info     = [System.Drawing.Color]::Black
-    Success  = [System.Drawing.Color]::Green
-    Warning  = [System.Drawing.Color]::DarkOrange
-    Error    = [System.Drawing.Color]::Red
-    Progress = [System.Drawing.Color]::Blue
-    Debug    = [System.Drawing.Color]::Gray
-}
+# 界面展示运行日志
 function Write-Log {
-    param(
-        [string]$Message = '',
-        [string]$Level = 'Info'
-    )
+    param([string]$Message = '', [string]$Level = 'Info')
+
+    $LogColorMap = @{
+        Info     = [System.Drawing.Color]::Black
+        Success  = [System.Drawing.Color]::Green
+        Warning  = [System.Drawing.Color]::DarkOrange
+        Error    = [System.Drawing.Color]::Red
+        Progress = [System.Drawing.Color]::Blue
+        Debug    = [System.Drawing.Color]::Gray
+    }
 
     try {
         if ($logTextBox.InvokeRequired) {
@@ -809,10 +795,10 @@ function Write-Log {
         }
 
         $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
-        $color = if ($script:LogColorMap.ContainsKey($Level)) { 
-            $script:LogColorMap[$Level] 
+        $color = if ($LogColorMap.ContainsKey($Level)) {
+            $LogColorMap[$Level] 
         } else { 
-            [System.Drawing.Color]::Black 
+            [System.Drawing.Color]::Black
         }
         $text = "[{0}] {1}`r`n" -f $timestamp, $Message
 
@@ -929,6 +915,7 @@ function Validate-GameConfig {
     }
 }
 
+$script:configJsonArray = $null
 # 加载内嵌的默认配置
 function Load-DefaultConfig {
     try {
@@ -1452,18 +1439,18 @@ $startButton.Add_Click({
     $psInstance.AddParameter('progressQueue', $script:asyncProgressState)
 
     # 异步执行
-    $script:asyncResult = $psInstance.BeginInvoke()
+    $asyncResult = $psInstance.BeginInvoke()
     Write-Log $ui.RunspaceStarted "Progress"
     
     # 等待任务完成并清理资源
     try {
-        while (-not $script:asyncResult.IsCompleted) {
+        while (-not $asyncResult.IsCompleted) {
             [System.Windows.Forms.Application]::DoEvents()
             Start-Sleep -Milliseconds 50
         }
         
         # 获取执行结果
-        $result = $psInstance.EndInvoke($script:asyncResult)
+        $result = $psInstance.EndInvoke($asyncResult)
         Write-Host "[ Debug ] EndInvoke result = $($result) (type: $($result.GetType()))"
     }
     catch {
