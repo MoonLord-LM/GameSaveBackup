@@ -730,15 +730,15 @@ try {
     # 进度条的异步更新（使用定时任务，实现固定频率刷新界面）
     $asyncProgressState = [System.Collections.Concurrent.ConcurrentDictionary[string, int]]::new()
     $asyncProgressState['Value'] = 0
-    $lastProgressValue = 0
+    $asyncProgressState['LastValue'] = 0
     $asyncProgressTimer = [System.Windows.Forms.Timer]::new()
     $asyncProgressTimer.Add_Tick({
         $value = $asyncProgressState['Value']
         $value = [Math]::Max($value, 0)
         $value = [Math]::Min($value, 100)
-        if ($value -ne $lastProgressValue) {
+        if ($value -ne $asyncProgressState['LastValue']) {
             $progressBar.Value = $value
-            $lastProgressValue = $value
+            $asyncProgressState['LastValue'] = $value
         }
     })
     $asyncProgressTimer.Interval = 50
@@ -759,7 +759,7 @@ try {
 
 
 
-# ———————————————————————————————— 3: 配置初始化逻辑 ————————————————————————————————
+# ———————————————————————————————— 3: 配置初始化和启动过程 ————————————————————————————————
 
 # 配置和备份文件，创建单独的目录存放
 $backupDirectory = [System.IO.Path]::Combine($workingDirectory, $ui.BackupDirName)
@@ -880,64 +880,43 @@ else {
 }
 "[ Debug ] configFilePath = $configFilePath"
 
-
-
-# 界面展示运行日志
-
-
-
-# 展示系统版本和 PowerShell 版本信息
-Show-Log ($ui.INFO_SystemInfo -f $windowsVersion, $powerShellVersion) "Info"
-
-# 展示机器名和用户名信息
-Show-Log ($ui.MachineInfo -f $machineName, $userName) "Info"
-
-# 配置文件路径
-$script:configPath = ""
-
-# 检查游戏名称是否包含 Windows 文件名非法字符
-function Test-GameNameIllegalChars {
-    param([string]$Name)
-
-    # Windows 文件名不允许的字符: < > : " / \ | ? * 以及控制字符(0-31)
-    $illegalChars = [regex]"[<>:`"\/\\|?*\x00-\x1f]"
-    return $illegalChars.IsMatch($Name)
-}
-
 # 验证游戏配置数组格式和内容
 function Validate-GameConfig {
     param([array]$configArray, [hashtable]$uiResources)
 
     if ($configArray -isnot [System.Array]) {
-        throw $uiResources.ERROR_ConfigNotArrayFormat
+        throw $ui.ERROR_ConfigNotArrayFormat
     }
     if ($configArray.Count -eq 0) {
-        throw $uiResources.ERROR_ConfigEmptyCount
+        throw $ui.ERROR_ConfigEmptyCount
     }
     for ($i = 0; $i -lt $configArray.Count; $i++) {
         $game = $configArray[$i]
         if ($game -isnot [PSCustomObject]) {
-            throw ($uiResources.ERROR_ConfigItemNotObject -f ($i + 1))
+            throw ($ui.ERROR_ConfigItemNotObject -f ($i + 1))
         }
         if (-not $game.PSObject.Properties.Match('name')) {
-            throw ($uiResources.ERROR_ConfigItemMissingName -f ($i + 1))
+            throw ($ui.ERROR_ConfigItemMissingName -f ($i + 1))
         }
         if (-not $game.PSObject.Properties.Match('save')) {
-            throw ($uiResources.ERROR_ConfigItemMissingSave -f ($i + 1))
+            throw ($ui.ERROR_ConfigItemMissingSave -f ($i + 1))
         }
         if ([string]::IsNullOrEmpty($game.name)) {
-            throw ($uiResources.ERROR_ConfigItemNameEmpty -f ($i + 1))
+            throw ($ui.ERROR_ConfigItemNameEmpty -f ($i + 1))
         }
         if ([string]::IsNullOrEmpty($game.save)) {
-            throw ($uiResources.ERROR_ConfigItemSaveEmpty -f ($i + 1))
+            throw ($ui.ERROR_ConfigItemSaveEmpty -f ($i + 1))
         }
-        if (Test-GameNameIllegalChars -Name $game.name) {
-            throw ($uiResources.ERROR_ConfigItemNameIllegalChars -f ($i + 1))
+        if ($game.name.IndexOfAny([System.IO.Path]::GetInvalidFileNameChars()) -ge 0) {
+            throw ($ui.ERROR_ConfigItemNameIllegalChars -f ($i + 1))
         }
     }
 }
 
+# 配置文件路径
+$script:configPath = ""
 $script:configJsonArray = $null
+
 # 加载内嵌的默认配置
 function Load-DefaultConfig {
     try {
@@ -1050,6 +1029,8 @@ function Load-JsonConfigFile {
 }
 
 # 查找并加载配置
+Show-Log ($ui.INFO_SystemInfo -f $windowsVersion, $powerShellVersion) "Info"
+Show-Log ($ui.MachineInfo -f $machineName, $userName) "Info"
 Show-Log $ui.CheckingConfig "Info"
 
 $script:cd = [System.IO.Directory]::GetCurrentDirectory()
