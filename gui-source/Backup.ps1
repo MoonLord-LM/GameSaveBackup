@@ -902,14 +902,14 @@ try {
 
             $script:config = Get-Content -Path $FilePath -Raw -Encoding UTF8 | ConvertFrom-Json
 
-            if ($script:config -isnot [System.Array]) {
+            if ($config -isnot [System.Array]) {
                 throw $ui.ERROR_ConfigNotArrayFormat
             }
-            if ($script:config.Count -eq 0) {
+            if ($config.Count -eq 0) {
                 throw $ui.ERROR_ConfigEmptyCount
             }
-            for ($i = 0; $i -lt $script:config.Count; $i++) {
-                $game = $script:config[$i]
+            for ($i = 0; $i -lt $config.Count; $i++) {
+                $game = $config[$i]
                 if ($game -isnot [PSCustomObject]) {
                     throw ($ui.ERROR_ConfigItemNotObject -f ($i + 1))
                 }
@@ -951,13 +951,13 @@ try {
 
             # 更新 UI 界面
             $configTextBox.Text = $FilePath
-            Show-Log ($ui.ConfigLoaded -f $script:config.Count) "Success"
+            Show-Log ($ui.ConfigLoaded -f $config.Count) "Success"
 
             $gameDataGridView.SuspendLayout()
             try {
                 $gameDataGridView.Rows.Clear()
-                for ($i = 0; $i -lt $script:config.Count; $i++) {
-                    $game = $script:config[$i]
+                for ($i = 0; $i -lt $config.Count; $i++) {
+                    $game = $config[$i]
                     $gameName = $game.name
                     $savePath = $game.save
                     $gameDataGridView.Rows.Add(($i + 1), $gameName, $savePath) | Out-Null
@@ -973,7 +973,7 @@ try {
             }
             $tabControl.SelectedTab = $gameListTabPage
 
-            if ($script:config.Count -ge 1) {
+            if ($config.Count -ge 1) {
                 $startButton.Enabled = $true
             } else {
                 $startButton.Enabled = $false
@@ -1015,28 +1015,28 @@ try {
 
 
 
-# ———————————————————————————————— 4: 事件处理和功能实现 ————————————————————————————————
+# ———————————————————————————————— 4: 主界面功能实现 ————————————————————————————————
 
-# 配置文件按钮点击事件
-$script:fileDialogInitialDirectory = $backupDirectory
+# 选择配置按钮
+$fileDialogInitialDirectory = $backupDirectory
 $browseButton.Add_Click({
     $fileDialog = [System.Windows.Forms.OpenFileDialog]::new()
     $fileDialog.Filter = $ui.FileFilter
     $fileDialog.Title = $ui.FileDialogTitle
-    $fileDialog.InitialDirectory = $script:fileDialogInitialDirectory
+    $fileDialog.InitialDirectory = $fileDialogInitialDirectory
 
     if ($fileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {  
         $script:configFilePath = $fileDialog.FileName
-        $script:fileDialogInitialDirectory = Split-Path -Parent $script:configFilePath
-        Show-Log ($ui.ConfigSelected -f "[$(Split-Path -Leaf $script:configFilePath)]") "Info"
-        Load-Config -FilePath $script:configFilePath
+        $script:fileDialogInitialDirectory = Split-Path -Parent $fileDialogInitialDirectory
+        Show-Log ($ui.ConfigSelected -f "[$(Split-Path -Leaf $configFilePath)]") "Info"
+        Load-Config -FilePath $configFilePath
     }
 })
 
-# 开始备份按钮点击事件
-$script:isBackupRunning = $false
+# 开始备份按钮
+$isBackupRunning = $false
 $startButton.Add_Click({
-    if ($script:isBackupRunning) {
+    if ($isBackupRunning) {
         return
     }
     $script:isBackupRunning = $true
@@ -1046,7 +1046,7 @@ $startButton.Add_Click({
     $tabControl.SelectedTab = $logTabPage
     $progressBar.Visible = $true
     $progressBar.Value = 0
-    $asyncProgressState['Value'] = 0  # 重置异步进度变量（通过 hashtable 引用）
+    $asyncProgressState['Value'] = 0
 
     Show-Log $ui.BackupStarted "Progress"
 
@@ -1395,10 +1395,10 @@ $startButton.Add_Click({
         return $true
     })
 
-    $psInstance.AddParameter('configJsonArray', $script:config)
-    $psInstance.AddParameter('machineName', $script:machineName)
-    $psInstance.AddParameter('userName', $script:userName)
-    $psInstance.AddParameter('uiResources', $script:ui)
+    $psInstance.AddParameter('configJsonArray', $config)
+    $psInstance.AddParameter('machineName', $machineName)
+    $psInstance.AddParameter('userName', $userName)
+    $psInstance.AddParameter('uiResources', $ui)
     $psInstance.AddParameter('backupDirectory', $backupDirectory)
     $psInstance.AddParameter('logQueue', $asyncShowLogQueue)
     $psInstance.AddParameter('progressQueue', $asyncProgressState)
@@ -1406,17 +1406,15 @@ $startButton.Add_Click({
     # 异步执行
     $asyncResult = $psInstance.BeginInvoke()
     Show-Log $ui.RunspaceStarted "Progress"
-    
+
     # 等待任务完成并清理资源
     try {
         while (-not $asyncResult.IsCompleted) {
             [System.Windows.Forms.Application]::DoEvents()
             Start-Sleep -Milliseconds 50
         }
-        
-        # 获取执行结果
-        $result = $psInstance.EndInvoke($asyncResult)
-        Write-Host "[ Debug ] EndInvoke result = $($result) (type: $($result.GetType()))"
+        $backupResult = $psInstance.EndInvoke($asyncResult)
+        "[ Debug ] backupResult = $backupResult"
     }
     catch {
         Show-Log ($ui.ERROR_BackupTaskFailed -f $_) 'Error'
@@ -1454,7 +1452,7 @@ $clearLogMenuItem.Add_Click({
     $logTextBox.Clear()
 })
 
-# 右键菜单打开前的事件: 动态启用/禁用菜单项
+# 列表右键菜单打开前的事件: 动态启用/禁用菜单项
 $contextMenu.Add_Opening({
     try {
         # 检查是否有选中的行
@@ -1483,7 +1481,7 @@ $contextMenu.Add_Opening({
     }
 })
 
-# 右键菜单点击事件: 打开存档位置
+# 列表右键菜单点击事件: 打开存档位置
 $openLocationMenuItem.Add_Click({
     try {
         # 获取选中的行
