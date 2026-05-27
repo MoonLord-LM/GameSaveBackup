@@ -146,7 +146,7 @@ try {
             INFO_RobocopyCommand = "Robocopy 命令"
             INFO_GamesFound = "找到游戏配置数量"
             INFO_MultipleConfigFound = "当前目录下找到 {0} 个 JSON 配置文件，请删除多余的，只保留一个"
-            INFO_MultipleConfigSelect = "当前位置 存在 {0} 个配置文件，请选择"
+            INFO_MultipleConfigSelect = "当前位置存在 {0} 个配置文件，请选择"
             ERROR_DefaultConfigFailed = "内嵌默认配置加载失败"
             ERROR_ConfigLoadFailed = "配置文件加载失败"
             PROGRESS_Processing = "处理"
@@ -539,7 +539,7 @@ try {
     $browseButton.Text = $ui.BrowseButton
     $browseButton.Location = [System.Drawing.Point]::new(5, 0)
     $browseButton.Size = [System.Drawing.Size]::new(130, 36)
-    $browseButton.BackColor = [System.Drawing.Color]::LightGreen
+    # $browseButton.BackColor = [System.Drawing.Color]::LightGreen
     $topButtonGroupPanel.Controls.Add($browseButton)
 
     # 顶部: 开始备份按钮
@@ -547,7 +547,7 @@ try {
     $startButton.Text = $ui.StartButton
     $startButton.Location = [System.Drawing.Point]::new(140, 0)
     $startButton.Size = [System.Drawing.Size]::new(130, 36)
-    $startButton.BackColor = [System.Drawing.Color]::LightBlue
+    # $startButton.BackColor = [System.Drawing.Color]::LightBlue
     $startButton.Enabled = $false
     $topButtonGroupPanel.Controls.Add($startButton)
 
@@ -741,9 +741,8 @@ else {
 
     # 确认按钮
     $okButton = [System.Windows.Forms.Button]::new()
-    $okButton.Anchor = "Right"
-    $okButton.Location = [System.Drawing.Point]::new(480, 10)
     $okButton.Text = $ui.ConfirmButton
+    $okButton.Location = [System.Drawing.Point]::new(345, 12)
     $okButton.Size = [System.Drawing.Size]::new(130, 36)
     $okButton.DialogResult = "OK"
     $bottomPanel.Controls.Add($okButton)
