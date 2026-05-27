@@ -1034,7 +1034,6 @@ $startButton.Add_Click({
     $progressBar.Visible = $true
     $progressBar.Value = 0
     $asyncProgressState['Value'] = 0
-
     Show-Log $ui.BackupStarted "Progress"
 
     # 创建 Runspace 池来执行备份任务
