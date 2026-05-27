@@ -880,87 +880,109 @@ else {
 }
 "[ Debug ] configFilePath = $configFilePath"
 
+# 加载 JSON 配置文件的通用函数（首次启动和后续修改配置都调用此函数）
+function Load-Config {
+    param([string]$ConfigPath = '')
+
+    try {
+        # 校验参数
+        if ([string]::IsNullOrEmpty($ConfigPath)) {
+            throw $ui.ERROR_ConfigNotSelected
+        }
+        if (-not [System.IO.File]::Exists($ConfigPath)) {
+            throw $ui.ERROR_ConfigNotFound
+        }
+
+        # 读取并解析 JSON 配置文件
+        $script:config = Get-Content -Path $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
+
+        # 验证配置格式
+        if ($script:config -isnot [System.Array]) {
+            throw $ui.ERROR_ConfigNotArrayFormat
+        }
+        if ($script:config.Count -eq 0) {
+            throw $ui.ERROR_ConfigEmptyCount
+        }
+        for ($i = 0; $i -lt $script:config.Count; $i++) {
+            $game = $script:config[$i]
+            if ($game -isnot [PSCustomObject]) {
+                throw ($ui.ERROR_ConfigItemNotObject -f ($i + 1))
+            }
+            if (-not $game.PSObject.Properties.Match('name')) {
+                throw ($ui.ERROR_ConfigItemMissingName -f ($i + 1))
+            }
+            if (-not $game.PSObject.Properties.Match('save')) {
+                throw ($ui.ERROR_ConfigItemMissingSave -f ($i + 1))
+            }
+            if ([string]::IsNullOrEmpty($game.name)) {
+                throw ($ui.ERROR_ConfigItemNameEmpty -f ($i + 1))
+            }
+            if ([string]::IsNullOrEmpty($game.save)) {
+                throw ($ui.ERROR_ConfigItemSaveEmpty -f ($i + 1))
+            }
+            if ($game.name.IndexOfAny([System.IO.Path]::GetInvalidFileNameChars()) -ge 0) {
+                throw ($ui.ERROR_ConfigItemNameIllegalChars -f ($i + 1))
+            }
+        }
+
+        # 更新全局变量
+        $script:configFilePath = $ConfigPath
+
+        # 更新 UI 界面
+        $configTextBox.Text = $ConfigPath
+        Show-Log ($ui.ConfigLoaded -f $script:config.Count) "Success"
+
+        $gameDataGridView.SuspendLayout()
+        try {
+            $gameDataGridView.Rows.Clear()
+            for ($i = 0; $i -lt $script:config.Count; $i++) {
+                $game = $script:config[$i]
+                $gameName = $game.name
+                $savePath = $game.save
+                $gameDataGridView.Rows.Add(($i + 1), $gameName, $savePath) | Out-Null
+            }
+        }
+        finally {
+            $gameDataGridView.ResumeLayout()
+        }
+        Show-Log $ui.GameListUpdated "Info"
+
+        if ($tabControl.TabPages.Contains($gameListTabPage) -eq $false) {
+            $tabControl.Controls.Add($gameListTabPage)
+        }
+        $tabControl.SelectedTab = $gameListTabPage
+
+        if ($script:config.Count -ge 1) {
+            $startButton.Enabled = $true
+        } else {
+            $startButton.Enabled = $false
+        }
+    } catch {
+        Write-Host ""
+        Write-Host "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
+        Write-Host "[ Error ] Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
+        Write-Host "[ Error ] Message: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host ""
+
+        Show-Log ($ui.ERROR_ConfigLoadFailed + ": $($_.Exception.Message)") "Error"
+        $script:configFilePath = ""
+        $script:config = $null
+        $configTextBox.Text = ""
+        $gameDataGridView.Rows.Clear()
+        $tabControl.Controls.Remove($gameListTabPage)
+        $startButton.Enabled = $false
+    }
+}
+
 # 显示环境信息
 Show-Log ($ui.INFO_SystemInfo -f $windowsVersion, $powerShellVersion) "Info"
 Show-Log ($ui.MachineInfo -f $machineName, $userName) "Info"
 Show-Log ($ui.INFO_BackupRootDir + ": " + $backupDirectory) "Info"
 Show-Log ($ui.ConfigSelected + "$(Split-Path -Leaf $configFilePath)") "Info"
 
-# 加载配置
-try {
-    $config = Get-Content -Path $configFilePath -Raw -Encoding UTF8 | ConvertFrom-json
-
-    if ($config -isnot [System.Array]) {
-        throw $ui.ERROR_ConfigNotArrayFormat
-    }
-    if ($config.Count -eq 0) {
-        throw $ui.ERROR_ConfigEmptyCount
-    }
-    for ($i = 0; $i -lt $config.Count; $i++) {
-        $game = $config[$i]
-        if ($game -isnot [PSCustomObject]) {
-            throw ($ui.ERROR_ConfigItemNotObject -f ($i + 1))
-        }
-        if (-not $game.PSObject.Properties.Match('name')) {
-            throw ($ui.ERROR_ConfigItemMissingName -f ($i + 1))
-        }
-        if (-not $game.PSObject.Properties.Match('save')) {
-            throw ($ui.ERROR_ConfigItemMissingSave -f ($i + 1))
-        }
-        if ([string]::IsNullOrEmpty($game.name)) {
-            throw ($ui.ERROR_ConfigItemNameEmpty -f ($i + 1))
-        }
-        if ([string]::IsNullOrEmpty($game.save)) {
-            throw ($ui.ERROR_ConfigItemSaveEmpty -f ($i + 1))
-        }
-        if ($game.name.IndexOfAny([System.IO.Path]::GetInvalidFileNameChars()) -ge 0) {
-            throw ($ui.ERROR_ConfigItemNameIllegalChars -f ($i + 1))
-        }
-    }
-
-    $configTextBox.Text = $configFilePath
-    Show-Log ($ui.ConfigLoaded -f $script:config.Count) "Success"
-
-    $gameDataGridView.SuspendLayout()
-    try {
-        $gameDataGridView.Rows.Clear()
-        for ($i = 0; $i -lt $script:config.Count; $i++) {
-            $game = $script:config[$i]
-            $gameName = $game.name
-            $savePath = $game.save
-            $gameDataGridView.Rows.Add(($i + 1), $gameName, $savePath) | Out-Null
-        }
-    }
-    finally {
-        $gameDataGridView.ResumeLayout()
-    }
-    Show-Log $ui.GameListUpdated "Info"
-
-    if ($tabControl.TabPages.Contains($gameListTabPage) -eq $false) {
-        $tabControl.Controls.Add($gameListTabPage)
-    }
-    $tabControl.SelectedTab = $gameListTabPage
-
-    if ($script:config.Count -ge 1) {
-        $startButton.Enabled = $true
-    } else {
-        $startButton.Enabled = $false
-    }
-} catch {
-    Write-Host ""
-    Write-Host "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
-    Write-Host "[ Error ] Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
-    Write-Host "[ Error ] Message: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host ""
-
-    Show-Log ($ui.ERROR_ConfigLoadFailed + ": $($_.Exception.Message)") "Error"
-    $configFilePath = ""
-    $script:config = $null
-    $configTextBox.Text = ""
-    $gameDataGridView.Rows.Clear()
-    $tabControl.Controls.Remove($gameListTabPage)
-    $startButton.Enabled = $false
-}
+# 首次启动：加载配置文件（调用统一的 Load-Config 函数）
+$script:configFilePath = $configFilePath
+Load-Config -ConfigPath $configFilePath
 
 
 
@@ -978,7 +1000,7 @@ $browseButton.Add_Click({
         $configFilePath = $fileDialog.FileName
         $script:fileDialogInitialDirectory = Split-Path -Parent $configFilePath
         Show-Log ($ui.ConfigSelected + "$(Split-Path -Leaf $configFilePath)") "Info"
-        Load-JsonConfigFile -ConfigPath $configFilePath
+        Load-Config -ConfigPath $configFilePath
     }
 })
 
