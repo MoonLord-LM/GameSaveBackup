@@ -760,6 +760,9 @@ else {
     if ($result -eq [System.Windows.Forms.DialogResult]::OK -and $listBox.SelectedIndex -ge 0) {
         $configFilePath = $jsonFiles[$listBox.SelectedIndex]
     } else {
+        ""
+        "[ Error ] Config file not selected"
+        ""
         pause
         exit 1
     }
