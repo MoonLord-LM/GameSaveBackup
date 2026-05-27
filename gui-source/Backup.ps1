@@ -182,8 +182,9 @@ try {
             ERROR_ConfigLoadFailed = "配置文件加载失败: {0}"
             PROGRESS_Processing = "处理"
             INFO_IgnoreItem = "忽略项"
-            INFO_CurrentWorkingDir = "当前工作目录"
-            INFO_EnteringBackupDir = "进入备份目录"
+            INFO_CurrentWorkingDir = "当前工作目录: {0}"
+            INFO_GitWorkingDir = "当前 Git 工作目录: {0}"
+            INFO_EnteringBackupDir = "进入备份目录: {0}"
             INFO_BackupRootDir = "备份根目录: {0}"
             ERROR_ConfigNotArrayFormat = "配置内容必须是数组格式"
             ERROR_ConfigEmptyCount = "配置内容的配置项个数为零"
@@ -272,8 +273,9 @@ try {
             ERROR_ConfigLoadFailed = "Config file load failed: {0}"
             PROGRESS_Processing = "Processing"
             INFO_IgnoreItem = "Ignore item"
-            INFO_CurrentWorkingDir = "Current working directory"
-            INFO_EnteringBackupDir = "Entering backup directory"
+            INFO_CurrentWorkingDir = "Current working directory: {0}"
+            INFO_GitWorkingDir = "Current Git working directory: {0}"
+            INFO_EnteringBackupDir = "Entering backup directory: {0}"
             INFO_BackupRootDir = "Backup root directory: {0}"
             ERROR_ConfigNotArrayFormat = "Config content must be an array format"
             ERROR_ConfigEmptyCount = "Config contains zero items"
@@ -908,7 +910,7 @@ try {
     Show-Log ($ui.INFO_SystemInfo -f $windowsVersion, $powerShellVersion) "Info"
     Show-Log ($ui.MachineInfo -f $machineName, $userName) "Info"
     Show-Log ($ui.INFO_BackupRootDir -f $backupDirectory) "Info"
-    Show-Log ($ui.ConfigSelected -f "[$(Split-Path -Leaf $configFilePath)]") "Info"
+    Show-Log ($ui.ConfigSelected -f "[  $(Split-Path -Leaf $configFilePath)  ]") "Info"
 
     # 加载配置文件
     function Load-Config {
@@ -1030,7 +1032,7 @@ $browseButton.Add_Click({
     if ($fileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {  
         $script:configFilePath = $fileDialog.FileName
         $script:fileDialogInitialDirectory = $(Split-Path -Parent $fileDialog.FileName)
-        Show-Log ($ui.ConfigSelected -f "[$(Split-Path -Leaf $configFilePath)]") "Info"
+        Show-Log ($ui.ConfigSelected -f "[  $(Split-Path -Leaf $configFilePath)  ]") "Info"
         Load-Config -FilePath $configFilePath
     }
 })
@@ -1089,8 +1091,7 @@ $startButton.Add_Click({
         # 切换到备份根目录（同步进程 CWD 和 PowerShell Location，git/robocopy 等外部程序依赖进程 CWD）
         [System.IO.Directory]::SetCurrentDirectory($backupDirectory)
         Set-Location -LiteralPath $backupDirectory
-        Show-Log-Async ($ui.INFO_CurrentWorkingDir + ": " + $backupDirectory) 'Info'
-        Show-Log-Async ($ui.INFO_BackupRootDir + ": " + $backupDirectory) 'Info'
+        Show-Log-Async ($ui.INFO_EnteringBackupDir -f $backupDirectory) 'Info'
 
         # 检查 Git
         $gitExe = Get-Command git -ErrorAction SilentlyContinue
@@ -1209,7 +1210,7 @@ $startButton.Add_Click({
 
             # 进入备份目录
             Set-Location -LiteralPath $backupDir
-            Show-Log-Async ($ui.INFO_EnteringBackupDir + ": " + (Get-Location).Path) 'Info'
+            Show-Log-Async ($ui.INFO_EnteringBackupDir -f (Get-Location).Path) 'Info'
 
             # 判断备份策略
             if ($null -eq $maxLocalTime) {
@@ -1352,7 +1353,7 @@ $startButton.Add_Click({
 
         # 恢复工作目录到备份根目录
         Set-Location -LiteralPath $backupDirectory
-        Show-Log-Async ($ui.INFO_CurrentWorkingDir + ": " + (Get-Location).Path) 'Info'
+        Show-Log-Async ($ui.INFO_EnteringBackupDir -f (Get-Location).Path) 'Info'
 
         # 最终 Git 提交
         try {
