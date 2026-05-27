@@ -759,6 +759,9 @@ else {
     $result = $selectForm.ShowDialog()
     if ($result -eq [System.Windows.Forms.DialogResult]::OK -and $listBox.SelectedIndex -ge 0) {
         $configFilePath = $jsonFiles[$listBox.SelectedIndex]
+    } else {
+        pause
+        exit 1
     }
     $selectForm.Dispose()
 }
