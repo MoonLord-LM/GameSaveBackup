@@ -33,12 +33,12 @@ try {
     "[ Debug ] userName = $userName"
 
     # 禁用 DPI 自动缩放，必须在 EnableVisualStyles 之前调用
-    $win32APIDefinition = (
-        "[DllImport(`"user32.dll`")]`r`n" +
-        "public static extern bool SetProcessDPIAware();"
-    )
-    Add-Type -MemberDefinition $win32APIDefinition -Name "API" -Namespace "Win32" -PassThru | Out-Null
-    [Win32.API]::SetProcessDPIAware() | Out-Null
+    # $win32APIDefinition = (
+    #     "[DllImport(`"user32.dll`")]`r`n" +
+    #     "public static extern bool SetProcessDPIAware();"
+    # )
+    # Add-Type -MemberDefinition $win32APIDefinition -Name "API" -Namespace "Win32" -PassThru | Out-Null
+    # [Win32.API]::SetProcessDPIAware() | Out-Null
 
     # 设置更现代的窗口样式
     [System.Windows.Forms.Application]::EnableVisualStyles()
@@ -693,72 +693,71 @@ else {
     "[ Debug ] selectFormCurrentDoubleBuffered = $selectFormCurrentDoubleBuffered"
 
     # 顶部面板（提示区）
-    $topPanel = [System.Windows.Forms.Panel]::new()
-    $topPanel.Dock = "Top"
-    $topPanel.Height = 80
-    $topPanel.Padding = [System.Windows.Forms.Padding]::new(10, 10, 10, 10)
+    $selectTopPanel = [System.Windows.Forms.Panel]::new()
+    $selectTopPanel.Dock = "Top"
+    $selectTopPanel.Height = 80
+    $selectTopPanel.Padding = [System.Windows.Forms.Padding]::new(10, 10, 10, 10)
 
     # 中间面板（内容区）
-    $centerPanel = [System.Windows.Forms.Panel]::new()
-    $centerPanel.Dock = "Fill"
-    $centerPanel.Padding = [System.Windows.Forms.Padding]::new(10, 0, 10, 0)
+    $selectCenterPanel = [System.Windows.Forms.Panel]::new()
+    $selectCenterPanel.Dock = "Fill"
+    $selectCenterPanel.Padding = [System.Windows.Forms.Padding]::new(10, 0, 10, 0)
 
     # 底部面板（操作区）
-    $bottomPanel = [System.Windows.Forms.Panel]::new()
-    $bottomPanel.Dock = "Bottom"
-    $bottomPanel.Height = 60
-    $bottomPanel.Padding = [System.Windows.Forms.Padding]::new(10, 10, 10, 10)
+    $selectBottomPanel = [System.Windows.Forms.Panel]::new()
+    $selectBottomPanel.Dock = "Bottom"
+    $selectBottomPanel.Height = 60
+    $selectBottomPanel.Padding = [System.Windows.Forms.Padding]::new(10, 10, 10, 10)
 
     # 将三个面板添加到主窗口（注意顺序: 先添加 Fill，再添加 Top/Bottom）
-    $selectForm.Controls.Add($centerPanel)
-    $selectForm.Controls.Add($topPanel)
-    $selectForm.Controls.Add($bottomPanel)
+    $selectForm.Controls.Add($selectCenterPanel)
+    $selectForm.Controls.Add($selectTopPanel)
+    $selectForm.Controls.Add($selectBottomPanel)
 
     # 提示信息
-    $infolabel1 = [System.Windows.Forms.Label]::new()
-    $infolabel1.Text = "$($ui.INFO_MultipleConfigSelect -f $jsonFilesCount)"
-    $infolabel1.Dock = "Bottom"
-    $infolabel1.Height = 28
-    $infolabel1.AutoEllipsis = $true
-    $topPanel.Controls.Add($infolabel1)
-    $infolabel2 = [System.Windows.Forms.Label]::new()
-    $infolabel2.Text = $workingDirectory
-    $infolabel2.Dock = "Bottom"
-    $infolabel2.Height = 28
-    $infolabel2.AutoEllipsis = $true
-    $topPanel.Controls.Add($infolabel2)
+    $selectInfoLabel1 = [System.Windows.Forms.Label]::new()
+    $selectInfoLabel1.Text = "$($ui.INFO_MultipleConfigSelect -f $jsonFilesCount)"
+    $selectInfoLabel1.Dock = "Bottom"
+    $selectInfoLabel1.Height = 28
+    $selectInfoLabel1.AutoEllipsis = $true
+    $selectTopPanel.Controls.Add($selectInfoLabel1)
+    $selectInfoLabel2 = [System.Windows.Forms.Label]::new()
+    $selectInfoLabel2.Text = $workingDirectory
+    $selectInfoLabel2.Dock = "Bottom"
+    $selectInfoLabel2.Height = 28
+    $selectInfoLabel2.AutoEllipsis = $true
+    $selectTopPanel.Controls.Add($selectInfoLabel2)
 
     # 列表框填充中间空间
-    $listBox = [System.Windows.Forms.ListBox]::new()
-    $listBox.Dock = "Fill"
-    $listBox.SelectionMode = "One"
-    $listBox.IntegralHeight = $false
+    $selectListBox = [System.Windows.Forms.ListBox]::new()
+    $selectListBox.Dock = "Fill"
+    $selectListBox.SelectionMode = "One"
+    $selectListBox.IntegralHeight = $false
     foreach ($file in $jsonFiles) {
-        $listBox.Items.Add((Split-Path -Leaf $file)) | Out-Null
+        $selectListBox.Items.Add((Split-Path -Leaf $file)) | Out-Null
     }
-    $listBox.SelectedIndex = 0
-    $centerPanel.Controls.Add($listBox)
+    $selectListBox.SelectedIndex = 0
+    $selectCenterPanel.Controls.Add($selectListBox)
 
     # 确认按钮
-    $okButton = [System.Windows.Forms.Button]::new()
-    $okButton.Text = $ui.ConfirmButton
-    $okButton.Location = [System.Drawing.Point]::new(345, 12)
-    $okButton.Size = [System.Drawing.Size]::new(130, 36)
-    $okButton.DialogResult = "OK"
-    $bottomPanel.Controls.Add($okButton)
-    $selectForm.AcceptButton = $okButton
+    $selectOkButton = [System.Windows.Forms.Button]::new()
+    $selectOkButton.Text = $ui.ConfirmButton
+    $selectOkButton.Location = [System.Drawing.Point]::new(345, 12)
+    $selectOkButton.Size = [System.Drawing.Size]::new(130, 36)
+    $selectOkButton.DialogResult = "OK"
+    $selectBottomPanel.Controls.Add($selectOkButton)
+    $selectForm.AcceptButton = $selectOkButton
 
     # 双击列表项等同于确认
-    $listBox.Add_DoubleClick({
+    $selectListBox.Add_DoubleClick({
         $selectForm.DialogResult = "OK"
         $selectForm.Close()
         $selectForm.Dispose()
     })
 
     # 显示对话框
-    $result = $selectForm.ShowDialog()
-    if ($result -eq [System.Windows.Forms.DialogResult]::OK -and $listBox.SelectedIndex -ge 0) {
-        $configFilePath = $jsonFiles[$listBox.SelectedIndex]
+    if ($selectForm.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK -and $selectListBox.SelectedIndex -ge 0) {
+        $configFilePath = $jsonFiles[$selectListBox.SelectedIndex]
     } else {
         ""
         "[ Error ] Config file not selected"
