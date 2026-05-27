@@ -1435,23 +1435,17 @@ $clearLogMenuItem.Add_Click({
     $logTextBox.Clear()
 })
 
-# 列表右键菜单打开前的事件: 动态启用/禁用菜单项
+# 列表右键菜单项: 动态启用/禁用
 $contextMenu.Add_Opening({
     try {
-        # 检查是否有选中的行
         if ($dataGridView.SelectedRows.Count -eq 0) {
             $openLocationMenuItem.Enabled = $false
             return
         }
-
         $selectedRow = $dataGridView.SelectedRows[0]
         $savePath = $selectedRow.Cells[2].Value
-
-        # 还原环境变量显示
         $realPath = $savePath -replace '%USERPROFILE%', $env:USERPROFILE
         $realPath = $realPath -replace '%PROGRAMDATA%', $env:PROGRAMDATA
-
-        # 只有当路径存在时才启用菜单项
         if (Test-Path $realPath) {
             $openLocationMenuItem.Enabled = $true
         } else {
@@ -1460,63 +1454,30 @@ $contextMenu.Add_Opening({
     }
     catch {
         Handle-Exception $_
-        # 出现错误时禁用菜单项
         $openLocationMenuItem.Enabled = $false
     }
 })
 
-# 列表右键菜单点击事件: 打开存档位置
+# 列表右键菜单: 打开存档位置
 $openLocationMenuItem.Add_Click({
     try {
-        # 获取选中的行
         if ($dataGridView.SelectedRows.Count -eq 0) {
             return
         }
-
         $selectedRow = $dataGridView.SelectedRows[0]
         $gameName = $selectedRow.Cells[1].Value
         $savePath = $selectedRow.Cells[2].Value
-
-        # 还原环境变量显示
         $realPath = $savePath -replace '%USERPROFILE%', $env:USERPROFILE
         $realPath = $realPath -replace '%PROGRAMDATA%', $env:PROGRAMDATA
-
-        # 检查路径是否存在
         if (Test-Path $realPath) {
-            # 打开文件夹
             Start-Process "explorer.exe" -ArgumentList $realPath
             Show-Log ($ui.OpeningSaveLocation -f $gameName, $realPath) "Info"
         } else {
-            # 路径不存在，尝试打开父目录
-            $parentDir = Split-Path -Parent $realPath
-            if (Test-Path $parentDir) {
-                Start-Process "explorer.exe" -ArgumentList $parentDir
-                Show-Log ($ui.SaveLocationNotFound -f $gameName, $parentDir) "Warning"
-            } else {
-                Show-Log ($ui.SaveLocationNotExist -f $gameName, $realPath) "Error"
-
-                $result = [System.Windows.Forms.MessageBox]::Show(
-                    ($ui.ConfirmCreateDirectory -f $realPath),
-                    $ui.ConfirmPrompt,
-                    [System.Windows.Forms.MessageBoxButtons]::YesNo,
-                    [System.Windows.Forms.MessageBoxIcon]::Question
-                )
-
-                if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
-                    try {
-                        New-Item -ItemType Directory -Path $realPath -Force | Out-Null
-                        Start-Process "explorer.exe" -ArgumentList $realPath
-                        Show-Log ($ui.DirectoryCreated -f $gameName, $realPath) "Success"
-                    }
-                    catch {
-                        Show-Log ($ui.FailedToCreateDirectory -f $gameName, $_) "Error"
-                    }
-                }
-            }
+            Show-Log ($ui.SaveLocationNotExist -f $gameName, $realPath) "Error"
         }
     }
     catch {
-        Show-Log "Failed to open save location: $_" "Error"
+        Handle-Exception $_
     }
 })
 
