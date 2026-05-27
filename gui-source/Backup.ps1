@@ -153,7 +153,8 @@ try {
             FileFilter = "JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*"
             FileDialogTitle = "选择配置文件"
             DefaultConfigLoaded = "已加载内嵌默认配置文件，共 {0} 个游戏"
-            OpenSaveLocation = "打开存档路径"
+            OpenSaveLocation = "打开存档位置"
+            OpenSaveLocationNotExist = "打开存档位置（文件不存在）"
             BuiltInConfigDisplay = "内置配置 ({0} 个游戏)"
             OpeningSaveLocation = "正在打开存档位置: {0} - {1}"
             SaveLocationNotFound = "存档路径不存在，打开父目录: {0} - {1}"
@@ -165,6 +166,7 @@ try {
             ConfirmCreateDirectory = "存档路径不存在:`n{0}`n`n是否要创建此目录？"
             SaveLocationBatName = "存档位置.bat"
             CreateBackupDir = "创建备份目录: {0}"
+            ERROR_OpenSaveLocationFailed = "打开存档位置失败: {0}"
             ERROR_GitMissing = "错误：缺少 git.exe 组件"
             ERROR_GitDownload = "请从 https://git-scm.com/install/windows 下载"
             ERROR_ConfigNotFound = "错误：选定的配置文件不存在"
@@ -242,6 +244,7 @@ try {
             FileDialogTitle = "Select Config File"
             DefaultConfigLoaded = "Embedded default config loaded, {0} game(s) found"
             OpenSaveLocation = "Open Save Path"
+            OpenSaveLocationNotExist = "Open Save Path (Not Exist)"
             BuiltInConfigDisplay = "Built-in Config ({0} games)"
             OpeningSaveLocation = "Opening save location: {0} - {1}"
             SaveLocationNotFound = "Save path not found, opening parent directory: {0} - {1}"
@@ -253,6 +256,7 @@ try {
             ConfirmCreateDirectory = "Archive path does not exist:`n{0}`n`nDo you want to create this directory?"
             SaveLocationBatName = "SaveLocation.bat"
             CreateBackupDir = "Creating backup directory: {0}"
+            ERROR_OpenSaveLocationFailed = "Failed to open save location: {0}"
             ERROR_GitMissing = "Error: git.exe component is missing"
             ERROR_GitDownload = "Please download from https://git-scm.com/install/windows"
             ERROR_ConfigNotFound = "Error: Selected config file does not exist"
@@ -1052,10 +1056,7 @@ $startButton.Add_Click({
         }
 
         function Invoke-GitCommand {
-            param(
-                [string]$Arguments,
-                [string]$ErrorMessage
-            )
+            param([string]$Arguments, [string]$ErrorMessage)
 
             try {
                 Show-Log-Async ($uiResources.INFO_GitCommand + ": git $Arguments") 'Debug'
@@ -1435,11 +1436,12 @@ $clearLogMenuItem.Add_Click({
     $logTextBox.Clear()
 })
 
-# 列表右键菜单项: 动态启用/禁用
+# 列表右键菜单项: 动态启用/禁用及文本切换
 $contextMenu.Add_Opening({
+    $openLocationMenuItem.Enabled = $false
+    $openLocationMenuItem.Text = $ui.OpenSaveLocationNotExist
     try {
         if ($dataGridView.SelectedRows.Count -eq 0) {
-            $openLocationMenuItem.Enabled = $false
             return
         }
         $selectedRow = $dataGridView.SelectedRows[0]
@@ -1448,13 +1450,12 @@ $contextMenu.Add_Opening({
         $realPath = $realPath -replace '%PROGRAMDATA%', $env:PROGRAMDATA
         if (Test-Path $realPath) {
             $openLocationMenuItem.Enabled = $true
-        } else {
-            $openLocationMenuItem.Enabled = $false
+            $openLocationMenuItem.Text = $ui.OpenSaveLocation
         }
     }
     catch {
         Handle-Exception $_
-        $openLocationMenuItem.Enabled = $false
+        Show-Log ($ui.ERROR_OpenSaveLocationFailed -f $_.Exception.Message) "Error"
     }
 })
 
@@ -1478,6 +1479,7 @@ $openLocationMenuItem.Add_Click({
     }
     catch {
         Handle-Exception $_
+        Show-Log ($ui.ERROR_OpenSaveLocationFailed -f $_.Exception.Message) "Error"
     }
 })
 
