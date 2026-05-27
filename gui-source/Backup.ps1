@@ -38,7 +38,7 @@ try {
         $doubleBufferedBindingFlags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Instance
         $doubleBufferedProperty = [System.Windows.Forms.Control].GetProperty("DoubleBuffered", $doubleBufferedBindingFlags)
         $doubleBufferedProperty.SetValue($Control, $true)
-        $doubleBufferedProperty.GetValue($Control)
+        return $doubleBufferedProperty.GetValue($Control)
     }
 
     # 加载窗体程序集
