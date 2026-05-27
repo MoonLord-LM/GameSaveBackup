@@ -675,22 +675,8 @@ try {
             Show-Log-Batch -Logs $logs
         }
     })
-    $asyncShowLogTimer.Interval = 200
+    $asyncShowLogTimer.Interval = 50
     $asyncShowLogTimer.Start()
-
-    # 进度条的异步更新，使用 hashtable（引用类型）和定时任务
-    # 注意：必须使用引用类型而非值类型(int)，因为 PowerShell 的 AddParameter 对值类型会复制副本
-    $script:asyncProgressState = @{ Value = 0 }
-    $script:asyncProgressTimer = [System.Windows.Forms.Timer]::new()
-    $script:asyncProgressTimer.Add_Tick({
-        # 从共享 hashtable 读取最新进度值（引用类型，跨线程可见）
-        $value = $script:asyncProgressState['Value']
-        if ($value -ge 0) {
-            $progressBar.Value = [Math]::Min($value, 100)
-        }
-    })
-    $script:asyncProgressTimer.Interval = 100  # 更频繁刷新进度条
-    $script:asyncProgressTimer.Start()
 
     # 中部: 游戏信息显示表格
     $gameDataGridView = [System.Windows.Forms.DataGridView]::new()
@@ -741,7 +727,22 @@ try {
     $progressBar.Visible = $false
     $bottomPanel.Controls.Add($progressBar)
 
-
+    # 进度条的异步更新（使用定时任务，实现固定频率刷新界面）
+    $asyncProgressState = [System.Collections.Concurrent.ConcurrentDictionary[string, int]]::new()
+    $asyncProgressState['Value'] = 0
+    $lastProgressValue = 0
+    $asyncProgressTimer = [System.Windows.Forms.Timer]::new()
+    $asyncProgressTimer.Add_Tick({
+        $value = $asyncProgressState['Value']
+        $value = [Math]::Max($value, 0)
+        $value = [Math]::Min($value, 100)
+        if ($value -ne $lastProgressValue) {
+            $progressBar.Value = $value
+            $lastProgressValue = $value
+        }
+    })
+    $asyncProgressTimer.Interval = 50
+    $asyncProgressTimer.Start()
 } catch {
     ""
     "[ Error ] Message: $($_.Exception.Message)"
@@ -1102,7 +1103,7 @@ $startButton.Add_Click({
     $tabControl.SelectedTab = $logTabPage
     $progressBar.Visible = $true
     $progressBar.Value = 0
-    $script:asyncProgressState['Value'] = 0  # 重置异步进度变量（通过 hashtable 引用）
+    $asyncProgressState['Value'] = 0  # 重置异步进度变量（通过 hashtable 引用）
 
     Show-Log $ui.BackupStarted "Progress"
 
@@ -1457,7 +1458,7 @@ $startButton.Add_Click({
     $psInstance.AddParameter('uiResources', $script:ui)
     $psInstance.AddParameter('backupRootDir', $script:cd)
     $psInstance.AddParameter('logQueue', $asyncShowLogQueue)
-    $psInstance.AddParameter('progressQueue', $script:asyncProgressState)
+    $psInstance.AddParameter('progressQueue', $asyncProgressState)
 
     # 异步执行
     $asyncResult = $psInstance.BeginInvoke()
