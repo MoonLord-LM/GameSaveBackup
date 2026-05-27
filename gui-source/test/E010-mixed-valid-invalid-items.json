@@ -1,0 +1,1 @@
+[{"name": "Valid Game 1", "save": "%USERPROFILE%\\ValidPath1"}, {"name": "", "save": "%USERPROFILE%\\InvalidPath1"}, {"name": "Valid Game 2", "save": ""}, {"name": "Game<Illegal>", "save": "%USERPROFILE%\\InvalidPath2"}, {"name": "Valid Game 3", "save": "%USERPROFILE%\\ValidPath3"}]
