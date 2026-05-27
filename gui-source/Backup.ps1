@@ -880,18 +880,24 @@ else {
 }
 "[ Debug ] configFilePath = $configFilePath"
 
-# 验证游戏配置数组格式和内容
-function Validate-GameConfig {
-    param([array]$configArray, [hashtable]$uiResources)
+# 显示环境信息
+Show-Log ($ui.INFO_SystemInfo -f $windowsVersion, $powerShellVersion) "Info"
+Show-Log ($ui.MachineInfo -f $machineName, $userName) "Info"
+Show-Log ($ui.INFO_BackupRootDir + ": " + $backupDirectory) "Info"
+Show-Log ($ui.ConfigSelected + "$(Split-Path -Leaf $configFilePath)") "Info"
 
-    if ($configArray -isnot [System.Array]) {
+# 加载配置
+try {
+    $config = Get-Content -Path $configFilePath -Raw -Encoding UTF8 | ConvertFrom-json
+
+    if ($config -isnot [System.Array]) {
         throw $ui.ERROR_ConfigNotArrayFormat
     }
-    if ($configArray.Count -eq 0) {
+    if ($config.Count -eq 0) {
         throw $ui.ERROR_ConfigEmptyCount
     }
-    for ($i = 0; $i -lt $configArray.Count; $i++) {
-        $game = $configArray[$i]
+    for ($i = 0; $i -lt $config.Count; $i++) {
+        $game = $config[$i]
         if ($game -isnot [PSCustomObject]) {
             throw ($ui.ERROR_ConfigItemNotObject -f ($i + 1))
         }
@@ -911,74 +917,50 @@ function Validate-GameConfig {
             throw ($ui.ERROR_ConfigItemNameIllegalChars -f ($i + 1))
         }
     }
-}
 
-# 配置文件路径
-$script:configJsonArray = $null
+    $configTextBox.Text = $configFilePath
+    Show-Log ($ui.ConfigLoaded -f $script:config.Count) "Success"
 
-# 加载外部的 JSON 配置
-function Load-JsonConfigFile {
-    param([string]$ConfigPath)
-
+    $gameDataGridView.SuspendLayout()
     try {
-        $configFilePath = $ConfigPath
-        $script:configJsonArray = Get-Content -Path $configFilePath -Raw -Encoding UTF8 | ConvertFrom-Json
-
-        # 使用统一的配置验证函数
-        Validate-GameConfig -configArray $script:configJsonArray -uiResources $script:ui
-
-        $configTextBox.Text = $configFilePath
-        Show-Log ($ui.ConfigLoaded -f $script:configJsonArray.Count) "Success"
-
-        $gameDataGridView.SuspendLayout()
-        try {
-            $gameDataGridView.Rows.Clear()
-            for ($i = 0; $i -lt $script:configJsonArray.Count; $i++) {
-                $game = $script:configJsonArray[$i]
-                $gameName = $game.name
-                $savePath = $game.save
-                $gameDataGridView.Rows.Add(($i + 1), $gameName, $savePath) | Out-Null
-            }
-        }
-        finally {
-            $gameDataGridView.ResumeLayout()
-        }
-        Show-Log $ui.GameListUpdated "Info"
-
-        if ($tabControl.TabPages.Contains($gameListTabPage) -eq $false) {
-            $tabControl.Controls.Add($gameListTabPage)
-        }
-        $tabControl.SelectedTab = $gameListTabPage
-
-        if ($script:configJsonArray.Count -ge 1) {
-            $startButton.Enabled = $true
-        } else {
-            $startButton.Enabled = $false
-        }
-    } catch {
-        Write-Host ""
-        Write-Host "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
-        Write-Host "[ Error ] Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
-        Write-Host "[ Error ] Message: $($_.Exception.Message)" -ForegroundColor Red
-        Write-Host ""
-
-        Show-Log ($ui.ERROR_ConfigLoadFailed + ": $($_.Exception.Message)") "Error"
-        $configFilePath = ""
-        $script:configJsonArray = $null
-        $configTextBox.Text = ""
         $gameDataGridView.Rows.Clear()
-        $tabControl.Controls.Remove($gameListTabPage)
+        for ($i = 0; $i -lt $script:config.Count; $i++) {
+            $game = $script:config[$i]
+            $gameName = $game.name
+            $savePath = $game.save
+            $gameDataGridView.Rows.Add(($i + 1), $gameName, $savePath) | Out-Null
+        }
+    }
+    finally {
+        $gameDataGridView.ResumeLayout()
+    }
+    Show-Log $ui.GameListUpdated "Info"
+
+    if ($tabControl.TabPages.Contains($gameListTabPage) -eq $false) {
+        $tabControl.Controls.Add($gameListTabPage)
+    }
+    $tabControl.SelectedTab = $gameListTabPage
+
+    if ($script:config.Count -ge 1) {
+        $startButton.Enabled = $true
+    } else {
         $startButton.Enabled = $false
     }
-}
+} catch {
+    Write-Host ""
+    Write-Host "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
+    Write-Host "[ Error ] Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
+    Write-Host "[ Error ] Message: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host ""
 
-# 查找并加载配置
-Show-Log ($ui.INFO_SystemInfo -f $windowsVersion, $powerShellVersion) "Info"
-Show-Log ($ui.MachineInfo -f $machineName, $userName) "Info"
-Show-Log ($ui.CheckingConfig) "Info"
-Show-Log ($ui.INFO_BackupRootDir + ": " + $backupDirectory) "Info"
-Show-Log ($ui.ConfigSelected + "$(Split-Path -Leaf $configFilePath)") "Info"
-Load-JsonConfigFile -ConfigPath $configFilePath
+    Show-Log ($ui.ERROR_ConfigLoadFailed + ": $($_.Exception.Message)") "Error"
+    $configFilePath = ""
+    $script:config = $null
+    $configTextBox.Text = ""
+    $gameDataGridView.Rows.Clear()
+    $tabControl.Controls.Remove($gameListTabPage)
+    $startButton.Enabled = $false
+}
 
 
 
@@ -1076,8 +1058,8 @@ $startButton.Add_Click({
         }
 
         # 使用已加载的配置数组
-        $configArray = $configJsonArray
-        $totalGames = $configArray.Count
+        $config = $configJsonArray
+        $totalGames = $config.Count
         Show-Log-Async ($uiResources.INFO_GamesFound + ": " + $totalGames) 'Info'
 
         # 初始化 Git
@@ -1099,7 +1081,7 @@ $startButton.Add_Click({
         }
 
         $gameIndex = 0
-        foreach ($game in $configArray) {
+        foreach ($game in $config) {
             $gameIndex++
             $name = $game.name
             $save = $game.save
@@ -1362,7 +1344,7 @@ $startButton.Add_Click({
         return $true
     })
 
-    $psInstance.AddParameter('configJsonArray', $script:configJsonArray)
+    $psInstance.AddParameter('configJsonArray', $script:config)
     $psInstance.AddParameter('machineName', $script:machineName)
     $psInstance.AddParameter('userName', $script:userName)
     $psInstance.AddParameter('uiResources', $script:ui)
