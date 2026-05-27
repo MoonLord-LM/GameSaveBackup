@@ -720,15 +720,14 @@ else {
     # 提示信息
     $infolabel1 = [System.Windows.Forms.Label]::new()
     $infolabel1.Text = "$($ui.INFO_WorkingDirectory -f $workingDirectory)"
-    $infolabel1.Location = [System.Drawing.Point]::new(10, 10)
-    $infolabel1.Width = $selectForm.Width - 40
+    $infolabel1.Dock = "Top"
+    $infolabel1.Height = 28
     $infolabel1.AutoEllipsis = $true
     $topPanel.Controls.Add($infolabel1)
-
     $infolabel2 = [System.Windows.Forms.Label]::new()
     $infolabel2.Text = "$($ui.INFO_MultipleConfigSelect -f $jsonFilesCount)"
-    $infolabel2.Location = [System.Drawing.Point]::new(10, 35)
-    $infolabel2.Width = $selectForm.Width - 40
+    $infolabel2.Dock = "Top"
+    $infolabel2.Height = 28
     $infolabel2.AutoEllipsis = $true
     $topPanel.Controls.Add($infolabel2)
 
