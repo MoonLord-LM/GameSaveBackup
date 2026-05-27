@@ -586,6 +586,114 @@ try {
     $logTextBox.ContextMenuStrip.Items.Add($copyLogMenuItem) | Out-Null
     $logTextBox.ContextMenuStrip.Items.Add($clearLogMenuItem) | Out-Null
 
+    # 展示日志
+    $logColorMap = @{
+        Info     = [System.Drawing.Color]::Black
+        Success  = [System.Drawing.Color]::Green
+        Warning  = [System.Drawing.Color]::DarkOrange
+        Error    = [System.Drawing.Color]::Red
+        Progress = [System.Drawing.Color]::Blue
+        Debug    = [System.Drawing.Color]::Gray
+    }
+    function Show-Log {
+        param([string]$Message = '', [string]$Level = 'Info')
+
+        if ($logTextBox.InvokeRequired) {
+            $logTextBox.Invoke([System.Action]{
+                Show-Log -Message $Message -Level $Level
+            })
+            return
+        }
+
+        $logColor = if ($logColorMap.ContainsKey($Level)) {
+            $logColorMap[$Level] 
+        } else { 
+            [System.Drawing.Color]::Black
+        }
+        $logText = "[{0}] {1}`r`n" -f $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $Message
+
+        $logTextBox.SuspendLayout()
+        try {
+            $logTextBox.SelectionStart = $logTextBox.TextLength
+            $logTextBox.SelectionLength = 0
+            $logTextBox.SelectionColor = $logColor
+            $logTextBox.AppendText($logText)
+            $logTextBox.ScrollToCaret()
+        }
+        finally {
+            $logTextBox.ResumeLayout()
+        }
+    }
+    function Show-Log-Batch {
+        param([hashtable[]]$Logs)
+
+        if ($logTextBox.InvokeRequired) {
+            $logTextBox.Invoke([System.Action]{
+                Show-Log-Batch -Logs $Logs
+            })
+            return
+        }
+        if (-not $Logs -or $Logs.Count -eq 0) {
+            return
+        }
+
+        $logTextBox.SuspendLayout()
+        try {
+            foreach ($log in $Logs) {
+                $logColor = if ($logColorMap.ContainsKey($log.Level)) {
+                    $logColorMap[$log.Level] 
+                } else { 
+                    [System.Drawing.Color]::Black
+                }
+                $logText = "[{0}] {1}`r`n" -f $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $log.Message
+                $logTextBox.SelectionStart = $logTextBox.TextLength
+                $logTextBox.SelectionLength = 0
+                $logTextBox.SelectionColor = $logColor
+                $logTextBox.AppendText($logText)
+            }
+            $logTextBox.ScrollToCaret()
+        }
+        finally {
+            $logTextBox.ResumeLayout()
+        }
+    }
+
+    # 异步展示日志（使用队列和定时任务，实现固定频率刷新界面）
+    $asyncShowLogQueue = [System.Collections.Concurrent.ConcurrentBag[hashtable]]::new()
+    function Show-Log-Async {
+        param([string]$Message = '', [string]$Level = 'Info')
+        $asyncShowLogQueue.Add(@{ Message = $Message; Level = $Level })
+    }
+    $asyncShowLogTimer = [System.Windows.Forms.Timer]::new()
+    $asyncShowLogTimer.Add_Tick({
+        $logs = @()
+        while ($asyncShowLogQueue.Count -gt 0) {
+            $log = $null
+            if ($asyncShowLogQueue.TryTake([ref]$log)) {
+                $logs += $log
+            }
+        }
+        if ($logs.Count -gt 0) {
+            Show-Log-Batch -Logs $logs
+        }
+    })
+    $asyncShowLogTimer.Interval = 200
+    $asyncShowLogTimer.Start()
+
+    # 进度条的异步更新，使用 hashtable（引用类型）和定时任务
+    # 注意：必须使用引用类型而非值类型(int)，因为 PowerShell 的 AddParameter 对值类型会复制副本
+    $script:asyncProgressState = @{ Value = 0 }
+    $script:asyncProgressTimer = [System.Windows.Forms.Timer]::new()
+    $script:asyncProgressTimer.Add_Tick({
+        # 从共享 hashtable 读取最新进度值（引用类型，跨线程可见）
+        $value = $script:asyncProgressState['Value']
+        if ($value -ge 0) {
+            $progressBar.Value = [Math]::Min($value, 100)
+        }
+    })
+    $script:asyncProgressTimer.Interval = 100  # 更频繁刷新进度条
+    $script:asyncProgressTimer.Start()
+
     # 中部: 游戏信息显示表格
     $gameDataGridView = [System.Windows.Forms.DataGridView]::new()
     $gameDataGridView.ReadOnly = $true
@@ -634,6 +742,8 @@ try {
     $progressBar.Maximum = 100
     $progressBar.Visible = $false
     $bottomPanel.Controls.Add($progressBar)
+
+
 } catch {
     ""
     "[ Error ] Message: $($_.Exception.Message)"
@@ -774,101 +884,14 @@ else {
 
 
 # 界面展示运行日志
-function Write-Log {
-    param([string]$Message = '', [string]$Level = 'Info')
 
-    $LogColorMap = @{
-        Info     = [System.Drawing.Color]::Black
-        Success  = [System.Drawing.Color]::Green
-        Warning  = [System.Drawing.Color]::DarkOrange
-        Error    = [System.Drawing.Color]::Red
-        Progress = [System.Drawing.Color]::Blue
-        Debug    = [System.Drawing.Color]::Gray
-    }
 
-    try {
-        if ($logTextBox.InvokeRequired) {
-            $logTextBox.Invoke([System.Action]{
-                Write-Log -Message $Message -Level $Level
-            })
-            return
-        }
-
-        $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
-        $color = if ($LogColorMap.ContainsKey($Level)) {
-            $LogColorMap[$Level] 
-        } else { 
-            [System.Drawing.Color]::Black
-        }
-        $text = "[{0}] {1}`r`n" -f $timestamp, $Message
-
-        $logTextBox.SuspendLayout()
-        try {
-            $logTextBox.SelectionStart = $logTextBox.TextLength
-            $logTextBox.SelectionLength = 0
-            $logTextBox.SelectionColor = $color
-            $logTextBox.AppendText($text)
-            $logTextBox.ScrollToCaret()
-        }
-        finally {
-            $logTextBox.ResumeLayout()
-        }
-    } catch {
-        Write-Host ""
-        Write-Host "[ Error ] Line: $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
-        Write-Host "[ Error ] Code: $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
-        Write-Host "[ Error ] Message: $($_.Exception.Message)" -ForegroundColor Red
-        Write-Host ""
-    }
-}
-
-# 运行日志的异步添加，使用队列和定时任务，实现固定频率刷新界面
-$script:asyncLogQueue = [System.Collections.Concurrent.ConcurrentBag[hashtable]]::new()
-$script:asyncLogTimer = [System.Windows.Forms.Timer]::new()
-$script:asyncLogTimer.Add_Tick({
-    $logs = @()
-    while ($script:asyncLogQueue.Count -gt 0) {
-        $log = $null
-        if ($script:asyncLogQueue.TryTake([ref]$log)) {
-            $logs += $log
-        }
-    }
-    
-    if ($logs.Count -gt 0) {
-        foreach ($log in $logs) {
-            Write-Log -Message $log.Message -Level $log.Level
-        }
-    }
-})
-$script:asyncLogTimer.Interval = 200
-$script:asyncLogTimer.Start()
-function Write-Log-Async {
-    param(
-        [string]$Message = '',
-        [string]$Level = 'Info'
-    )
-    $script:asyncLogQueue.Add(@{ Message = $Message; Level = $Level })
-}
-
-# 进度条的异步更新，使用 hashtable（引用类型）和定时任务
-# 注意：必须使用引用类型而非值类型(int)，因为 PowerShell 的 AddParameter 对值类型会复制副本
-$script:asyncProgressState = @{ Value = 0 }
-$script:asyncProgressTimer = [System.Windows.Forms.Timer]::new()
-$script:asyncProgressTimer.Add_Tick({
-    # 从共享 hashtable 读取最新进度值（引用类型，跨线程可见）
-    $value = $script:asyncProgressState['Value']
-    if ($value -ge 0) {
-        $progressBar.Value = [Math]::Min($value, 100)
-    }
-})
-$script:asyncProgressTimer.Interval = 100  # 更频繁刷新进度条
-$script:asyncProgressTimer.Start()
 
 # 展示系统版本和 PowerShell 版本信息
-Write-Log ($ui.INFO_SystemInfo -f $windowsVersion, $powerShellVersion) "Info"
+Show-Log ($ui.INFO_SystemInfo -f $windowsVersion, $powerShellVersion) "Info"
 
 # 展示机器名和用户名信息
-Write-Log ($ui.MachineInfo -f $machineName, $userName) "Info"
+Show-Log ($ui.MachineInfo -f $machineName, $userName) "Info"
 
 # 配置文件路径
 $script:configPath = ""
@@ -926,7 +949,7 @@ function Load-DefaultConfig {
         Validate-GameConfig -configArray $script:configJsonArray -uiResources $script:ui
 
         $configTextBox.Text = $ui.BuiltInConfigDisplay -f $script:configJsonArray.Count
-        Write-Log ($ui.DefaultConfigLoaded -f $script:configJsonArray.Count) "Success"
+        Show-Log ($ui.DefaultConfigLoaded -f $script:configJsonArray.Count) "Success"
 
         $gameDataGridView.SuspendLayout()
         try {
@@ -941,7 +964,7 @@ function Load-DefaultConfig {
         finally {
             $gameDataGridView.ResumeLayout()
         }
-        Write-Log $ui.GameListUpdated "Info"
+        Show-Log $ui.GameListUpdated "Info"
 
         if ($tabControl.TabPages.Contains($gameListTabPage) -eq $false) {
             $tabControl.Controls.Add($gameListTabPage)
@@ -961,7 +984,7 @@ function Load-DefaultConfig {
         Write-Host "[ Error ] Message: $($_.Exception.Message)" -ForegroundColor Red
         Write-Host ""
 
-        Write-Log ($ui.ERROR_DefaultConfigFailed + ": $($_.Exception.Message)") "Error"
+        Show-Log ($ui.ERROR_DefaultConfigFailed + ": $($_.Exception.Message)") "Error"
         $script:configPath = ""
         $script:configJsonArray = $null
         $configTextBox.Text = ""
@@ -983,7 +1006,7 @@ function Load-JsonConfigFile {
         Validate-GameConfig -configArray $script:configJsonArray -uiResources $script:ui
 
         $configTextBox.Text = $script:configPath
-        Write-Log ($ui.ConfigLoaded -f $script:configJsonArray.Count) "Success"
+        Show-Log ($ui.ConfigLoaded -f $script:configJsonArray.Count) "Success"
 
         $gameDataGridView.SuspendLayout()
         try {
@@ -998,7 +1021,7 @@ function Load-JsonConfigFile {
         finally {
             $gameDataGridView.ResumeLayout()
         }
-        Write-Log $ui.GameListUpdated "Info"
+        Show-Log $ui.GameListUpdated "Info"
 
         if ($tabControl.TabPages.Contains($gameListTabPage) -eq $false) {
             $tabControl.Controls.Add($gameListTabPage)
@@ -1017,7 +1040,7 @@ function Load-JsonConfigFile {
         Write-Host "[ Error ] Message: $($_.Exception.Message)" -ForegroundColor Red
         Write-Host ""
 
-        Write-Log ($ui.ERROR_ConfigLoadFailed + ": $($_.Exception.Message)") "Error"
+        Show-Log ($ui.ERROR_ConfigLoadFailed + ": $($_.Exception.Message)") "Error"
         $script:configPath = ""
         $script:configJsonArray = $null
         $configTextBox.Text = ""
@@ -1028,23 +1051,23 @@ function Load-JsonConfigFile {
 }
 
 # 查找并加载配置
-Write-Log $ui.CheckingConfig "Info"
+Show-Log $ui.CheckingConfig "Info"
 
 $script:cd = [System.IO.Directory]::GetCurrentDirectory()
 Write-Host "[ Debug ] current directory = $script:cd"
-Write-Log ($ui.INFO_BackupRootDir + ": " + $script:cd) "Info"
+Show-Log ($ui.INFO_BackupRootDir + ": " + $script:cd) "Info"
 
 $script:cdJsonFiles = [System.IO.Directory]::GetFiles($backupDirectory, "*.json" )
 if ($script:cdJsonFiles.Count -eq 0) {
-    Write-Log $ui.ConfigNotFound "Warning"
+    Show-Log $ui.ConfigNotFound "Warning"
     Load-DefaultConfig
 }
 elseif ($script:cdJsonFiles.Count -gt 1) {
-    Write-Log ($ui.INFO_MultipleConfigFound -f $script:cdJsonFiles.Count) "Warning"
+    Show-Log ($ui.INFO_MultipleConfigFound -f $script:cdJsonFiles.Count) "Warning"
     Load-DefaultConfig
 }
 else {
-    Write-Log ($ui.ConfigSelected + "$(Split-Path -Leaf $script:cdJsonFiles[0])") "Info"
+    Show-Log ($ui.ConfigSelected + "$(Split-Path -Leaf $script:cdJsonFiles[0])") "Info"
     Load-JsonConfigFile -ConfigPath $script:cdJsonFiles[0]
 }
 
@@ -1063,7 +1086,7 @@ $browseButton.Add_Click({
     if ($fileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {  
         $script:configPath = $fileDialog.FileName
         $script:fileDialogInitialDirectory = Split-Path -Parent $script:configPath
-        Write-Log ($ui.ConfigSelected + "$(Split-Path -Leaf $script:configPath)") "Info"
+        Show-Log ($ui.ConfigSelected + "$(Split-Path -Leaf $script:configPath)") "Info"
         Load-JsonConfigFile -ConfigPath $script:configPath
     }
 })
@@ -1083,7 +1106,7 @@ $startButton.Add_Click({
     $progressBar.Value = 0
     $script:asyncProgressState['Value'] = 0  # 重置异步进度变量（通过 hashtable 引用）
 
-    Write-Log $ui.BackupStarted "Progress"
+    Show-Log $ui.BackupStarted "Progress"
 
     # 创建 Runspace 池来执行备份任务
     $runspacePool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1, 1)
@@ -1097,8 +1120,8 @@ $startButton.Add_Click({
     $psInstance.AddScript({
         param($configJsonArray, $machineName, $userName, $uiResources, $backupRootDir, $logQueue, $progressQueue)
 
-        # Runspace 内必须定义 Write-Log-Async（主脚本的函数在此不可见）
-        function Write-Log-Async {
+        # Runspace 内必须定义 Show-Log-Async（主脚本的函数在此不可见）
+        function Show-Log-Async {
             param([string]$Message = '', [string]$Level = 'Info')
             $logQueue.Add(@{ Message = $Message; Level = $Level })
         }
@@ -1110,7 +1133,7 @@ $startButton.Add_Click({
             )
 
             try {
-                Write-Log-Async ($uiResources.INFO_GitCommand + ": git $Arguments") 'Debug'
+                Show-Log-Async ($uiResources.INFO_GitCommand + ": git $Arguments") 'Debug'
 
                 $output = & git $Arguments.Split(' ') 2>&1 | Out-String
                 $exitCode = $LASTEXITCODE
@@ -1119,12 +1142,12 @@ $startButton.Add_Click({
                     throw "$ErrorMessage (Exit Code: $exitCode): $output"
                 }
                 if ($output -and $output.Trim()) {
-                    Write-Log-Async ($uiResources.INFO_GitOutput + ":`r`n" + $output) 'Debug'
+                    Show-Log-Async ($uiResources.INFO_GitOutput + ":`r`n" + $output) 'Debug'
                 }
                 return $output
             }
             catch {
-                Write-Log-Async $_ 'Error'
+                Show-Log-Async $_ 'Error'
                 throw
             }
         }
@@ -1132,21 +1155,21 @@ $startButton.Add_Click({
         # 切换到备份根目录（同步进程 CWD 和 PowerShell Location，git/robocopy 等外部程序依赖进程 CWD）
         [System.IO.Directory]::SetCurrentDirectory($backupRootDir)
         Set-Location -LiteralPath $backupRootDir
-        Write-Log-Async ($uiResources.INFO_CurrentWorkingDir + ": " + $backupRootDir) 'Info'
-        Write-Log-Async ($uiResources.INFO_BackupRootDir + ": " + $backupRootDir) 'Info'
+        Show-Log-Async ($uiResources.INFO_CurrentWorkingDir + ": " + $backupRootDir) 'Info'
+        Show-Log-Async ($uiResources.INFO_BackupRootDir + ": " + $backupRootDir) 'Info'
 
         # 检查 Git
         $gitExe = Get-Command git -ErrorAction SilentlyContinue
         if (-not $gitExe) {
-            Write-Log-Async $uiResources.ERROR_GitMissing 'Error'
-            Write-Log-Async $uiResources.ERROR_GitDownload 'Error'
+            Show-Log-Async $uiResources.ERROR_GitMissing 'Error'
+            Show-Log-Async $uiResources.ERROR_GitDownload 'Error'
             return
         }
 
         # 使用已加载的配置数组
         $configArray = $configJsonArray
         $totalGames = $configArray.Count
-        Write-Log-Async ($uiResources.INFO_GamesFound + ": " + $totalGames) 'Info'
+        Show-Log-Async ($uiResources.INFO_GamesFound + ": " + $totalGames) 'Info'
 
         # 初始化 Git
         if (-not (Test-Path ".git")) {
@@ -1159,10 +1182,10 @@ $startButton.Add_Click({
                 $null = & git config --local i18n.logoutputencoding utf-8 2>&1 | Out-String
                 $null = & git config --local i18n.commitencoding utf-8 2>&1 | Out-String
 
-                Write-Log-Async $uiResources.SUCCESS_GitInitialized 'Success'
+                Show-Log-Async $uiResources.SUCCESS_GitInitialized 'Success'
             }
             catch {
-                Write-Log-Async ("Failed to initialize Git repository: $_") 'Error'
+                Show-Log-Async ("Failed to initialize Git repository: $_") 'Error'
             }
         }
 
@@ -1174,7 +1197,7 @@ $startButton.Add_Click({
             $ignore = $game.ignore
 
             # 显示当前处理的遊戲
-            Write-Log-Async ($uiResources.PROGRESS_Processing + ": " + $gameIndex + " / " + $totalGames + " - '" + $name + "' @ '" + $save + "'") 'Progress'
+            Show-Log-Async ($uiResources.PROGRESS_Processing + ": " + $gameIndex + " / " + $totalGames + " - '" + $name + "' @ '" + $save + "'") 'Progress'
 
             # 替换环境变量
             $saveExpanded = $save -replace "%USERPROFILE%", $env:USERPROFILE
@@ -1194,7 +1217,7 @@ $startButton.Add_Click({
                 foreach ($item in $ignore) {
                     $itemExpanded = $item -replace "%USERPROFILE%", $env:USERPROFILE
                     $itemExpanded = $itemExpanded -replace "%PROGRAMDATA%", $env:PROGRAMDATA
-                    Write-Log-Async ($uiResources.INFO_IgnoreItem + ": '" + $itemExpanded + "'") 'Debug'
+                    Show-Log-Async ($uiResources.INFO_IgnoreItem + ": '" + $itemExpanded + "'") 'Debug'
                     $ignoreArgs += "/XF"
                     $ignoreArgs += $itemExpanded
                     $ignoreArgs += "/XD"
@@ -1235,33 +1258,33 @@ $startButton.Add_Click({
                 catch {}
             }
 
-            Write-Log-Async ($uiResources.INFO_FileTimeComparison -f $maxLocalTimeString, $maxBackupTimeString) 'Info'
+            Show-Log-Async ($uiResources.INFO_FileTimeComparison -f $maxLocalTimeString, $maxBackupTimeString) 'Info'
 
             # 创建备份目录
             if (-not (Test-Path $backupDir)) {
                 try {
-                    Write-Log-Async ($uiResources.CreateBackupDir -f $backupDir) 'Info'
+                    Show-Log-Async ($uiResources.CreateBackupDir -f $backupDir) 'Info'
                     New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
                 }
                 catch {
                     $errorMsg = $_.Exception.Message
-                    Write-Log-Async ($uiResources.ERROR_CreateBackupDirFailed -f $backupDir) 'Error'
-                    Write-Log-Async ($uiResources.ERROR_ErrorDetails -f $errorMsg) 'Error'
+                    Show-Log-Async ($uiResources.ERROR_CreateBackupDirFailed -f $backupDir) 'Error'
+                    Show-Log-Async ($uiResources.ERROR_ErrorDetails -f $errorMsg) 'Error'
                     continue
                 }
             }
 
             # 进入备份目录
             Set-Location -LiteralPath $backupDir
-            Write-Log-Async ($uiResources.INFO_EnteringBackupDir + ": " + (Get-Location).Path) 'Info'
+            Show-Log-Async ($uiResources.INFO_EnteringBackupDir + ": " + (Get-Location).Path) 'Info'
 
             # 判断备份策略
             if ($null -eq $maxLocalTime) {
                 if ($null -eq $maxBackupTime) {
-                    Write-Log-Async $uiResources.WARNING_BothMissing 'Warning'
+                    Show-Log-Async $uiResources.WARNING_BothMissing 'Warning'
                 }
                 else {
-                    Write-Log-Async $uiResources.WARNING_LocalMissing 'Warning'
+                    Show-Log-Async $uiResources.WARNING_LocalMissing 'Warning'
                     $sh = New-Object -ComObject Shell.Application
                     try {
                         $sh.Namespace(10).MoveHere($saveExpanded)
@@ -1271,23 +1294,23 @@ $startButton.Add_Click({
                     }
 
                     $robocopyCommand = "robocopy . `"$saveExpanded`" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
-                    Write-Log-Async ($uiResources.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
+                    Show-Log-Async ($uiResources.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
 
                     $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
                     $robocopyExitCode = $LASTEXITCODE
 
                     # 记录 Robocopy 状态（包含返回码）
                     if ($robocopyExitCode -ge 8) {
-                        Write-Log-Async ($uiResources.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
+                        Show-Log-Async ($uiResources.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
                     } else {
-                        Write-Log-Async ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
+                        Show-Log-Async ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
                     }
 
-                    Write-Log-Async ($uiResources.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
+                    Show-Log-Async ($uiResources.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
                 }
             }
             elseif ($null -eq $maxBackupTime) {
-                Write-Log-Async $uiResources.INFO_BackupMissing 'Info'
+                Show-Log-Async $uiResources.INFO_BackupMissing 'Info'
                 if (-not (Test-Path $saveLocationBatName)) {
                     $batContent = "if not exist `"" + $saveExpanded + "`" mkdir `"" + $saveExpanded + "`"`r`n"
                     $batContent += "`"explorer.exe`" `"" + $saveExpanded + "`""
@@ -1296,19 +1319,19 @@ $startButton.Add_Click({
                 }
 
                 $robocopyCommand = "robocopy `"$saveExpanded`" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
-                Write-Log-Async ($uiResources.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
+                Show-Log-Async ($uiResources.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
 
                 $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
                 $robocopyExitCode = $LASTEXITCODE
 
                 # 记录 Robocopy 状态（包含返回码）
                 if ($robocopyExitCode -ge 8) {
-                    Write-Log-Async ($uiResources.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
+                    Show-Log-Async ($uiResources.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
                 } else {
-                    Write-Log-Async ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
+                    Show-Log-Async ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
                 }
 
-                Write-Log-Async ($uiResources.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
+                Show-Log-Async ($uiResources.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
 
                 try {
                     $null = Invoke-GitCommand -Arguments "add ." -ErrorMessage "Git add failed"
@@ -1317,15 +1340,15 @@ $startButton.Add_Click({
                     if ($LASTEXITCODE -ne 0) {
                         $commitMsg = "Update - " + $name + " on " + $machineName + " by " + $userName
                         $null = Invoke-GitCommand -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed"
-                        Write-Log-Async $uiResources.SUCCESS_GitCommit 'Success'
+                        Show-Log-Async $uiResources.SUCCESS_GitCommit 'Success'
                     }
                 }
                 catch {
-                    Write-Log-Async ("Git operation failed: $_") 'Error'
+                    Show-Log-Async ("Git operation failed: $_") 'Error'
                 }
             }
             elseif ($maxLocalTime -lt $maxBackupTime) {
-                Write-Log-Async $uiResources.WARNING_LocalOlder 'Warning'
+                Show-Log-Async $uiResources.WARNING_LocalOlder 'Warning'
                 $sh = New-Object -ComObject Shell.Application
                 try {
                     $sh.Namespace(10).MoveHere($saveExpanded)
@@ -1335,37 +1358,37 @@ $startButton.Add_Click({
                 }
 
                 $robocopyCommand = "robocopy . `"$saveExpanded`" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
-                Write-Log-Async ($uiResources.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
+                Show-Log-Async ($uiResources.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
 
                 $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
                 $robocopyExitCode = $LASTEXITCODE
 
                 # 记录 Robocopy 状态（包含返回码）
                 if ($robocopyExitCode -ge 8) {
-                    Write-Log-Async ($uiResources.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
+                    Show-Log-Async ($uiResources.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
                 } else {
-                    Write-Log-Async ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
+                    Show-Log-Async ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
                 }
 
-                Write-Log-Async ($uiResources.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
+                Show-Log-Async ($uiResources.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
             }
             elseif ($maxLocalTime -gt $maxBackupTime) {
-                Write-Log-Async $uiResources.INFO_LocalNewer 'Info'
+                Show-Log-Async $uiResources.INFO_LocalNewer 'Info'
 
                 $robocopyCommand = "robocopy `"$saveExpanded`" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
-                Write-Log-Async ($uiResources.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
+                Show-Log-Async ($uiResources.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
 
                 $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
                 $robocopyExitCode = $LASTEXITCODE
 
                 # 记录 Robocopy 状态（包含返回码）
                 if ($robocopyExitCode -ge 8) {
-                    Write-Log-Async ($uiResources.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
+                    Show-Log-Async ($uiResources.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
                 } else {
-                    Write-Log-Async ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
+                    Show-Log-Async ($uiResources.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
                 }
 
-                Write-Log-Async ($uiResources.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
+                Show-Log-Async ($uiResources.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
 
                 try {
                     $null = Invoke-GitCommand -Arguments "add ." -ErrorMessage "Git add failed"
@@ -1374,15 +1397,15 @@ $startButton.Add_Click({
                     if ($LASTEXITCODE -ne 0) {
                         $commitMsg = "Update - " + $name + " on " + $machineName + " by " + $userName
                         $null = Invoke-GitCommand -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed"
-                        Write-Log-Async $uiResources.SUCCESS_GitCommit 'Success'
+                        Show-Log-Async $uiResources.SUCCESS_GitCommit 'Success'
                     }
                 }
                 catch {
-                    Write-Log-Async ("Git operation failed: $_") 'Error'
+                    Show-Log-Async ("Git operation failed: $_") 'Error'
                 }
             }
             else {
-                Write-Log-Async $uiResources.INFO_SameTime 'Success'
+                Show-Log-Async $uiResources.INFO_SameTime 'Success'
             }
 
             # 更新进度条（通过共享 hashtable 传递给UI线程）
@@ -1396,7 +1419,7 @@ $startButton.Add_Click({
 
         # 恢复工作目录到备份根目录
         Set-Location -LiteralPath $backupRootDir
-        Write-Log-Async ($uiResources.INFO_CurrentWorkingDir + ": " + (Get-Location).Path) 'Info'
+        Show-Log-Async ($uiResources.INFO_CurrentWorkingDir + ": " + (Get-Location).Path) 'Info'
 
         # 最终 Git 提交
         try {
@@ -1406,25 +1429,25 @@ $startButton.Add_Click({
             if ($LASTEXITCODE -ne 0) {
                 $commitMsg = "Update - on " + $machineName + " by " + $userName
                 $null = Invoke-GitCommand -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Final Git commit failed"
-                Write-Log-Async $uiResources.SUCCESS_FinalCommit 'Success'
+                Show-Log-Async $uiResources.SUCCESS_FinalCommit 'Success'
             }
         }
         catch {
-            Write-Log-Async ("Final Git operation failed: $_") 'Error'
+            Show-Log-Async ("Final Git operation failed: $_") 'Error'
         }
 
         # Git clean 操作
         try {
             $cleanOutput = & git clean -df 2>&1 | Out-String
             if ($cleanOutput -and $cleanOutput.Trim()) {
-                Write-Log-Async ("Git clean output: " + $cleanOutput) 'Debug'
+                Show-Log-Async ("Git clean output: " + $cleanOutput) 'Debug'
             }
         }
         catch {
-            Write-Log-Async ("Git clean failed: $_") 'Warning'
+            Show-Log-Async ("Git clean failed: $_") 'Warning'
         }
 
-        Write-Log-Async $uiResources.SUCCESS_BackupComplete 'Success'
+        Show-Log-Async $uiResources.SUCCESS_BackupComplete 'Success'
         
         # 返回成功标记
         return $true
@@ -1435,12 +1458,12 @@ $startButton.Add_Click({
     $psInstance.AddParameter('userName', $script:userName)
     $psInstance.AddParameter('uiResources', $script:ui)
     $psInstance.AddParameter('backupRootDir', $script:cd)
-    $psInstance.AddParameter('logQueue', $script:asyncLogQueue)
+    $psInstance.AddParameter('logQueue', $asyncShowLogQueue)
     $psInstance.AddParameter('progressQueue', $script:asyncProgressState)
 
     # 异步执行
     $asyncResult = $psInstance.BeginInvoke()
-    Write-Log $ui.RunspaceStarted "Progress"
+    Show-Log $ui.RunspaceStarted "Progress"
     
     # 等待任务完成并清理资源
     try {
@@ -1454,7 +1477,7 @@ $startButton.Add_Click({
         Write-Host "[ Debug ] EndInvoke result = $($result) (type: $($result.GetType()))"
     }
     catch {
-        Write-Log ($ui.ERROR_BackupTaskFailed -f $_) 'Error'
+        Show-Log ($ui.ERROR_BackupTaskFailed -f $_) 'Error'
     }
     finally {
         # 清理资源
@@ -1478,9 +1501,9 @@ $startButton.Add_Click({
 $copyLogMenuItem.Add_Click({
     if ($logTextBox.Text.Length -gt 0) {
         [System.Windows.Forms.Clipboard]::SetText($logTextBox.Text)
-        Write-Log $ui.LogCopied "Success"
+        Show-Log $ui.LogCopied "Success"
     } else {
-        Write-Log $ui.NoLog "Warning"
+        Show-Log $ui.NoLog "Warning"
     }
 })
 
@@ -1538,15 +1561,15 @@ $openLocationMenuItem.Add_Click({
         if (Test-Path $realPath) {
             # 打开文件夹
             Start-Process "explorer.exe" -ArgumentList $realPath
-            Write-Log ($ui.OpeningSaveLocation -f $gameName, $realPath) "Info"
+            Show-Log ($ui.OpeningSaveLocation -f $gameName, $realPath) "Info"
         } else {
             # 路径不存在，尝试打开父目录
             $parentDir = Split-Path -Parent $realPath
             if (Test-Path $parentDir) {
                 Start-Process "explorer.exe" -ArgumentList $parentDir
-                Write-Log ($ui.SaveLocationNotFound -f $gameName, $parentDir) "Warning"
+                Show-Log ($ui.SaveLocationNotFound -f $gameName, $parentDir) "Warning"
             } else {
-                Write-Log ($ui.SaveLocationNotExist -f $gameName, $realPath) "Error"
+                Show-Log ($ui.SaveLocationNotExist -f $gameName, $realPath) "Error"
 
                 $result = [System.Windows.Forms.MessageBox]::Show(
                     ($ui.ConfirmCreateDirectory -f $realPath),
@@ -1559,17 +1582,17 @@ $openLocationMenuItem.Add_Click({
                     try {
                         New-Item -ItemType Directory -Path $realPath -Force | Out-Null
                         Start-Process "explorer.exe" -ArgumentList $realPath
-                        Write-Log ($ui.DirectoryCreated -f $gameName, $realPath) "Success"
+                        Show-Log ($ui.DirectoryCreated -f $gameName, $realPath) "Success"
                     }
                     catch {
-                        Write-Log ($ui.FailedToCreateDirectory -f $gameName, $_) "Error"
+                        Show-Log ($ui.FailedToCreateDirectory -f $gameName, $_) "Error"
                     }
                 }
             }
         }
     }
     catch {
-        Write-Log "Failed to open save location: $_" "Error"
+        Show-Log "Failed to open save location: $_" "Error"
     }
 })
 
