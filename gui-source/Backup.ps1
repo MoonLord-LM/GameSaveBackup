@@ -941,9 +941,8 @@ try {
                     }
                     for ($j = 0; $j -lt $game.ignore.Count; $j++) {
                         $ignoreItem = [string]$game.ignore[$j]
-                        if ($ignoreItem) { $ignoreItem = $ignoreItem.Trim() }
-                        $game.ignore[$j] = $ignoreItem
-                        if ([string]::IsNullOrEmpty($ignoreItem)) {
+                        if ($ignoreItem) { $game.ignore[$j] = $ignoreItem.Trim() }
+                        if ([string]::IsNullOrEmpty($game.ignore[$j])) {
                             throw ($ui.ERROR_ConfigItemInvalidIgnoreElement -f ($i + 1))
                         }
                     }
