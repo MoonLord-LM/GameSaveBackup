@@ -33,12 +33,12 @@ try {
     "[ Debug ] userName = $userName"
 
     # 禁用 DPI 自动缩放，必须在 EnableVisualStyles 之前调用
-    # $win32APIDefinition = (
-    #     "[DllImport(`"user32.dll`")]`r`n" +
-    #     "public static extern bool SetProcessDPIAware();"
-    # )
-    # Add-Type -MemberDefinition $win32APIDefinition -Name "API" -Namespace "Win32" -PassThru | Out-Null
-    # [Win32.API]::SetProcessDPIAware() | Out-Null
+    $win32APIDefinition = (
+        "[DllImport(`"user32.dll`")]`r`n" +
+        "public static extern bool SetProcessDPIAware();"
+    )
+    Add-Type -MemberDefinition $win32APIDefinition -Name "API" -Namespace "Win32" -PassThru | Out-Null
+    [Win32.API]::SetProcessDPIAware() | Out-Null
 
     # 设置更现代的窗口样式
     [System.Windows.Forms.Application]::EnableVisualStyles()
@@ -146,8 +146,8 @@ try {
             INFO_RobocopyCommand = "Robocopy 命令"
             INFO_GamesFound = "找到游戏配置数量"
             INFO_MultipleConfigFound = "当前目录下找到 {0} 个 JSON 配置文件，请删除多余的，只保留一个"
-            INFO_WorkingDirectory = "当前工作目录：{0}"
-            INFO_MultipleConfigSelect = "当前目录下找到 {0} 个 JSON 配置文件，请选择一个正确的配置文件"
+            INFO_WorkingDirectory = "当前位置：{0}"
+            INFO_MultipleConfigSelect = "存在 {0} 个配置文件，请选择"
             ERROR_DefaultConfigFailed = "内嵌默认配置加载失败"
             ERROR_ConfigLoadFailed = "配置文件加载失败"
             PROGRESS_Processing = "处理"
@@ -232,8 +232,8 @@ try {
             INFO_RobocopyCommand = "Robocopy command"
             INFO_GamesFound = "game(s) found in configuration"
             INFO_MultipleConfigFound = "Found {0} JSON config files in current directory. Please remove extra files and keep only one"
-            INFO_WorkingDirectory = "Working Directory: {0}"
-            INFO_MultipleConfigSelect = "Found {0} JSON config files in current directory, please select the correct config file"
+            INFO_WorkingDirectory = "Location: {0}"
+            INFO_MultipleConfigSelect = "{0} config files found, please select"
             ERROR_DefaultConfigFailed = "Failed to load embedded default config"
             ERROR_ConfigLoadFailed = "Config file load failed"
             PROGRESS_Processing = "Processing"
@@ -678,7 +678,7 @@ else {
     # 有多个 json 文件，提示用户选择
     $selectForm = [System.Windows.Forms.Form]::new()
     $selectForm.Text = $ui.FormTitle
-    $selectForm.Size = [System.Drawing.Size]::new(640, 480)
+    $selectForm.Size = [System.Drawing.Size]::new(800, 450)
     $selectForm.StartPosition = "CenterScreen"
     $selectForm.Font = [System.Drawing.Font]::new("Microsoft YaHei", 10)
     $selectForm.FormBorderStyle = "FixedDialog"
@@ -698,7 +698,7 @@ else {
     # 顶部面板（提示区）
     $topPanel = [System.Windows.Forms.Panel]::new()
     $topPanel.Dock = "Top"
-    $topPanel.Height = 60
+    $topPanel.Height = 80
     $topPanel.Padding = [System.Windows.Forms.Padding]::new(10, 10, 10, 10)
 
     # 中间面板（内容区）
@@ -718,11 +718,19 @@ else {
     $selectForm.Controls.Add($bottomPanel)
 
     # 提示信息
-    $infolabel = [System.Windows.Forms.Label]::new()
-    $infolabel.Text = "$($ui.INFO_WorkingDirectory -f $workingDirectory)`n$($ui.INFO_MultipleConfigSelect -f $jsonFilesCount)"
-    $infolabel.Location = [System.Drawing.Point]::new(10, 10)
-    $infolabel.AutoSize = $true
-    $topPanel.Controls.Add($infolabel)
+    $infolabel1 = [System.Windows.Forms.Label]::new()
+    $infolabel1.Text = "$($ui.INFO_WorkingDirectory -f $workingDirectory)"
+    $infolabel1.Location = [System.Drawing.Point]::new(10, 10)
+    $infolabel1.Width = $selectForm.Width - 40
+    $infolabel1.AutoEllipsis = $true
+    $topPanel.Controls.Add($infolabel1)
+
+    $infolabel2 = [System.Windows.Forms.Label]::new()
+    $infolabel2.Text = "$($ui.INFO_MultipleConfigSelect -f $jsonFilesCount)"
+    $infolabel2.Location = [System.Drawing.Point]::new(10, 35)
+    $infolabel2.Width = $selectForm.Width - 40
+    $infolabel2.AutoEllipsis = $true
+    $topPanel.Controls.Add($infolabel2)
 
     # 列表框填充中间空间
     $listBox = [System.Windows.Forms.ListBox]::new()
