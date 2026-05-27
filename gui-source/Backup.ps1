@@ -114,7 +114,7 @@ try {
             ConfigLoaded = "成功加载配置文件，共 {0} 个游戏"
             GameListUpdated = "游戏列表已更新"
             ConfigNotFound = "当前目录下未找到 JSON 配置文件，将使用内嵌默认配置"
-            ConfigSelected = "已选择配置文件: "
+            ConfigSelected = "已选择配置文件: {0}"
             BackupStarted = "开始备份任务"
             RunspaceStarted = "Runspace 已启动，开始监控备份任务"
             LogCopied = "日志已复制到剪贴板"
@@ -200,7 +200,7 @@ try {
             ConfigLoaded = "Config file loaded successfully, {0} game(s) found"
             GameListUpdated = "Game list updated"
             ConfigNotFound = "No JSON config file found in current directory, will use embedded default config"
-            ConfigSelected = "Config file selected: "
+            ConfigSelected = "Config file selected: {0}"
             BackupStarted = "Starting backup task"
             RunspaceStarted = "Runspace started, monitoring backup task"
             LogCopied = "Log copied to clipboard"
@@ -885,7 +885,7 @@ try {
     Show-Log ($ui.INFO_SystemInfo -f $windowsVersion, $powerShellVersion) "Info"
     Show-Log ($ui.MachineInfo -f $machineName, $userName) "Info"
     Show-Log ($ui.INFO_BackupRootDir + ": " + $backupDirectory) "Info"
-    Show-Log ($ui.ConfigSelected + "$(Split-Path -Leaf $configFilePath)") "Info"
+    Show-Log ($ui.ConfigSelected -f "[$(Split-Path -Leaf $configFilePath)]") "Info"
 
     # 加载配置文件
     function Load-Config {
@@ -915,6 +915,11 @@ try {
                 if (-not $game.PSObject.Properties.Match('save')) {
                     throw ($ui.ERROR_ConfigItemMissingSave -f ($i + 1))
                 }
+
+                # 对 name 和 save 进行前后 trim 处理
+                $game.name = [string]$game.name.Trim()
+                $game.save = [string]$game.save.Trim()
+
                 if ([string]::IsNullOrEmpty($game.name)) {
                     throw ($ui.ERROR_ConfigItemNameEmpty -f ($i + 1))
                 }
