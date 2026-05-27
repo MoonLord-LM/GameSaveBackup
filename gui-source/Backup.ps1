@@ -625,7 +625,7 @@ try {
         }
     }
     function Show-Log-Batch {
-        param([hashtable[]]$Logs)
+        param([System.Collections.Generic.List[hashtable]]$Logs)
 
         if ($logTextBox.InvokeRequired) {
             $logTextBox.Invoke([System.Action]{
@@ -659,19 +659,17 @@ try {
     }
 
     # 异步展示日志（使用队列和定时任务，实现固定频率刷新界面）
-    $asyncShowLogQueue = [System.Collections.Concurrent.ConcurrentBag[hashtable]]::new()
+    $asyncShowLogQueue = [System.Collections.Concurrent.ConcurrentQueue[hashtable]]::new()
     function Show-Log-Async {
         param([string]$Message = '', [string]$Level = 'Info')
-        $asyncShowLogQueue.Add(@{ Message = $Message; Level = $Level })
+        $asyncShowLogQueue.Enqueue(@{ Message = $Message; Level = $Level })
     }
     $asyncShowLogTimer = [System.Windows.Forms.Timer]::new()
     $asyncShowLogTimer.Add_Tick({
-        $logs = @()
-        while ($asyncShowLogQueue.Count -gt 0) {
-            $log = $null
-            if ($asyncShowLogQueue.TryTake([ref]$log)) {
-                $logs += $log
-            }
+        $logs = [System.Collections.Generic.List[hashtable]]::new()
+        $log = $null
+        while ($asyncShowLogQueue.TryDequeue([ref]$log)) {
+            $logs.Add($log)
         }
         if ($logs.Count -gt 0) {
             Show-Log-Batch -Logs $logs
@@ -1123,7 +1121,7 @@ $startButton.Add_Click({
         # Runspace 内必须定义 Show-Log-Async（主脚本的函数在此不可见）
         function Show-Log-Async {
             param([string]$Message = '', [string]$Level = 'Info')
-            $logQueue.Add(@{ Message = $Message; Level = $Level })
+            $logQueue.Enqueue(@{ Message = $Message; Level = $Level })
         }
 
         function Invoke-GitCommand {
