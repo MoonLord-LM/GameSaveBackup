@@ -175,6 +175,7 @@ try {
             INFO_UsingConfig = "使用配置文件"
             INFO_GitCommand = "Git 命令"
             INFO_RobocopyCommand = "Robocopy 命令"
+            ERROR_GitCommandFailed = "Git 命令执行失败，错误码：{0}，输出信息：{1}"
             INFO_GamesFound = "找到游戏配置数量"
             INFO_MultipleConfigFound = "当前目录下找到 {0} 个 JSON 配置文件，请删除多余的，只保留一个"
             INFO_MultipleConfigSelect = "当前位置存在 {0} 个配置文件，请选择"
@@ -266,6 +267,7 @@ try {
             INFO_UsingConfig = "Using config file"
             INFO_GitCommand = "Git command"
             INFO_RobocopyCommand = "Robocopy command"
+            ERROR_GitCommandFailed = "Git command execution failed, error code: {0}, output: {1}"
             INFO_GamesFound = "game(s) found in configuration"
             INFO_MultipleConfigFound = "Found {0} JSON config files in current directory. Please remove extra files and keep only one"
             INFO_MultipleConfigSelect = "Location: {0} config files found, please select"
@@ -1069,7 +1071,7 @@ $startButton.Add_Click({
     $backupPs = {
         param($ui, $config, $machineName, $userName, $backupDirectory, $asyncShowLogQueue, $asyncProgressState)
 
-        # 主脚本的函数在 Runspace 内不可见
+        # 外部函数在 Runspace 内不可见
         function Show-Log-Async {
             param([string]$Message = '', [string]$Level = 'Info')
             $asyncShowLogQueue.Enqueue(@{ Message = $Message; Level = $Level })
@@ -1079,11 +1081,10 @@ $startButton.Add_Click({
             param([string]$Arguments, [string]$ErrorMessage)
 
             Show-Log-Async ($ui.INFO_GitCommand + ": git $Arguments") 'Debug'
-            $output = & git $Arguments.Split(' ') 2>&1 | Out-String
+            $output = cmd /c "git $Arguments" 2>&1
             $exitCode = $LASTEXITCODE
-
             if ($exitCode -ne 0) {
-                throw "$ErrorMessage (Exit Code: $exitCode): $output"
+                throw ($ui.ERROR_GitCommandFailed -f $exitCode, $output)
             }
             if ($output -and $output.Trim()) {
                 Show-Log-Async ($ui.INFO_GitOutput + ":`r`n" + $output) 'Debug'
@@ -1091,7 +1092,7 @@ $startButton.Add_Click({
             return $output
         }
 
-        # 切换到备份根目录（同步进程 CWD 和 PowerShell Location，git/robocopy 等外部程序依赖进程 CWD）
+        # 切换到备份根目录（影响 git/robocopy 等外部程序）
         [System.IO.Directory]::SetCurrentDirectory($backupDirectory)
         Set-Location -LiteralPath $backupDirectory
         Show-Log-Async ($ui.INFO_EnteringBackupDir -f $backupDirectory) 'Info'
