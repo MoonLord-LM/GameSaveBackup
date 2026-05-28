@@ -55,7 +55,7 @@ try {
     # 获取环境信息，使用单独进程隔离 Get-CimInstance 对语言的影响
     $windowsVersion = powershell -NoProfile -Command {
         $osInfo = Get-CimInstance Win32_OperatingSystem
-        $currentVersion = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction SilentlyContinue
+        $currentVersion = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
         $windowsVersion = "$($osInfo.Caption) $($currentVersion.DisplayVersion)"
         return $windowsVersion
     }
@@ -1069,33 +1069,26 @@ $startButton.Add_Click({
     $backupPs = {
         param($ui, $config, $machineName, $userName, $backupDirectory, $asyncShowLogQueue, $asyncProgressState)
 
-        # Runspace 内必须定义 Show-Log-Async（主脚本的函数在此不可见）
+        # 主脚本的函数在 Runspace 内不可见
         function Show-Log-Async {
             param([string]$Message = '', [string]$Level = 'Info')
             $asyncShowLogQueue.Enqueue(@{ Message = $Message; Level = $Level })
         }
 
-        function Invoke-GitCommand {
+        function Run-Git-Command {
             param([string]$Arguments, [string]$ErrorMessage)
 
-            try {
-                Show-Log-Async ($ui.INFO_GitCommand + ": git $Arguments") 'Debug'
+            Show-Log-Async ($ui.INFO_GitCommand + ": git $Arguments") 'Debug'
+            $output = & git $Arguments.Split(' ') 2>&1 | Out-String
+            $exitCode = $LASTEXITCODE
 
-                $output = & git $Arguments.Split(' ') 2>&1 | Out-String
-                $exitCode = $LASTEXITCODE
-
-                if ($exitCode -ne 0) {
-                    throw "$ErrorMessage (Exit Code: $exitCode): $output"
-                }
-                if ($output -and $output.Trim()) {
-                    Show-Log-Async ($ui.INFO_GitOutput + ":`r`n" + $output) 'Debug'
-                }
-                return $output
+            if ($exitCode -ne 0) {
+                throw "$ErrorMessage (Exit Code: $exitCode): $output"
             }
-            catch {
-                Show-Log-Async $_ 'Error'
-                throw
+            if ($output -and $output.Trim()) {
+                Show-Log-Async ($ui.INFO_GitOutput + ":`r`n" + $output) 'Debug'
             }
+            return $output
         }
 
         # 切换到备份根目录（同步进程 CWD 和 PowerShell Location，git/robocopy 等外部程序依赖进程 CWD）
@@ -1104,7 +1097,7 @@ $startButton.Add_Click({
         Show-Log-Async ($ui.INFO_EnteringBackupDir -f $backupDirectory) 'Info'
 
         # 检查 Git
-        $gitExe = Get-Command git -ErrorAction SilentlyContinue
+        $gitExe = Get-Command git
         if (-not $gitExe) {
             Show-Log-Async $ui.ERROR_GitMissing 'Error'
             Show-Log-Async $ui.ERROR_GitDownload 'Error'
@@ -1278,12 +1271,12 @@ $startButton.Add_Click({
                 Show-Log-Async ($ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
 
                 try {
-                    $null = Invoke-GitCommand -Arguments "add ." -ErrorMessage "Git add failed"
+                    $null = Run-Git-Command -Arguments "add ." -ErrorMessage "Git add failed"
 
                     $diffResult = & git diff --cached --quiet 2>&1
                     if ($LASTEXITCODE -ne 0) {
                         $commitMsg = "Update - " + $name + " on " + $machineName + " by " + $userName
-                        $null = Invoke-GitCommand -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed"
+                        $null = Run-Git-Command -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed"
                         Show-Log-Async $ui.SUCCESS_GitCommit 'Success'
                     }
                 }
@@ -1335,12 +1328,12 @@ $startButton.Add_Click({
                 Show-Log-Async ($ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
 
                 try {
-                    $null = Invoke-GitCommand -Arguments "add ." -ErrorMessage "Git add failed"
+                    $null = Run-Git-Command -Arguments "add ." -ErrorMessage "Git add failed"
 
                     $diffResult = & git diff --cached --quiet 2>&1
                     if ($LASTEXITCODE -ne 0) {
                         $commitMsg = "Update - " + $name + " on " + $machineName + " by " + $userName
-                        $null = Invoke-GitCommand -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed"
+                        $null = Run-Git-Command -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed"
                         Show-Log-Async $ui.SUCCESS_GitCommit 'Success'
                     }
                 }
@@ -1352,13 +1345,7 @@ $startButton.Add_Click({
                 Show-Log-Async $ui.INFO_SameTime 'Success'
             }
 
-            # 更新进度条（通过共享 hashtable 传递给UI线程）
-            try {
-                $asyncProgressState['Value'] = [int](($gameIndex / $totalGames) * 100)
-            }
-            catch {
-                # 进度更新失败不影响主流程
-            }
+            $asyncProgressState['Value'] = [int](($gameIndex / $totalGames) * 90)
         }
 
         # 恢复工作目录到备份根目录
@@ -1366,30 +1353,21 @@ $startButton.Add_Click({
         Show-Log-Async ($ui.INFO_EnteringBackupDir -f (Get-Location).Path) 'Info'
 
         # 最终 Git 提交
-        try {
-            $null = Invoke-GitCommand -Arguments "add ." -ErrorMessage "Final Git add failed"
-
-            $diffResult = & git diff --cached --quiet 2>&1
-            if ($LASTEXITCODE -ne 0) {
-                $commitMsg = "Update - on " + $machineName + " by " + $userName
-                $null = Invoke-GitCommand -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Final Git commit failed"
-                Show-Log-Async $ui.SUCCESS_FinalCommit 'Success'
-            }
-        }
-        catch {
-            Show-Log-Async ("Final Git operation failed: $_") 'Error'
+        Run-Git-Command -Arguments "add ." -ErrorMessage "Final Git add failed"
+        $diffResult = & git diff --cached --quiet 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            $commitMsg = "Update - on " + $machineName + " by " + $userName
+            Run-Git-Command -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Final Git commit failed"
+            Show-Log-Async $ui.SUCCESS_FinalCommit 'Success'
         }
 
         # Git clean 操作
-        try {
-            $cleanOutput = & git clean -df 2>&1 | Out-String
-            if ($cleanOutput -and $cleanOutput.Trim()) {
-                Show-Log-Async ("Git clean output: " + $cleanOutput) 'Debug'
-            }
+        $cleanOutput = & git clean -df 2>&1 | Out-String
+        if ($cleanOutput -and $cleanOutput.Trim()) {
+            Show-Log-Async ("Git clean output: " + $cleanOutput) 'Debug'
         }
-        catch {
-            Show-Log-Async ("Git clean failed: $_") 'Warning'
-        }
+
+        $asyncProgressState['Value'] = 100
     }
 
     # 创建执行实例
@@ -1419,7 +1397,6 @@ $startButton.Add_Click({
                 Show-Log $ui.SUCCESS_BackupComplete 'Success'
             }
             catch {
-                Handle-Exception $_
                 Show-Log ($ui.ERROR_BackupTaskFailed -f $_) 'Error'
             }
             finally {
