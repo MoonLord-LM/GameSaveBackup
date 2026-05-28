@@ -4,8 +4,27 @@
 
 ### 变量作用域问题
 
-在 function 中，使用 $var 变量，可以读取到外部的同名变量的值，但是修改内部的 $var 变量，不会影响到外部的同名变量  
+PowerShell 会 “向上查找” 变量，例如在 function 中，如果没有 $var 变量，则会读取到外部的同名变量的值  
+但是修改 function 内部的 $var 变量，会创建一个新的局部变量，不会影响到外部的同名变量  
 如果需要在 function 中修改外部的同名变量的值，需要使用 $script:var 的写法  
+
+参考示例：
+```
+$var = 10
+function Change-Var-Fail {
+    $var = 20
+    "Change-Var-Fail $var"
+}
+Change-Var-Fail
+$var # 输出 10
+function Change-Var-Success {
+    $script:var = 30
+    "Change-Var-Success $var"
+}
+Change-Var-Success
+$var # 输出 30
+pause
+```
 
 ## 2. WinForms 调用系统公共对话框，错误显示英文界面
 
@@ -67,7 +86,7 @@ Win11 + PowerShell 5.1 + 中文语言设置的环境中，运行 PowerShell 脚�
 ```
 $windowsVersion = powershell -NoProfile -Command {
     $osInfo = Get-CimInstance Win32_OperatingSystem
-    $currentVersion = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction SilentlyContinue
+    $currentVersion = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
     $windowsVersion = "$($osInfo.Caption) $($currentVersion.DisplayVersion)"
     return $windowsVersion
 }
@@ -686,7 +705,7 @@ Add-Type -AssemblyName System.Windows.Forms
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $windowsVersion = powershell -NoProfile -Command {
     $osInfo = Get-CimInstance Win32_OperatingSystem
-    $currentVersion = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction SilentlyContinue
+    $currentVersion = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
     $windowsVersion = "$($osInfo.Caption) $($currentVersion.DisplayVersion)"
     return $windowsVersion
 }
@@ -701,7 +720,7 @@ Add-Type -AssemblyName System.Windows.Forms
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $windowsVersion = powershell -NoProfile -Command {
     $osInfo = Get-CimInstance Win32_OperatingSystem
-    $currentVersion = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction SilentlyContinue
+    $currentVersion = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
     $windowsVersion = "$($osInfo.Caption) $($currentVersion.DisplayVersion)"
     return $windowsVersion
 }
@@ -716,7 +735,7 @@ using assembly System.Windows.Forms
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $windowsVersion = powershell -NoProfile -Command {
     $osInfo = Get-CimInstance Win32_OperatingSystem
-    $currentVersion = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction SilentlyContinue
+    $currentVersion = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
     $windowsVersion = "$($osInfo.Caption) $($currentVersion.DisplayVersion)"
     return $windowsVersion
 }
@@ -731,7 +750,7 @@ using assembly System.Windows.Forms
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $windowsVersion = powershell -NoProfile -Command {
     $osInfo = Get-CimInstance Win32_OperatingSystem
-    $currentVersion = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction SilentlyContinue
+    $currentVersion = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
     $windowsVersion = "$($osInfo.Caption) $($currentVersion.DisplayVersion)"
     return $windowsVersion
 }
