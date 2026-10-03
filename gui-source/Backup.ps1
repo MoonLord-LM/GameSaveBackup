@@ -3,24 +3,23 @@
 
 
 
-# ———————————————————————————————— 1: 基础设置和公共资源 ————————————————————————————————
+# ————————————————————————————— 1: 通用基础设置 —————————————————————————————
+
+# 异常处理
+function Handle-Exception {
+    param([Parameter(Mandatory=$true)][System.Management.Automation.ErrorRecord]$ErrorRecord)
+    ""
+    "[ Error ] Message: $($ErrorRecord.Exception.Message)"
+    if ($ErrorRecord.InvocationInfo) {
+        "[ Error ] Line: $($ErrorRecord.InvocationInfo.ScriptLineNumber)"
+        if ($ErrorRecord.InvocationInfo.Line) {
+            "[ Error ] Code: $($ErrorRecord.InvocationInfo.Line.Trim())"
+        }
+    }
+    ""
+}
 
 try {
-    # 异常处理
-    function Handle-Exception {
-        param([Parameter(Mandatory=$true)][System.Management.Automation.ErrorRecord]$ErrorRecord)
-
-        ""
-        "[ Error ] Message: $($ErrorRecord.Exception.Message)"
-        if ($ErrorRecord.InvocationInfo) {
-            "[ Error ] Line: $($ErrorRecord.InvocationInfo.ScriptLineNumber)"
-            if ($ErrorRecord.InvocationInfo.Line) {
-                "[ Error ] Code: $($ErrorRecord.InvocationInfo.Line.Trim())"
-            }
-        }
-        ""
-    }
-
     # 禁用 DPI 自动缩放，需要在 EnableVisualStyles 之前调用
     function Disable-DPI-Scaling {
         $win32APIDefinition = (
@@ -31,7 +30,7 @@ try {
         [Win32.API]::SetProcessDPIAware() | Out-Null
     }
 
-    # 启用双缓冲，减少界面闪烁
+    # 对指定的控件启用双缓冲，减少界面闪烁
     function Enable-Double-Buffered {
         param([Parameter(Mandatory=$true)][System.Windows.Forms.Control]$Control)
 
