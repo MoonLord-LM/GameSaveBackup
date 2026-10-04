@@ -26,8 +26,10 @@ try {
     $defaultOutputEncoding = [System.Console]::OutputEncoding.EncodingName
     [System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
     $currentOutputEncoding = [System.Console]::OutputEncoding.EncodingName
+    $workingEncoding = New-Object System.Text.UTF8Encoding($false)
     "[ Debug ] defaultOutputEncoding = $defaultOutputEncoding"
     "[ Debug ] currentOutputEncoding = $currentOutputEncoding"
+    "[ Debug ] workingEncoding = $workingEncoding"
 
     # 获取环境信息，使用单独进程隔离 Get-CimInstance 对语言的影响
     $windowsVersion = powershell -NoProfile -Command {
