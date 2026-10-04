@@ -1,9 +1,11 @@
 ﻿# 游戏存档备份工具
+#
 # 开源地址: https://github.com/MoonLord-LM/GameSaveBackup
+#
 
 
 
-# ————————————————————————————— 1: 通用基础设置 —————————————————————————————
+# ———————————————————————————————— 1: 通用基础设置 ————————————————————————————————
 
 # 异常处理
 function Handle-Exception {
@@ -20,15 +22,62 @@ function Handle-Exception {
 }
 
 try {
-    # 禁用 DPI 自动缩放，需要在 EnableVisualStyles 之前调用
-    function Disable-DPI-Scaling {
-        $win32APIDefinition = (
-            "[DllImport(`"user32.dll`")]`r`n" +
-            "public static extern bool SetProcessDPIAware();"
-        )
-        Add-Type -MemberDefinition $win32APIDefinition -Name "API" -Namespace "Win32" -PassThru | Out-Null
-        [Win32.API]::SetProcessDPIAware() | Out-Null
+    # 设置字符编码 UTF-8
+    $defaultOutputEncoding = [System.Console]::OutputEncoding.EncodingName
+    [System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+    $currentOutputEncoding = [System.Console]::OutputEncoding.EncodingName
+    "[ Debug ] defaultOutputEncoding = $defaultOutputEncoding"
+    "[ Debug ] currentOutputEncoding = $currentOutputEncoding"
+
+    # 获取环境信息，使用单独进程隔离 Get-CimInstance 对语言的影响
+    $windowsVersion = powershell -NoProfile -Command {
+        $windowsOSInfo = Get-CimInstance Win32_OperatingSystem
+        $windowsCurrentVersion = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+        $windowsVersion = "$($windowsOSInfo.Caption) $($windowsCurrentVersion.DisplayVersion)"
+        return $windowsVersion
     }
+    $powerShellVersion = "$($PSVersionTable.PSVersion.ToString()) $($PSVersionTable.PSEdition)"
+    $machineName = [System.Net.Dns]::GetHostName()
+    $userName = [Environment]::UserName
+    "[ Debug ] windowsVersion = $windowsVersion"
+    "[ Debug ] powerShellVersion = $powerShellVersion"
+    "[ Debug ] machineName = $machineName"
+    "[ Debug ] userName = $userName"
+
+    # 加载 Win32 API 函数
+    $Win32APICode =
+@'
+    using System;
+    using System.Runtime.InteropServices;
+    public static class DpiHelper {
+        [DllImport("user32.dll")]
+        public static extern bool SetProcessDPIAware();
+        [DllImport("user32.dll")]
+        public static extern bool SetProcessDpiAwarenessContext(IntPtr value);
+    }
+    public static class DpiContext {
+        public static readonly IntPtr UNAWARE = (IntPtr)(-1);
+        public static readonly IntPtr SYSTEM_AWARE = (IntPtr)(-2);
+        public static readonly IntPtr PER_MONITOR_AWARE = (IntPtr)(-3);
+        public static readonly IntPtr PER_MONITOR_AWARE_V2 = (IntPtr)(-4);
+    }
+'@
+    Add-Type -TypeDefinition $Win32APICode
+
+    # 禁用自动缩放
+    $result = $false
+    try {
+        $result = [DpiHelper]::SetProcessDpiAwarenessContext([DpiContext]::PER_MONITOR_AWARE_V2)
+    } catch { }
+    if(-not $result){
+        $result = [DpiHelper]::SetProcessDPIAware()
+    }
+
+    # 设置更现代的窗口样式
+    Add-Type -AssemblyName System.Windows.Forms
+    Add-Type -AssemblyName System.Drawing
+    [System.Windows.Forms.Application]::EnableVisualStyles()
+    [System.Windows.Forms.Application]::SetCompatibleTextRenderingDefault($false)
 
     # 对指定的控件启用双缓冲，减少界面闪烁
     function Enable-Double-Buffered {
@@ -40,44 +89,13 @@ try {
         return $doubleBufferedProperty.GetValue($Control)
     }
 
-    # 加载窗体程序集
-    Add-Type -AssemblyName System.Windows.Forms
-    Add-Type -AssemblyName System.Drawing
-
-    # 设置字符编码 UTF-8
-    $defaultOutputEncoding = [System.Console]::OutputEncoding.EncodingName
-    [System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-    $currentOutputEncoding = [System.Console]::OutputEncoding.EncodingName
-    "[ Debug ] defaultOutputEncoding = $defaultOutputEncoding"
-    "[ Debug ] currentOutputEncoding = $currentOutputEncoding"
-
-    # 获取环境信息，使用单独进程隔离 Get-CimInstance 对语言的影响
-    $windowsVersion = powershell -NoProfile -Command {
-        $osInfo = Get-CimInstance Win32_OperatingSystem
-        $currentVersion = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
-        $windowsVersion = "$($osInfo.Caption) $($currentVersion.DisplayVersion)"
-        return $windowsVersion
-    }
-    $powerShellVersion = "$($PSVersionTable.PSVersion.ToString()) $($PSVersionTable.PSEdition)"
-    $machineName = [System.Net.Dns]::GetHostName()
-    $userName = [Environment]::UserName
-    "[ Debug ] windowsVersion = $windowsVersion"
-    "[ Debug ] powerShellVersion = $powerShellVersion"
-    "[ Debug ] machineName = $machineName"
-    "[ Debug ] userName = $userName"
-
-    # 设置更现代的窗口样式
-    # Disable-DPI-Scaling
-    [System.Windows.Forms.Application]::EnableVisualStyles()
-    [System.Windows.Forms.Application]::SetCompatibleTextRenderingDefault($false)
-
     # 分析合适的显示语言
     $currentCulture = [System.Globalization.CultureInfo]::CurrentCulture.Name
     $currentUICulture = [System.Globalization.CultureInfo]::CurrentUICulture.Name
     $installedUICulture = [System.Globalization.CultureInfo]::InstalledUICulture.Name
     $currentThreadCulture = [System.Threading.Thread]::CurrentThread.CurrentCulture.Name
     $currentThreadUICulture = [System.Threading.Thread]::CurrentThread.CurrentUICulture.Name
-    $workingLang = 'en-US'
+    $workingLanguage = 'en-US'
     $zhCNCount = 0
     $enUSCount = 0
     if ($currentCulture -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
@@ -86,16 +104,16 @@ try {
     if ($currentThreadCulture -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
     if ($currentThreadUICulture -eq 'zh-CN') { $zhCNCount += 1 } else { $enUSCount += 1 }
     if ($zhCNCount -ge $enUSCount) {
-        $workingLang = 'zh-CN'
+        $workingLanguage = 'zh-CN'
     } else {
-        $workingLang = 'en-US'
+        $workingLanguage = 'en-US'
     }
     "[ Debug ] currentCulture = $currentCulture"
     "[ Debug ] currentUICulture = $currentUICulture"
     "[ Debug ] installedUICulture = $installedUICulture"
     "[ Debug ] currentThreadCulture = $currentThreadCulture"
     "[ Debug ] currentThreadUICulture = $currentThreadUICulture"
-    "[ Debug ] workingLang = $workingLang"
+    "[ Debug ] workingLanguage = $workingLanguage"
 
     # 分析合适的工作目录
     $currentDirectory = [System.IO.Directory]::GetCurrentDirectory()
@@ -124,7 +142,17 @@ try {
     "[ Debug ] userDirectory = $userDirectory"
     "[ Debug ] tempDirectory = $tempDirectory"
     "[ Debug ] workingDirectory = $workingDirectory"
+} catch {
+    Handle-Exception $_
+    pause
+    exit 1
+}
 
+
+
+# ———————————————————————————————— 2: 程序设置 ————————————————————————————————
+
+try {
     # 界面支持中英文，定义多语言文本资源
     $uiTextResources = @{
         'zh-CN' = @{
@@ -312,7 +340,7 @@ try {
             BackupDirName = "Backup"
         }
     }
-    $ui = $uiTextResources[$workingLang]
+    $ui = $uiTextResources[$workingLanguage]
 
     # 内嵌的中英文的默认 JSON 配置
     $defaultJsonConfigs = @{
@@ -491,16 +519,16 @@ try {
 ]
 '@
     }
-    $defaultJsonConfig = $defaultJsonConfigs[$workingLang]
+    $defaultJsonConfig = $defaultJsonConfigs[$workingLanguage]
 } catch {
     Handle-Exception $_
-    [System.Windows.Forms.MessageBox]::Show($_.Exception.Message, $ui.FormTitle, "OK", "Error")
+    pause
     exit 1
 }
 
 
 
-# ———————————————————————————————— 2: 主窗体界面绘制 ————————————————————————————————
+# ———————————————————————————————— 3: 主窗体界面绘制 ————————————————————————————————
 
 try {
     # 创建主窗口
@@ -801,7 +829,7 @@ try {
 
 
 
-# ———————————————————————————————— 3: 配置初始化和启动过程 ————————————————————————————————
+# ———————————————————————————————— 4: 配置初始化和启动过程 ————————————————————————————————
 
 try {
     # 配置文件和备份文件，创建单独的目录存放
@@ -1030,7 +1058,7 @@ try {
 
 
 
-# ———————————————————————————————— 4: 主界面功能实现 ————————————————————————————————
+# ———————————————————————————————— 5: 主界面功能实现 ————————————————————————————————
 
 # 选择配置按钮
 $fileDialogInitialDirectory = $backupDirectory
@@ -1475,6 +1503,6 @@ $openLocationMenuItem.Add_Click({
 
 
 
-# ———————————————————————————————— 5: 程序启动 ————————————————————————————————
+# ———————————————————————————————— 6: 程序启动 ————————————————————————————————
 
 [System.Windows.Forms.Application]::Run($mainForm);
