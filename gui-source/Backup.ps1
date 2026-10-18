@@ -412,6 +412,10 @@ try {
         "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\SAN8R"
     },
     {
+        "name": "古墓丽影10：崛起",
+        "save": "%USERPROFILE%\\Documents\\CPY_SAVES\\CPY\\391220"
+    },
+    {
         "name": "光与影：33 号远征队",
         "save": "%USERPROFILE%\\AppData\\Local\\Sandfall\\Saved"
     },
@@ -497,6 +501,10 @@ try {
     {
         "name": "Romance Of The Three Kingdoms 8 Remake",
         "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\SAN8R"
+    },
+    {
+        "name": "Rise of the Tomb Raider",
+        "save": "%USERPROFILE%\\Documents\\CPY_SAVES\\CPY\\391220"
     },
     {
         "name": "Clair Obscur Expedition 33",
