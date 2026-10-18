@@ -1,1 +1,0 @@
-[{"name": "   Game With Spaces   ", "save": "   %USERPROFILE%\\Path With Spaces   "}, {"name": "\tTabbed Game\t", "save": "\t%USERPROFILE%\\Tabbed Path\t"}, {"name": "\nNewLine Game\n", "save": "\n%USERPROFILE%\\NewLine Path\n"}]

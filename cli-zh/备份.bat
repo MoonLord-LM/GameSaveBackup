@@ -1,19 +1,24 @@
 @echo off
 chcp 65001 >nul
+setlocal disabledelayedexpansion
+set "script=%~0" & set "script_path=%~f0" & set "script_dir=%~dp0" & set "script_name=%~n0" & set "script_ext=%~x0" & set "script_name_ext=%~nx0"
 setlocal enabledelayedexpansion
-powershell -NoProfile -Command "Write-Host '[ %~nx0 ]' -ForegroundColor Cyan" && echo.
+if /i "!cd!"=="!SystemRoot!\System32" ( cd /d "!script_dir!" )
+powershell -NoProfile -Command "Write-Host '[ !script_name_ext! ]' -ForegroundColor Cyan" && echo.
 
 
 
 REM 开源地址：https://github.com/MoonLord-LM/GameSaveBackup
+REM 功能：把本地游戏存档备份到当前目录的 Git 仓库，并按修改时间自动双向同步
 
 
 
-if /i "%cd%"=="%SystemRoot%\System32" (
-    echo 检测到使用右键的“以管理员权限运行”，切换到脚本所在目录 & echo.
-    cd /d "%~dp0"
-)
+powershell -NoProfile -Command "Write-Host '把本地游戏存档备份到 Git 仓库，并自动双向同步' -ForegroundColor Green"
+echo.
 
+
+
+REM 检查 git 组件是否可用
 "git.exe" --version >nul 2>&1
 if errorlevel 1 (
     echo 错误: 缺少 git.exe 组件
@@ -24,45 +29,51 @@ if errorlevel 1 (
     exit /b 1
 )
 
+REM 初始化本地 Git 仓库（若不存在）
 if not exist ".git" (
     git init
     git config --local core.autocrlf false
     git config --local core.safecrlf false
     git config --local core.ignorecase false
-
     git config --local core.quotepath false
     git config --local i18n.logoutputencoding utf-8
     git config --local i18n.commitencoding utf-8
 )
 
+REM 读取当前机器名与用户名，用于提交信息
 for /f "tokens=*" %%a in ('hostname') do set "machine_name=%%a"
 for /f "tokens=*" %%b in ('powershell -NoProfile -Command "[Environment]::UserName"') do set "user_name=%%b"
 echo 机器名: !machine_name! 用户名: !user_name!
 
-set "json_count=0"
-for %%f in (*.json) do (
-    set /a json_count+=1
-    set "config=%%f"
-)
-if !json_count! equ 0 (
-    echo 错误: 当前目录下没有找到 [.json] 配置文件
-    echo 请确保有一个 [.json] 配置文件在此目录中
-    echo.
-    pause
-    exit /b 1
-)
-if !json_count! gtr 1 (
-    echo 错误: 当前目录下找到多个 [.json] 配置文件，共 !json_count! 个
-    echo 请只保留一个 [.json] 配置文件
+REM 从本脚本末尾的标记区块中提取内嵌的 JSON 配置，写入临时文件
+set "json_config_marker=-----BEGIN JSON CONFIG-----"
+set "json_config_temp=%temp%\GameSaveBackup_!random!_!random!_!random!_!random!.json" & type nul > "!json_config_temp!"
+powershell -NoProfile -Command ^
+    "[System.Console]::OutputEncoding=[System.Text.Encoding]::UTF8;" ^
+    "$lines = Get-Content -Encoding UTF8 -LiteralPath $env:script_path;" ^
+    "$begin = [array]::IndexOf($lines, $env:json_config_marker) + 1;" ^
+    "$end = [array]::IndexOf($lines, '-----END JSON CONFIG-----');" ^
+    "if ($begin -lt 1 -or $end -lt $begin) {" ^
+    "    Write-Host '错误: 未找到内嵌的 JSON 配置' -ForegroundColor Red;" ^
+    "    exit 1;" ^
+    "};" ^
+    "$json = $lines[$begin..($end - 1)] -join [Environment]::NewLine;" ^
+    "[System.IO.File]::WriteAllText($env:json_config_temp, $json, [System.Text.UTF8Encoding]::new($false));"
+if !errorlevel! neq 0 (
+    echo 错误: 提取内嵌的 JSON 配置失败
     echo.
     pause
     exit /b 1
 )
 
-echo 使用配置文件: [!config!]
+set "config=!json_config_temp!"
+echo 使用内嵌配置
 for /f %%i in ('powershell -NoProfile -Command "$arr = (Get-Content -Raw -Encoding UTF8 -Path \""!config!\"" | ConvertFrom-Json); [string]$arr.Count"') do set "length=%%i"
 echo.
 
+
+
+REM 遍历配置中的每一项，按修改时间自动备份 / 还原
 for /l %%i in (1, 1, !length!) do (
     for /f "tokens=*" %%j in ('powershell -NoProfile -Command "(Get-Content -Raw -Encoding UTF8 -Path \""!config!\"" | ConvertFrom-Json)[%%i - 1].name"') do set "name=%%j"
     for /f "tokens=*" %%j in ('powershell -NoProfile -Command "(Get-Content -Raw -Encoding UTF8 -Path \""!config!\"" | ConvertFrom-Json)[%%i - 1].save"') do set "save=%%j"
@@ -149,9 +160,13 @@ for /l %%i in (1, 1, !length!) do (
     echo.
 )
 
+REM 提交整体变更并清理未跟踪文件
 git add .
 git diff --cached --quiet || ( git commit -m "Update - on !machine_name! by !user_name!" && echo. )
 git clean -df >nul
+
+REM 清理临时配置文件
+if exist "!json_config_temp!" ( del /f /q "!json_config_temp!" )
 
 echo 备份完成
 
@@ -160,3 +175,97 @@ echo 备份完成
 echo.
 pause
 exit /b
+
+
+
+-----BEGIN JSON CONFIG-----
+[
+  {
+    "name": "艾尔登法环",
+    "save": "%USERPROFILE%\\AppData\\Roaming\\EldenRing"
+  },
+  {
+    "name": "幻兽帕鲁",
+    "save": "%USERPROFILE%\\AppData\\Local\\Pal\\Saved\\SaveGames"
+  },
+  {
+    "name": "部落幸存者",
+    "save": "%USERPROFILE%\\AppData\\LocalLow\\SZSS INTERACTIVE\\Settlement Survival"
+  },
+  {
+    "name": "最后纪元",
+    "save": "%USERPROFILE%\\AppData\\LocalLow\\Eleventh Hour Games\\Last Epoch"
+  },
+  {
+    "name": "虐杀原形",
+    "save": "%USERPROFILE%\\Documents\\Prototype"
+  },
+  {
+    "name": "尼尔：机械纪元",
+    "save": "%USERPROFILE%\\Documents\\My Games\\NieR_Automata"
+  },
+  {
+    "name": "真三国无双8：帝国",
+    "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\Dynasty Warriors 9 Empires"
+  },
+  {
+    "name": "无双大蛇3",
+    "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\WARRIORS OROCHI 4"
+  },
+  {
+    "name": "真三国无双5",
+    "save": "%USERPROFILE%\\Documents\\KOEI\\Shin Sangokumusou 5"
+  },
+  {
+    "name": "亿万僵尸",
+    "save": "%USERPROFILE%\\Documents\\My Games\\They Are Billions"
+  },
+  {
+    "name": "星球基地",
+    "save": "%USERPROFILE%\\Documents\\Planetbase"
+  },
+  {
+    "name": "缺氧",
+    "save": "%USERPROFILE%\\Documents\\Klei\\OxygenNotIncluded",
+    "ignore": [
+        "%USERPROFILE%\\Documents\\Klei\\OxygenNotIncluded\\RetiredColonies"
+    ]
+  },
+  {
+    "name": "饥荒联机版",
+    "save": "%USERPROFILE%\\Documents\\Klei\\DoNotStarveTogether"
+  },
+  {
+    "name": "博德之门3",
+    "save": "%USERPROFILE%\\AppData\\Local\\Larian Studios\\Baldur's Gate 3"
+  },
+  {
+    "name": "三国志8：重制版",
+    "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\SAN8R"
+  },
+  {
+    "name": "古墓丽影10：崛起",
+    "save": "%USERPROFILE%\\Documents\\CPY_SAVES\\CPY\\391220"
+  },
+  {
+    "name": "光与影：33号远征队",
+    "save": "%USERPROFILE%\\AppData\\Local\\Sandfall\\Saved"
+  },
+  {
+    "name": "对马岛之魂",
+    "save": "%USERPROFILE%\\Documents\\Ghost of Tsushima DIRECTOR'S CUT"
+  },
+  {
+    "name": "纪念碑谷",
+    "save": "%USERPROFILE%\\AppData\\LocalLow\\ustwo games\\Monument Valley"
+  },
+  {
+    "name": "虫虫大作战",
+    "save": "%PROGRAMDATA%\\AlderGames\\BugBits"
+  },
+  {
+    "name": "棋弈无限：围棋",
+    "save": "%USERPROFILE%\\AppData\\LocalLow\\Studio Amateur\\JustGo"
+  }
+]
+-----END JSON CONFIG-----
