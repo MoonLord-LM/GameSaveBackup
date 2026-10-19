@@ -6,7 +6,7 @@ A simple file backup tool that can be used for game saves and other purposes.
 
 ## [使用说明]
 
-依赖 Git 运行，需先安装 [`git`](https://git-scm.com/downloads)  
+依赖 Git 运行，需要先安装 [`git`](https://git-scm.com/downloads)  
 
 以下文件，任选其一，下载运行即可：  
 命令行中文版：[`备份.bat`](https://github.com/MoonLord-LM/GameSaveBackup/blob/master/source/备份.bat)  
