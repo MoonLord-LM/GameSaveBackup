@@ -417,7 +417,7 @@ try {
     },
     {
         "name": "古墓丽影11：暗影",
-        "save": "%PUBLIC%\\Documents\\Steam\\CODEX\\750920"
+        "save": "%USERPROFILE%\\Documents\\Shadow of the Tomb Raider"
     },
     {
         "name": "光与影：33 号远征队",
@@ -512,7 +512,7 @@ try {
     },
     {
         "name": "Shadow of the Tomb Raider",
-        "save": "%PUBLIC%\\Documents\\Steam\\CODEX\\750920"
+        "save": "%USERPROFILE%\\Documents\\Shadow of the Tomb Raider"
     },
     {
         "name": "Clair Obscur Expedition 33",

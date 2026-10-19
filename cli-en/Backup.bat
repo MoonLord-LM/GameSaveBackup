@@ -251,7 +251,7 @@ exit /b
   },
   {
     "name": "Shadow of the Tomb Raider",
-    "save": "%PUBLIC%\\Documents\\Steam\\CODEX\\750920"
+    "save": "%USERPROFILE%\\Documents\\Shadow of the Tomb Raider"
   },
   {
     "name": "Clair Obscur Expedition 33",
