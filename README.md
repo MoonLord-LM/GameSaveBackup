@@ -2,9 +2,9 @@
 [![self-check](https://github.com/MoonLord-LM/GameSaveBackup/actions/workflows/self-check.yml/badge.svg)](https://github.com/MoonLord-LM/GameSaveBackup/actions/workflows/self-check.yml)
 [![build](https://github.com/MoonLord-LM/GameSaveBackup/actions/workflows/build.yml/badge.svg)](https://github.com/MoonLord-LM/GameSaveBackup/actions/workflows/build.yml)
 
-一个简单的文件备份工具，可用于游戏存档或其他用途。  
+一个基于 Git 的简单的文件备份工具，可用于游戏存档等资料文件的备份、还原、同步等  
 
-A simple file backup tool that can be used for game saves and other purposes.  
+A simple Git-based file backup tool for backing up, restoring and synchronizing game saves and other data files  
 
 ## [使用说明]
 
@@ -47,9 +47,9 @@ A simple file backup tool that can be used for game saves and other purposes.
 ```
 
 配置说明：  
-`name` 属性，游戏名称  
-`save` 属性，存档所在路径  
-`ignore` 可选属性，存档路径中排除的路径  
+`name` 属性，备份项目名称，例如游戏名称  
+`save` 属性，需要备份的路径，例如游戏存档所在路径  
+`ignore` 可选属性，备份时需要排除的路径  
 
 ### 默认配置
 
