@@ -291,11 +291,33 @@ for %%i in ("!input_file!") do (
     set "resource_file="
     echo.
 
+    set "gzip_size=-1"
     for /f %%s in ('powershell -NoProfile -Command "try { ([System.IO.FileInfo]($env:temp_gzip)).Length } catch { -1 }"') do set "gzip_size=%%s"
+    if "!gzip_size!"=="-1" (
+        echo 错误：获取 gzip 压缩包大小失败："!temp_gzip!"
+        echo.
+        if exist "!temp_gzip!" ( del /f /q "!temp_gzip!" )
+        if exist "!temp_cab!" ( del /f /q "!temp_cab!" )
+        if exist "!temp_7z!" ( del /f /q "!temp_7z!" )
+        if exist "!temp_7z_exe!" ( del /f /q "!temp_7z_exe!" )
+        pause
+        exit /b 1
+    )
     echo gzip 压缩包大小：!gzip_size! 字节
     set "method=gzip" & set "smallest_size=!gzip_size!" & set "resource_file=!temp_gzip!"
 
+    set "cab_size=-1"
     for /f %%s in ('powershell -NoProfile -Command "try { ([System.IO.FileInfo]($env:temp_cab)).Length } catch { -1 }"') do set "cab_size=%%s"
+    if "!cab_size!"=="-1" (
+        echo 错误：获取 cab 压缩包大小失败："!temp_cab!"
+        echo.
+        if exist "!temp_gzip!" ( del /f /q "!temp_gzip!" )
+        if exist "!temp_cab!" ( del /f /q "!temp_cab!" )
+        if exist "!temp_7z!" ( del /f /q "!temp_7z!" )
+        if exist "!temp_7z_exe!" ( del /f /q "!temp_7z_exe!" )
+        pause
+        exit /b 1
+    )
     echo cab 压缩包大小：!cab_size! 字节
     set "size_smaller=0"
     for /f "delims=" %%c in ('
@@ -310,7 +332,18 @@ for %%i in ("!input_file!") do (
     )
 
     if "!use_7z_exe!"=="1" (
+        set "seven_zip_size=-1"
         for /f %%s in ('powershell -NoProfile -Command "try { ([System.IO.FileInfo]($env:temp_7z_exe)).Length } catch { -1 }"') do set "seven_zip_size=%%s"
+        if "!seven_zip_size!"=="-1" (
+            echo 错误：获取 7z 压缩包大小失败："!temp_7z_exe!"
+            echo.
+            if exist "!temp_gzip!" ( del /f /q "!temp_gzip!" )
+            if exist "!temp_cab!" ( del /f /q "!temp_cab!" )
+            if exist "!temp_7z!" ( del /f /q "!temp_7z!" )
+            if exist "!temp_7z_exe!" ( del /f /q "!temp_7z_exe!" )
+            pause
+            exit /b 1
+        )
         echo 7z 压缩包大小：!seven_zip_size! 字节
         set "size_smaller=0"
         for /f "delims=" %%c in ('
