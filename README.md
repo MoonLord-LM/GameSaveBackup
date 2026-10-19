@@ -44,10 +44,10 @@ A simple file backup tool that can be used for game saves and other purposes.
 ]
 ```
 
-配置文件是一个 JSON 数组，每个 { } 元素代表一个需要备份的项目，多个元素用逗号分隔  
-`name` 属性，游戏名称，同时也作为备份的子文件夹名使用，不能包含 Windows 文件名非法字符（`< > : " / \ \| ? *`）  
-`save` 属性，存档所在路径，建议使用 `%USERPROFILE%` / `%PROGRAMDATA%` 等环境变量路径开头  
-`ignore` 可选属性，排除路径数组，备份时需要排除的文件或文件夹  
+配置说明：  
+`name` 属性，游戏名称  
+`save` 属性，存档所在路径  
+`ignore` 可选属性，存档路径中排除的路径  
 
 ### 默认配置
 
