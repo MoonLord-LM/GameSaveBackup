@@ -11,12 +11,12 @@ powershell -NoProfile -Command "Write-Host '[ !script_name_ext! ]' -ForegroundCo
 
 
 powershell -NoProfile -Command "Write-Host 'https://github.com/MoonLord-LM/GameSaveBackup' -ForegroundColor Green"
-powershell -NoProfile -Command "Write-Host '把本地游戏存档备份到 Git 仓库，并自动双向同步' -ForegroundColor Green"
+powershell -NoProfile -Command "Write-Host 'A simple file backup tool that can be used for game saves and other purposes' -ForegroundColor Green"
 echo.
 
 
 
-REM Define the backup root directory (unified Backup subfolder, to avoid modifying files outside the script directory)
+REM Define the backup root directory
 set "backup_dir=!script_dir!Backup"
 if not exist "!backup_dir!" (
     mkdir "!backup_dir!"
@@ -39,7 +39,7 @@ if !errorlevel! neq 0 (
     exit /b 1
 )
 
-REM 初始化本地 Git 仓库（若不存在）
+REM Initialize local Git repository (if not already present)
 if not exist ".git" (
     git init
     git config --local core.autocrlf false
@@ -50,13 +50,14 @@ if not exist ".git" (
     git config --local i18n.commitencoding utf-8
 )
 
-REM 读取当前机器名与用户名，用于提交信息
+REM Read current machine name and user name for commit messages
 for /f "tokens=*" %%a in ('hostname') do set "machine_name=%%a"
 for /f "tokens=*" %%b in ('powershell -NoProfile -Command "[Environment]::UserName"') do set "user_name=%%b"
 echo Machine Name: !machine_name! User Name: !user_name!
 
+
+
 REM Config path: Backup\config.json (English default) or Backup\配置.json (compatible)
-REM English version prefers config.json, falls back to 配置.json if missing, otherwise writes embedded default config
 set "config_primary=!backup_dir!\config.json"
 set "config_secondary=!backup_dir!\配置.json"
 if exist "!config_primary!" (
@@ -92,7 +93,7 @@ echo.
 
 
 
-REM 遍历配置中的每一项，按修改时间自动备份 / 还原
+REM Iterate over each config entry, automatically back up or restore by modification time
 for /l %%i in (1, 1, !length!) do (
     for /f "tokens=*" %%j in ('powershell -NoProfile -Command "(Get-Content -Raw -Encoding UTF8 -Path \""!config!\"" | ConvertFrom-Json)[%%i - 1].name"') do set "name=%%j"
     for /f "tokens=*" %%j in ('powershell -NoProfile -Command "(Get-Content -Raw -Encoding UTF8 -Path \""!config!\"" | ConvertFrom-Json)[%%i - 1].save"') do set "save=%%j"
@@ -138,7 +139,7 @@ for /l %%i in (1, 1, !length!) do (
     )
     cd "!name!"
 
-    echo Max Local Time: [!max_local_time_string!] Max Backup Time: [!max_backup_time_string!]
+    echo Local file modification time: [!max_local_time_string!] Backup file modification time: [!max_backup_time_string!]
 
     if "!max_local_time!"=="" (
         if "!max_backup_time!"=="" (
@@ -196,7 +197,7 @@ for /l %%i in (1, 1, !length!) do (
     echo.
 )
 
-REM 提交整体变更并清理未跟踪文件
+REM Commit all changes and clean up untracked files
 git add .
 git diff --cached --quiet || ( git commit -m "Update - on !machine_name! by !user_name!" && echo. )
 git clean -df >nul

@@ -11,12 +11,12 @@ powershell -NoProfile -Command "Write-Host '[ !script_name_ext! ]' -ForegroundCo
 
 
 powershell -NoProfile -Command "Write-Host 'https://github.com/MoonLord-LM/GameSaveBackup' -ForegroundColor Green"
-powershell -NoProfile -Command "Write-Host '把本地游戏存档备份到 Git 仓库，并自动双向同步' -ForegroundColor Green"
+powershell -NoProfile -Command "Write-Host '一个简单的文件备份工具，可用于游戏存档或其他用途' -ForegroundColor Green"
 echo.
 
 
 
-REM 定义备份根目录（统一使用 Backup 子文件夹，避免误改脚本所在目录之外的文件）
+REM 定义备份根目录
 set "backup_dir=!script_dir!Backup"
 if not exist "!backup_dir!" (
     mkdir "!backup_dir!"
@@ -55,8 +55,9 @@ for /f "tokens=*" %%a in ('hostname') do set "machine_name=%%a"
 for /f "tokens=*" %%b in ('powershell -NoProfile -Command "[Environment]::UserName"') do set "user_name=%%b"
 echo 机器名: !machine_name! 用户名: !user_name!
 
+
+
 REM 配置文件路径：Backup\配置.json（中文默认）或 Backup\config.json（兼容）
-REM 中文版优先使用 配置.json，若不存在则兼容使用 config.json，再不存在则写入内嵌默认配置
 set "config_primary=!backup_dir!\配置.json"
 set "config_secondary=!backup_dir!\config.json"
 if exist "!config_primary!" (
