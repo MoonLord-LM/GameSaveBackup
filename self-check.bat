@@ -1,0 +1,289 @@
+@echo off
+chcp 65001 >nul
+setlocal disabledelayedexpansion
+set "script=%~0" & set "script_path=%~f0" & set "script_dir=%~dp0" & set "script_name=%~n0" & set "script_ext=%~x0" & set "script_name_ext=%~nx0"
+setlocal enabledelayedexpansion
+if /i "!cd!"=="!SystemRoot!\System32" ( cd /d "!script_dir!" )
+powershell -NoProfile -Command "Write-Host '[ !script_name_ext! ]' -ForegroundColor Cyan" && echo.
+
+
+
+powershell -NoProfile -Command "Write-Host '扫描当前文件夹下的所有 bat 文件，自动处理编码规范问题' -ForegroundColor Green"
+powershell -NoProfile -Command "Write-Host '自动触发规则，定义在文件 .github/workflows/self-check.yml 中' -ForegroundColor Green"
+echo.
+
+
+
+REM 设置 Git 仓库的本地配置
+git config --local core.autocrlf false
+git config --local core.safecrlf false
+git config --local core.ignorecase false
+git config --local core.quotepath false
+git config --local i18n.logoutputencoding utf-8
+git config --local i18n.commitencoding utf-8
+
+echo.
+echo 当前 Git 配置：
+git config --local --list
+echo.
+
+
+
+set "root_dir=!script_dir!"
+
+for /f "delims=" %%f in ('
+    powershell -NoProfile -Command ^
+        "[System.Console]::OutputEncoding=[System.Text.Encoding]::UTF8;" ^
+        "Get-ChildItem -LiteralPath $env:root_dir -File -Force -Recurse -Filter *.bat | ForEach-Object { $_.FullName }"
+') do (
+    setlocal disabledelayedexpansion
+    set "bat_file=%%f"
+    set "file_dir=%%~dpf"
+    set "base_name=%%~nf"
+    set "file_ext=%%~xf"
+    setlocal enabledelayedexpansion
+
+    echo 处理 bat 文件："!bat_file!"
+
+    REM 统一编码为 UTF-8 without BOM，统一换行符为 CRLF
+    powershell -NoProfile -Command ^
+        "[System.Console]::OutputEncoding=[System.Text.Encoding]::UTF8;" ^
+        "$utf8NoBOM = [System.Text.UTF8Encoding]::new($false);" ^
+        "$bytes = [System.IO.File]::ReadAllBytes($env:bat_file);" ^
+        "$utf8Strict = [System.Text.Encoding]::GetEncoding(65001, [System.Text.EncoderFallback]::ExceptionFallback, [System.Text.DecoderFallback]::ExceptionFallback);" ^
+        "try {" ^
+            "$chars = New-Object Char[] ($utf8Strict.GetDecoder().GetCharCount($bytes, 0, $bytes.Length));" ^
+            "$utf8Strict.GetDecoder().GetChars($bytes, 0, $bytes.Length, $chars, 0) | Out-Null;" ^
+            "$content = -join $chars;" ^
+        "} catch [System.Text.DecoderFallbackException] {" ^
+            "$content = [System.Text.Encoding]::GetEncoding(936).GetString($bytes);" ^
+        "}" ^
+        "$newContent = $content -replace '(\r?\n)', \""`r`n\"";" ^
+        "if ($newContent -ne [System.Text.Encoding]::UTF8.GetString($bytes)) {" ^
+            "[System.IO.File]::WriteAllText($env:bat_file, $newContent, $utf8NoBOM);" ^
+            "Write-Output '已将编码统一为 UTF-8 without BOM，换行符统一为 CRLF';" ^
+        "}"
+    if !errorlevel! neq 0 (
+        echo [错误] 编码转换失败："!bat_file!"
+        echo.
+        pause
+        exit /b 1
+    )
+
+    REM 替换制表符为 4 个空格
+    powershell -NoProfile -Command ^
+        "[System.Console]::OutputEncoding=[System.Text.Encoding]::UTF8;" ^
+        "$utf8NoBOM = [System.Text.UTF8Encoding]::new($false);" ^
+        "$lines = [System.IO.File]::ReadAllLines($env:bat_file, [System.Text.Encoding]::UTF8);" ^
+        "$tab = [string][char]9;" ^
+        "$changed = 0;" ^
+        "for ($i = 0; $i -lt $lines.Count; $i++) {" ^
+            "if ($lines[$i] -match $tab) {" ^
+                "$lines[$i] = $lines[$i] -replace $tab, '    ';" ^
+                "$changed++;" ^
+            "}" ^
+        "}" ^
+        "if ($changed -gt 0) {" ^
+            "[System.IO.File]::WriteAllLines($env:bat_file, $lines, $utf8NoBOM);" ^
+            "Write-Output ('已将 ' + $changed + ' 行中的制表符替换为 4 个空格');" ^
+        "}"
+    if !errorlevel! neq 0 (
+        echo [错误] 替换制表符失败："!bat_file!"
+        echo.
+        pause
+        exit /b 1
+    )
+
+    REM 删除行末尾的空格
+    powershell -NoProfile -Command ^
+        "[System.Console]::OutputEncoding=[System.Text.Encoding]::UTF8;" ^
+        "$utf8NoBOM = [System.Text.UTF8Encoding]::new($false);" ^
+        "$lines = [System.IO.File]::ReadAllLines($env:bat_file, [System.Text.Encoding]::UTF8);" ^
+        "$changed = 0;" ^
+        "for ($i = 0; $i -lt $lines.Count; $i++) {" ^
+            "if ($lines[$i] -match '[ \t]+$') {" ^
+                "$lines[$i] = $lines[$i] -replace '[ \t]+$', '';" ^
+                "$changed++;" ^
+            "}" ^
+        "}" ^
+        "if ($changed -gt 0) {" ^
+            "[System.IO.File]::WriteAllLines($env:bat_file, $lines, $utf8NoBOM);" ^
+            "Write-Output ('已将 ' + $changed + ' 行中的末尾的空格删除');" ^
+        "}"
+    if !errorlevel! neq 0 (
+        echo [错误] 删除行末尾空格失败："!bat_file!"
+        echo.
+        pause
+        exit /b 1
+    )
+
+    REM 注释统一使用 REM 注释
+    powershell -NoProfile -Command ^
+        "[System.Console]::OutputEncoding=[System.Text.Encoding]::UTF8;" ^
+        "$utf8NoBOM = [System.Text.UTF8Encoding]::new($false);" ^
+        "$lines = [System.IO.File]::ReadAllLines($env:bat_file, [System.Text.Encoding]::UTF8);" ^
+        "$changed = 0;" ^
+        "for ($i = 0; $i -lt $lines.Count; $i++) {" ^
+            "if ($lines[$i] -match '^\s*::') {" ^
+                "$lines[$i] = $lines[$i] -replace '^(\s*)::\s*', '${1}REM ';" ^
+                "$changed++;" ^
+            "}" ^
+        "}" ^
+        "if ($changed -gt 0) {" ^
+            "[System.IO.File]::WriteAllLines($env:bat_file, $lines, $utf8NoBOM);" ^
+            "Write-Output ('已将 ' + $changed + ' 行中的 :: 注释改为 REM 写法');" ^
+        "}"
+    if !errorlevel! neq 0 (
+        echo [错误] 检查/修改 REM 注释失败："!bat_file!"
+        echo.
+        pause
+        exit /b 1
+    )
+
+    REM 检查每个文件都必须包含 `@echo ` 代码，否则自动在第 1 行的位置添加 `@echo off`
+    powershell -NoProfile -Command ^
+        "[System.Console]::OutputEncoding=[System.Text.Encoding]::UTF8;" ^
+        "$utf8NoBOM = [System.Text.UTF8Encoding]::new($false);" ^
+        "$lines = [System.IO.File]::ReadAllLines($env:bat_file, [System.Text.Encoding]::UTF8);" ^
+        "if (-not (($lines -join '`r`n').ToLowerInvariant().Contains('@echo '))) {" ^
+            "$lines = @('@echo off') + $lines;" ^
+            "[System.IO.File]::WriteAllLines($env:bat_file, $lines, $utf8NoBOM);" ^
+            "Write-Output '已在第 1 行添加 @echo off';" ^
+        "}"
+    if !errorlevel! neq 0 (
+        echo [错误] 检查/添加 @echo 失败："!bat_file!"
+        echo.
+        pause
+        exit /b 1
+    )
+
+    REM 检查每个文件都必须包含 `chcp ` 代码，否则自动在第 2 行的位置添加 `chcp 65001 >nul`
+    powershell -NoProfile -Command ^
+        "[System.Console]::OutputEncoding=[System.Text.Encoding]::UTF8;" ^
+        "$utf8NoBOM = [System.Text.UTF8Encoding]::new($false);" ^
+        "$lines = [System.IO.File]::ReadAllLines($env:bat_file, [System.Text.Encoding]::UTF8);" ^
+        "if (-not (($lines -join '`r`n').ToLowerInvariant().Contains('chcp '))) {" ^
+            "$newLines = New-Object System.Collections.Generic.List[string];" ^
+            "$newLines.Add($lines[0]);" ^
+            "$newLines.Add('chcp 65001 >nul');" ^
+            "if ($lines.Count -gt 1) {" ^
+                "$newLines.AddRange($lines[1..($lines.Count - 1)]);" ^
+            "}" ^
+            "[System.IO.File]::WriteAllLines($env:bat_file, $newLines, $utf8NoBOM);" ^
+            "Write-Output '已在第 2 行添加 chcp 65001 >nul';" ^
+        "}"
+    if !errorlevel! neq 0 (
+        echo [错误] 检查/添加 chcp 失败："!bat_file!"
+        echo.
+        pause
+        exit /b 1
+    )
+
+    endlocal
+    endlocal
+    echo.
+)
+echo bat 处理完成
+echo.
+
+for /f "delims=" %%f in ('
+    powershell -NoProfile -Command ^
+        "[System.Console]::OutputEncoding=[System.Text.Encoding]::UTF8;" ^
+        "Get-ChildItem -LiteralPath $env:root_dir -File -Force -Recurse -Filter *.ps1 | ForEach-Object { $_.FullName }"
+') do (
+    setlocal disabledelayedexpansion
+    set "ps1_file=%%f"
+    set "file_dir=%%~dpf"
+    set "base_name=%%~nf"
+    set "file_ext=%%~xf"
+    setlocal enabledelayedexpansion
+
+    echo 处理 ps1 文件："!ps1_file!"
+
+    REM 统一编码为 UTF-8 with BOM，统一换行符为 CRLF
+    powershell -NoProfile -Command ^
+        "[System.Console]::OutputEncoding=[System.Text.Encoding]::UTF8;" ^
+        "$utf8BOM = [System.Text.UTF8Encoding]::new($true);" ^
+        "$bytes = [System.IO.File]::ReadAllBytes($env:ps1_file);" ^
+        "$utf8Strict = [System.Text.Encoding]::GetEncoding(65001, [System.Text.EncoderFallback]::ExceptionFallback, [System.Text.DecoderFallback]::ExceptionFallback);" ^
+        "try {" ^
+            "$chars = New-Object Char[] ($utf8Strict.GetDecoder().GetCharCount($bytes, 0, $bytes.Length));" ^
+            "$utf8Strict.GetDecoder().GetChars($bytes, 0, $bytes.Length, $chars, 0) | Out-Null;" ^
+            "$content = -join $chars;" ^
+        "} catch [System.Text.DecoderFallbackException] {" ^
+            "$content = [System.Text.Encoding]::GetEncoding(936).GetString($bytes);" ^
+        "}" ^
+        "$hasBOM = $bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF;" ^
+        "$newContent = ($content -replace '^\uFEFF', '') -replace '(\r?\n)', \""`r`n\"";" ^
+        "if (-not $hasBOM -or $newContent -ne ($content -replace '^\uFEFF', '')) {" ^
+            "[System.IO.File]::WriteAllText($env:ps1_file, $newContent, $utf8BOM);" ^
+            "Write-Output '已将编码统一为 UTF-8 with BOM，换行符统一为 CRLF';" ^
+        "}"
+    if !errorlevel! neq 0 (
+        echo [错误] 编码转换失败："!ps1_file!"
+        echo.
+        pause
+        exit /b 1
+    )
+
+    REM 替换制表符为 4 个空格
+    powershell -NoProfile -Command ^
+        "[System.Console]::OutputEncoding=[System.Text.Encoding]::UTF8;" ^
+        "$utf8BOM = [System.Text.UTF8Encoding]::new($true);" ^
+        "$lines = [System.IO.File]::ReadAllLines($env:ps1_file, [System.Text.Encoding]::UTF8);" ^
+        "$tab = [string][char]9;" ^
+        "$changed = 0;" ^
+        "for ($i = 0; $i -lt $lines.Count; $i++) {" ^
+            "if ($lines[$i] -match $tab) {" ^
+                "$lines[$i] = $lines[$i] -replace $tab, '    ';" ^
+                "$changed++;" ^
+            "}" ^
+        "}" ^
+        "if ($changed -gt 0) {" ^
+            "[System.IO.File]::WriteAllLines($env:ps1_file, $lines, $utf8BOM);" ^
+            "Write-Output ('已将 ' + $changed + ' 行中的制表符替换为 4 个空格');" ^
+        "}"
+    if !errorlevel! neq 0 (
+        echo [错误] 替换制表符失败："!ps1_file!"
+        echo.
+        pause
+        exit /b 1
+    )
+
+    REM 删除行末尾的空格
+    powershell -NoProfile -Command ^
+        "[System.Console]::OutputEncoding=[System.Text.Encoding]::UTF8;" ^
+        "$utf8BOM = [System.Text.UTF8Encoding]::new($true);" ^
+        "$lines = [System.IO.File]::ReadAllLines($env:ps1_file, [System.Text.Encoding]::UTF8);" ^
+        "$changed = 0;" ^
+        "for ($i = 0; $i -lt $lines.Count; $i++) {" ^
+            "if ($lines[$i] -match '[ \t]+$') {" ^
+                "$lines[$i] = $lines[$i] -replace '[ \t]+$', '';" ^
+                "$changed++;" ^
+            "}" ^
+        "}" ^
+        "if ($changed -gt 0) {" ^
+            "[System.IO.File]::WriteAllLines($env:ps1_file, $lines, $utf8BOM);" ^
+            "Write-Output ('已将 ' + $changed + ' 行中的末尾的空格删除');" ^
+        "}"
+    if !errorlevel! neq 0 (
+        echo [错误] 删除行末尾空格失败："!ps1_file!"
+        echo.
+        pause
+        exit /b 1
+    )
+
+    endlocal
+    endlocal
+    echo.
+)
+echo ps1 处理完成
+echo.
+
+echo 全部处理完成
+
+
+
+echo.
+pause
+exit /b
