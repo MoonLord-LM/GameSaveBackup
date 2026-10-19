@@ -2,6 +2,30 @@
 #
 # 开源地址: https://github.com/MoonLord-LM/GameSaveBackup
 #
+# 功能：
+#     依据配置文件，将游戏的本地存档目录，与备份目录进行双向同步
+#     本地存档较新时，备份到备份目录；本地存档较旧时，先从备份目录恢复，再重新同步
+#     每个游戏的备份目录，通过 Git 进行版本管理，保留历史存档记录
+#
+# 目录说明：
+#     配置文件：\备份\配置.json，首次运行自动创建内嵌默认配置，英文环境使用 \备份\config.json
+#     备份目录：\备份\[游戏名称]，游戏子目录下自动生成 [存档位置.bat]，用于快速打开本地存档目录
+#
+# 配置文件说明：
+#     name 游戏名称（唯一，作为备份子目录的名称）
+#     save 本地存档路径，支持 %USERPROFILE% %PROGRAMDATA% %PUBLIC% 这类环境变量，运行时自动展开
+#     ignore 可选，备份时忽略的文件或目录，同样支持环境变量
+#
+# 运行方式：
+#     powershell -NoProfile -ExecutionPolicy Bypass -File "GameSaveBackup.ps1"
+#
+# 代码结构：
+#     1: 通用基础设置
+#     2: 程序设置
+#     3: 主窗体界面绘制
+#     4: 配置初始化和启动过程
+#     5: 主界面功能实现
+#     6: 程序启动
 
 
 
@@ -22,16 +46,24 @@ function Handle-Exception {
 }
 
 try {
+    # 设置更现代的窗口样式
+    Add-Type -AssemblyName System.Windows.Forms
+    Add-Type -AssemblyName System.Drawing
+    [System.Windows.Forms.Application]::EnableVisualStyles()
+    [System.Windows.Forms.Application]::SetCompatibleTextRenderingDefault($false)
+
     # 设置字符编码 UTF-8
+    Get-Culture > $null
+    Get-UICulture > $null
     $defaultOutputEncoding = [System.Console]::OutputEncoding.EncodingName
     [System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
     $currentOutputEncoding = [System.Console]::OutputEncoding.EncodingName
-    $workingEncoding = New-Object System.Text.UTF8Encoding($false)
+    $workingEncoding = [System.Text.UTF8Encoding]::new($false)
     "[ Debug ] defaultOutputEncoding = $defaultOutputEncoding"
     "[ Debug ] currentOutputEncoding = $currentOutputEncoding"
     "[ Debug ] workingEncoding = $workingEncoding"
 
-    # 获取环境信息，使用单独进程隔离 Get-CimInstance 对语言的影响
+    # 获取环境信息，使用单独进程隔离 Get-CimInstance 和 Get-ItemProperty 对语言的影响
     $windowsVersion = powershell -NoProfile -Command {
         $windowsOSInfo = Get-CimInstance Win32_OperatingSystem
         $windowsCurrentVersion = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
@@ -39,56 +71,82 @@ try {
         return $windowsVersion
     }
     $powerShellVersion = "$($PSVersionTable.PSVersion.ToString()) $($PSVersionTable.PSEdition)"
+    $dotnetClrVersion = [System.Environment]::Version.ToString()
+    $threadState = [System.Threading.Thread]::CurrentThread.GetApartmentState()
     $machineName = [System.Net.Dns]::GetHostName()
-    $userName = [Environment]::UserName
+    $userName = [System.Environment]::UserName
     "[ Debug ] windowsVersion = $windowsVersion"
     "[ Debug ] powerShellVersion = $powerShellVersion"
+    "[ Debug ] dotnetClrVersion = $dotnetClrVersion"
+    try {
+        $dotnetFrameworkDescription = [System.Runtime.InteropServices.RuntimeInformation]::FrameworkDescription
+        "[ Debug ] dotnetFrameworkDescription = $dotnetFrameworkDescription"
+    } catch { }
+    "[ Debug ] threadState = $threadState"
     "[ Debug ] machineName = $machineName"
     "[ Debug ] userName = $userName"
 
     # 加载 Win32 API 函数
-    $Win32APICode =
+    $win32ApiCode =
 @'
     using System;
     using System.Runtime.InteropServices;
-    public static class DpiHelper {
-        [DllImport("user32.dll")]
-        public static extern bool SetProcessDPIAware();
-        [DllImport("user32.dll")]
-        public static extern bool SetProcessDpiAwarenessContext(IntPtr value);
-    }
     public static class DpiContext {
         public static readonly IntPtr UNAWARE = (IntPtr)(-1);
         public static readonly IntPtr SYSTEM_AWARE = (IntPtr)(-2);
         public static readonly IntPtr PER_MONITOR_AWARE = (IntPtr)(-3);
         public static readonly IntPtr PER_MONITOR_AWARE_V2 = (IntPtr)(-4);
     }
+    public static class Win32Scroll {
+        public const int EM_GETSCROLLPOS = 0x04DD;
+        public const int EM_SETSCROLLPOS = 0x04DE;
+        [StructLayout(LayoutKind.Sequential)]
+        public struct POINT { public int X; public int Y; }
+    }
+    public static class Win32API {
+        [DllImport("user32.dll")]
+        public static extern bool SetProcessDPIAware();
+        [DllImport("user32.dll")]
+        public static extern bool SetProcessDpiAwarenessContext(IntPtr value);
+        [DllImport("user32.dll")]
+        public static extern IntPtr SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, ref Win32Scroll.POINT lParam);
+    }
 '@
-    Add-Type -TypeDefinition $Win32APICode
+    Add-Type -TypeDefinition $win32ApiCode
 
     # 禁用自动缩放
-    $result = $false
+    $dpiResult = $false
     try {
-        $result = [DpiHelper]::SetProcessDpiAwarenessContext([DpiContext]::PER_MONITOR_AWARE_V2)
+        $dpiResult = [Win32API]::SetProcessDpiAwarenessContext([DpiContext]::PER_MONITOR_AWARE_V2)
     } catch { }
-    if(-not $result){
-        $result = [DpiHelper]::SetProcessDPIAware()
+    if(-not $dpiResult) {
+        $dpiResult = [Win32API]::SetProcessDPIAware()
     }
 
-    # 设置更现代的窗口样式
-    Add-Type -AssemblyName System.Windows.Forms
-    Add-Type -AssemblyName System.Drawing
-    [System.Windows.Forms.Application]::EnableVisualStyles()
-    [System.Windows.Forms.Application]::SetCompatibleTextRenderingDefault($false)
+    # 查看加载的 WinForms 程序集信息
+    $winFormsAssembly = [System.Reflection.Assembly]::GetAssembly([System.Windows.Forms.Form])
+    "[ Debug ] winFormsAssemblyRuntime = $($winFormsAssembly.ImageRuntimeVersion)"
+    "[ Debug ] winFormsAssembly = $($winFormsAssembly.FullName)"
+    "[ Debug ] winFormsAssemblyLocation = $($winFormsAssembly.Location)"
 
     # 对指定的控件启用双缓冲，减少界面闪烁
     function Enable-Double-Buffered {
         param([Parameter(Mandatory=$true)][System.Windows.Forms.Control]$Control)
 
-        $doubleBufferedBindingFlags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Instance
-        $doubleBufferedProperty = [System.Windows.Forms.Control].GetProperty('DoubleBuffered', $doubleBufferedBindingFlags)
+        $flags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Instance
+        $doubleBufferedProperty = [System.Windows.Forms.Control].GetProperty('DoubleBuffered', $flags)
         $doubleBufferedProperty.SetValue($Control, $true)
         return $doubleBufferedProperty.GetValue($Control)
+    }
+
+    # 对指定的控件启用用户绘制，减少界面闪烁
+    function Enable-User-Paint {
+        param([Parameter(Mandatory=$true)][System.Windows.Forms.Control]$Control)
+
+        $flags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Instance
+        $setStyleMethod = [System.Windows.Forms.Control].GetMethod('SetStyle', $flags)
+        $setStyleMethod.Invoke($Control, @([System.Windows.Forms.ControlStyles]::UserPaint, $true))
+        $setStyleMethod.Invoke($Control, @([System.Windows.Forms.ControlStyles]::AllPaintingInWmPaint, $true))
     }
 
     # 分析合适的显示语言
@@ -119,7 +177,7 @@ try {
 
     # 分析合适的工作目录
     $currentDirectory = [System.IO.Directory]::GetCurrentDirectory()
-    $callDirectory = (Get-Location).Path
+    $callDirectory = powershell -NoProfile -Command '(Get-Location).Path'
     $scriptDirectory = $PSScriptRoot
     $systemDirectory = [System.Environment]::SystemDirectory
     $userDirectory = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::UserProfile)
@@ -167,10 +225,8 @@ try {
             LogTabPage = '运行日志'
             GameListTabPage = '游戏列表'
             MachineInfo = '机器名: [ {0} ]  用户名: [ {1} ]'
-            CheckingConfig = '检查配置文件...'
             ConfigLoaded = '成功加载配置文件，共 {0} 个游戏'
             GameListUpdated = '游戏列表已更新'
-            ConfigNotFound = '当前目录下未找到 JSON 配置文件，将使用内嵌默认配置'
             ConfigSelected = '已选择配置文件: {0}'
             BackupStarted = '开始备份任务'
             RunspaceStarted = 'Runspace 已启动，开始监控备份任务'
@@ -181,18 +237,11 @@ try {
             ColumnSavePath = '存档路径'
             FileFilter = 'JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*'
             FileDialogTitle = '选择配置文件'
-            DefaultConfigLoaded = '已加载内嵌默认配置文件，共 {0} 个游戏'
             OpenSaveLocation = '打开存档位置'
             OpenSaveLocationNotExist = '打开存档位置（文件不存在）'
-            BuiltInConfigDisplay = '内置配置 ({0} 个游戏)'
             OpeningSaveLocation = '打开存档位置: {0} - {1}'
-            SaveLocationNotFound = '存档路径不存在，打开父目录: {0} - {1}'
             SaveLocationNotExist = '存档路径不存在: {0} - {1}'
-            DirectoryCreated = '目录已创建: {0} - {1}'
-            FailedToCreateDirectory = '创建目录失败: {0} - {1}'
-            ConfirmPrompt = '提示'
             ConfirmButton = '确认'
-            ConfirmCreateDirectory = "存档路径不存在:`n{0}`n`n是否要创建此目录？"
             SaveLocationBatName = '存档位置.bat'
             CreateBackupDir = '创建备份目录: {0}'
             ERROR_OpenSaveLocationFailed = '打开存档位置失败: {0}'
@@ -200,20 +249,14 @@ try {
             ERROR_GitDownload = '请从 https://git-scm.com/install/windows 下载'
             ERROR_ConfigNotFound = '错误：选定的配置文件不存在'
             ERROR_ConfigNotSelected = '未选择配置文件'
-            ERROR_ConfigReadFailed = '读取配置文件失败'
-            INFO_UsingConfig = '使用配置文件'
             INFO_GitCommand = 'Git 命令'
             INFO_RobocopyCommand = 'Robocopy 命令'
             ERROR_GitCommandFailed = 'Git 命令执行失败，错误码：{0}，输出信息：{1}'
             INFO_GamesFound = '找到游戏配置数量'
-            INFO_MultipleConfigFound = '当前目录下找到 {0} 个 JSON 配置文件，请删除多余的，只保留一个'
             INFO_MultipleConfigSelect = '当前位置存在 {0} 个配置文件，请选择'
-            ERROR_DefaultConfigFailed = '内嵌默认配置加载失败'
             ERROR_ConfigLoadFailed = '配置文件加载失败: {0}'
             PROGRESS_Processing = '处理'
             INFO_IgnoreItem = '忽略项'
-            INFO_CurrentWorkingDir = '当前工作目录: {0}'
-            INFO_GitWorkingDir = '当前 Git 工作目录: {0}'
             INFO_EnteringBackupDir = '进入备份目录: {0}'
             INFO_BackupRootDir = '备份根目录: {0}'
             ERROR_ConfigNotArrayFormat = '配置内容必须是数组格式'
@@ -238,7 +281,6 @@ try {
             INFO_RobocopyReturn = '详细信息'
             INFO_RobocopySuccess = 'Robocopy 执行成功（返回码 {0}）'
             INFO_RobocopyFailed = 'Robocopy 执行失败（返回码 {0}）'
-            INFO_GitExecuting = '执行 Git 命令'
             INFO_GitOutput = 'Git 输出信息'
             SUCCESS_GitCommit = 'Git 提交完成'
             SUCCESS_FinalCommit = '最终 Git 提交完成'
@@ -259,10 +301,8 @@ try {
             LogTabPage = 'Run Log'
             GameListTabPage = 'Game List'
             MachineInfo = 'Machine: [ {0} ]  User: [ {1} ]'
-            CheckingConfig = 'Check config file...'
             ConfigLoaded = 'Config file loaded successfully, {0} game(s) found'
             GameListUpdated = 'Game list updated'
-            ConfigNotFound = 'No JSON config file found in current directory, will use embedded default config'
             ConfigSelected = 'Config file selected: {0}'
             BackupStarted = 'Starting backup task'
             RunspaceStarted = 'Runspace started, monitoring backup task'
@@ -273,18 +313,11 @@ try {
             ColumnSavePath = 'Save Path'
             FileFilter = 'JSON Files (*.json)|*.json|All Files (*.*)|*.*'
             FileDialogTitle = 'Select Config File'
-            DefaultConfigLoaded = 'Embedded default config loaded, {0} game(s) found'
             OpenSaveLocation = 'Open Save Path'
             OpenSaveLocationNotExist = 'Open Save Path (Not Exist)'
-            BuiltInConfigDisplay = 'Built-in Config ({0} games)'
             OpeningSaveLocation = 'Open save location: {0} - {1}'
-            SaveLocationNotFound = 'Save path not found, opening parent directory: {0} - {1}'
             SaveLocationNotExist = 'Save location does not exist: {0} - {1}'
-            DirectoryCreated = 'Directory created: {0} - {1}'
-            FailedToCreateDirectory = 'Failed to create directory: {0} - {1}'
-            ConfirmPrompt = 'Confirm'
             ConfirmButton = 'Confirm'
-            ConfirmCreateDirectory = "Archive path does not exist:`n{0}`n`nDo you want to create this directory?"
             SaveLocationBatName = 'SaveLocation.bat'
             CreateBackupDir = 'Creating backup directory: {0}'
             ERROR_OpenSaveLocationFailed = 'Failed to open save location: {0}'
@@ -292,20 +325,14 @@ try {
             ERROR_GitDownload = 'Please download from https://git-scm.com/install/windows'
             ERROR_ConfigNotFound = 'Error: Selected config file does not exist'
             ERROR_ConfigNotSelected = 'Config file not selected'
-            ERROR_ConfigReadFailed = 'Failed to read config file'
-            INFO_UsingConfig = 'Using config file'
             INFO_GitCommand = 'Git command'
             INFO_RobocopyCommand = 'Robocopy command'
             ERROR_GitCommandFailed = 'Git command execution failed, error code: {0}, output: {1}'
             INFO_GamesFound = 'game(s) found in configuration'
-            INFO_MultipleConfigFound = 'Found {0} JSON config files in current directory. Please remove extra files and keep only one'
             INFO_MultipleConfigSelect = 'Location: {0} config files found, please select'
-            ERROR_DefaultConfigFailed = 'Failed to load embedded default config'
             ERROR_ConfigLoadFailed = 'Config file load failed: {0}'
             PROGRESS_Processing = 'Processing'
             INFO_IgnoreItem = 'Ignore item'
-            INFO_CurrentWorkingDir = 'Current working directory: {0}'
-            INFO_GitWorkingDir = 'Current Git working directory: {0}'
             INFO_EnteringBackupDir = 'Entering backup directory: {0}'
             INFO_BackupRootDir = 'Backup root directory: {0}'
             ERROR_ConfigNotArrayFormat = 'Config content must be an array format'
@@ -330,7 +357,6 @@ try {
             INFO_RobocopyReturn = 'Details'
             INFO_RobocopySuccess = 'Robocopy executed successfully (exit code {0})'
             INFO_RobocopyFailed = 'Robocopy execution failed (exit code {0})'
-            INFO_GitExecuting = 'Execute Git command'
             INFO_GitOutput = 'Git output'
             SUCCESS_GitCommit = 'Git commit completed'
             SUCCESS_FinalCommit = 'Final Git commit completed'
@@ -557,8 +583,9 @@ try {
     $mainForm.Font = [System.Drawing.Font]::new('Microsoft YaHei', 10)
     $mainForm.MinimumSize = [System.Drawing.Size]::new(1000, 600)
 
-    # 启用双缓冲减少闪烁
-    "[ Debug ] mainFormDoubleBuffered = $(Enable-Double-Buffered $mainForm)"
+    # 启用双缓冲和用户绘制，减少界面闪烁
+    Enable-Double-Buffered $mainForm | Out-Null
+    Enable-User-Paint $mainForm | Out-Null
 
     # 创建顶部面板（操作区）
     $topPanel = [System.Windows.Forms.Panel]::new()
@@ -599,6 +626,8 @@ try {
     $configTextBox.Location = [System.Drawing.Point]::new(120, 5)
     $configTextBox.Width = $topInfoPanel.Width - 130
     $configTextBox.ReadOnly = $true
+    # 右侧按钮组面板是本行之后才添加的，此处宽度偏大，用 Anchor 让文本框随面板实际宽度自适应
+    $configTextBox.Anchor = 'Left, Top, Right'
     $topInfoPanel.Controls.Add($configTextBox)
 
     # 顶部: 右侧按钮组
@@ -682,7 +711,7 @@ try {
         } else {
             [System.Drawing.Color]::Black
         }
-        $logText = "[{0}] {1}`r`n" -f $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $Message
+        $logText = "[{0}] {1}`r`n" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $Message
 
         $logTextBox.SuspendLayout()
         try {
@@ -719,7 +748,7 @@ try {
                 } else {
                     [System.Drawing.Color]::Black
                 }
-                $logText = "[{0}] {1}`r`n" -f $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $log.Message
+                $logText = "[{0}] {1}`r`n" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $log.Message
                 if ($logTextBox.IsDisposed) { return }
                 $logTextBox.SelectionStart = $logTextBox.TextLength
                 $logTextBox.SelectionLength = 0
@@ -765,13 +794,18 @@ try {
     $dataGridView.ColumnHeadersHeight = 40
     $dataGridView.RowTemplate.Height = 30
     $dataGridView.Dock = 'Fill'
+    # 启用双缓冲减少闪烁
+    Enable-Double-Buffered $dataGridView | Out-Null
     $dataGridView.ColumnCount = 3
     $dataGridView.Columns[0].Name = $ui.ColumnIndex
     $dataGridView.Columns[1].Name = $ui.ColumnGameName
     $dataGridView.Columns[2].Name = $ui.ColumnSavePath
     $dataGridView.Columns[0].Width = 60
+    $dataGridView.Columns[0].MinimumWidth = $dataGridView.Columns[0].Width / 2
     $dataGridView.Columns[1].Width = 320
+    $dataGridView.Columns[1].MinimumWidth = $dataGridView.Columns[1].Width / 2
     $dataGridView.Columns[2].Width = 780
+    $dataGridView.Columns[2].MinimumWidth = $dataGridView.Columns[2].Width / 2
     # 只允许单行选择
     $dataGridView.SelectionMode = [System.Windows.Forms.DataGridViewSelectionMode]::FullRowSelect
     $dataGridView.MultiSelect = $false
@@ -826,6 +860,19 @@ try {
 
     # 窗口关闭时的清理工作
     $mainForm.Add_FormClosing({
+        # 先停止备份任务的轮询定时器，再停止可能仍在运行的备份任务，避免定时器访问已释放的控件
+        if ($backupResultTimer) {
+            $backupResultTimer.Stop()
+            $backupResultTimer.Dispose()
+            $script:backupResultTimer = $null
+        }
+        if ($backupPsInstance) {
+            try { $backupPsInstance.Stop() } catch { }
+            try { $backupPsInstance.Dispose() } catch { }
+            $script:backupPsInstance = $null
+        }
+        $script:backupAsyncResult = $null
+        $script:isBackupRunning = $false
         if ($asyncShowLogTimer) {
             $asyncShowLogTimer.Stop()
             $asyncShowLogTimer.Dispose()
@@ -880,7 +927,7 @@ try {
     if ($configFileCandidatesCount -eq 0) {
         # 两个配置文件都不存在，按语言默认创建新的配置文件并写入内嵌默认配置
         $configFilePath = $configFilePathPref
-        [System.IO.File]::WriteAllText($configFilePath, $defaultJsonConfig, [System.Text.Encoding]::UTF8)
+        [System.IO.File]::WriteAllText($configFilePath, $defaultJsonConfig, $workingEncoding)
     }
     elseif ($configFileCandidatesCount -eq 1) {
         # 仅存在一个配置文件，直接使用（兼容另一种命名）
@@ -898,8 +945,9 @@ try {
         $selectForm.MinimizeBox = $false
         $selectForm.TopMost = $true
 
-        # 启用双缓冲减少闪烁
-        "[ Debug ] selectFormDoubleBuffered = $(Enable-Double-Buffered $selectForm)"
+        # 启用双缓冲和用户绘制，减少界面闪烁
+        Enable-Double-Buffered $selectForm | Out-Null
+        Enable-User-Paint $selectForm | Out-Null
 
         # 顶部面板（提示区）
         $selectTopPanel = [System.Windows.Forms.Panel]::new()
@@ -925,7 +973,7 @@ try {
 
         # 提示信息
         $selectInfoLabel1 = [System.Windows.Forms.Label]::new()
-        $selectInfoLabel1.Text = "$($ui.INFO_MultipleConfigSelect -f $configFileCandidatesCount)"
+        $selectInfoLabel1.Text = ($ui.INFO_MultipleConfigSelect -f $configFileCandidatesCount)
         $selectInfoLabel1.Dock = 'Bottom'
         $selectInfoLabel1.Height = 28
         $selectInfoLabel1.AutoEllipsis = $true
@@ -969,7 +1017,7 @@ try {
             $configFilePath = $configFileCandidates[$selectListBox.SelectedIndex]
         } else {
             ''
-            '[ Error ] Config file not selected'
+            "[ Error ] $($ui.ERROR_ConfigNotSelected)"
             ''
             [System.Windows.Forms.MessageBox]::Show($ui.ERROR_ConfigNotSelected, $ui.FormTitle, 'OK', 'Error')
             exit 1
@@ -993,7 +1041,10 @@ try {
                 throw $ui.ERROR_ConfigNotFound
             }
 
-            $script:config = Get-Content -Path $FilePath -Raw -Encoding UTF8 | ConvertFrom-Json
+            # 使用 [System.IO.File]::ReadAllText 以 UTF-8 读取，既显式指定编码，又避免在修改输出编码后于主线程调用 Get-Content 导致系统对话框显示英文界面
+            # 注意：ConvertFrom-Json 会把整个数组作为单个对象输出到管道，直接用变量接收即为数组，不要再额外套 @()
+            $configText = [System.IO.File]::ReadAllText($FilePath, $workingEncoding)
+            $script:config = $configText | ConvertFrom-Json
 
             if ($config -isnot [System.Array]) {
                 throw $ui.ERROR_ConfigNotArrayFormat
@@ -1028,17 +1079,21 @@ try {
                 }
 
                 # 验证 ignore 必须为非空字符串构成的数组格式
+                # JSON 数组只有 1 个元素时，ConvertFrom-Json 会解包为单个字符串，这里用 @() 归一为数组后回写，保证后续遍历正确
                 if ($game.PSObject.Properties.Match('ignore').Count -gt 0) {
-                    if ($game.ignore -isnot [System.Array]) {
+                    if ($game.ignore -is [PSCustomObject]) {
                         throw ($ui.ERROR_ConfigItemInvalidIgnore -f ($i + 1))
                     }
-                    for ($j = 0; $j -lt $game.ignore.Count; $j++) {
-                        $ignoreItem = [string]$game.ignore[$j]
-                        if ($ignoreItem) { $game.ignore[$j] = $ignoreItem.Trim() }
-                        if ([string]::IsNullOrEmpty($game.ignore[$j])) {
+                    $ignoreList = @($game.ignore)
+                    for ($j = 0; $j -lt $ignoreList.Count; $j++) {
+                        $ignoreItem = [string]$ignoreList[$j]
+                        if ($ignoreItem) { $ignoreItem = $ignoreItem.Trim() }
+                        if ([string]::IsNullOrEmpty($ignoreItem)) {
                             throw ($ui.ERROR_ConfigItemInvalidIgnoreElement -f ($i + 1))
                         }
+                        $ignoreList[$j] = $ignoreItem
                     }
+                    $game.ignore = $ignoreList
                 }
             }
 
@@ -1103,7 +1158,7 @@ $browseButton.Add_Click({
 
     if ($fileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
         $script:configFilePath = $fileDialog.FileName
-        $script:fileDialogInitialDirectory = $(Split-Path -Parent $fileDialog.FileName)
+        $script:fileDialogInitialDirectory = (Split-Path -Parent $fileDialog.FileName)
         Show-Log ($ui.ConfigSelected -f "[  $(Split-Path -Leaf $configFilePath)  ]") 'Info'
         Load-Config -FilePath $configFilePath
     }
@@ -1129,16 +1184,16 @@ $startButton.Add_Click({
     Show-Log $ui.BackupStarted 'Progress'
 
     $backupPs = {
-        param($Ui, $Config, $machineName, $userName, $backupDirectory, $asyncShowLogQueue, $asyncProgressState)
+        param($Ui, $Config, $MachineName, $UserName, $BackupDirectory, $WorkingEncoding, $AsyncShowLogQueue, $AsyncProgressState)
 
         # 外部函数在 Runspace 内不可见
         function Show-Log-Async {
             param([string]$Message = '', [string]$Level = 'Info')
-            $asyncShowLogQueue.Enqueue(@{ Message = $Message; Level = $Level })
+            $AsyncShowLogQueue.Enqueue(@{ Message = $Message; Level = $Level })
         }
 
         function Run-Git-Command {
-            param([string]$Arguments, [string]$ErrorMessage)
+            param([string]$Arguments)
 
             Show-Log-Async ($Ui.INFO_GitCommand + ": git $Arguments") 'Debug'
             $output = cmd /c "git $Arguments" 2>&1
@@ -1152,13 +1207,45 @@ $startButton.Add_Click({
             return $output
         }
 
+        # 获取指定目录下所有文件的最新修改时间，使用 .NET 方法遍历，避免使用 Get-ChildItem 污染语言信息
+        function Get-Max-File-Time {
+            param([string]$DirectoryPath)
+
+            $maxTicks = $null
+            try {
+                if ([System.IO.Directory]::Exists($DirectoryPath)) {
+                    foreach ($filePath in [System.IO.Directory]::GetFiles($DirectoryPath, '*', [System.IO.SearchOption]::AllDirectories)) {
+                        $fileTicks = [System.IO.File]::GetLastWriteTime($filePath).Ticks
+                        if ($null -eq $maxTicks -or $fileTicks -gt $maxTicks) {
+                            $maxTicks = $fileTicks
+                        }
+                    }
+                }
+                elseif ([System.IO.File]::Exists($DirectoryPath)) {
+                    $maxTicks = [System.IO.File]::GetLastWriteTime($DirectoryPath).Ticks
+                }
+            }
+            catch { }
+            return $maxTicks
+        }
+
+        # 将文件的修改时间转换为显示字符串
+        function Format-File-Time {
+            param($FileTime)
+
+            if ($null -eq $FileTime) {
+                return ''
+            }
+            return [System.DateTime]::new($FileTime).ToString('yyyy-MM-dd HH:mm:ss')
+        }
+
         # 切换到备份根目录（影响 git/robocopy 等外部程序）
-        [System.IO.Directory]::SetCurrentDirectory($backupDirectory)
-        Set-Location -LiteralPath $backupDirectory
-        Show-Log-Async ($Ui.INFO_EnteringBackupDir -f $backupDirectory) 'Info'
+        [System.IO.Directory]::SetCurrentDirectory($BackupDirectory)
+        Set-Location -LiteralPath $BackupDirectory
+        Show-Log-Async ($Ui.INFO_EnteringBackupDir -f $BackupDirectory) 'Info'
 
         # 检查 Git
-        $gitExe = Get-Command git
+        $gitExe = Get-Command git -ErrorAction SilentlyContinue
         if (-not $gitExe) {
             Show-Log-Async $Ui.ERROR_GitMissing 'Error'
             Show-Log-Async $Ui.ERROR_GitDownload 'Error'
@@ -1198,9 +1285,7 @@ $startButton.Add_Click({
             Show-Log-Async ($Ui.PROGRESS_Processing + ': ' + $gameIndex + ' / ' + $totalGames + " - '" + $name + "' @ '" + $save + "'") 'Progress'
 
             # 替换环境变量
-            $saveExpanded = $save -replace '%USERPROFILE%', $env:USERPROFILE
-            $saveExpanded = $saveExpanded -replace '%PROGRAMDATA%', $env:PROGRAMDATA
-            $saveExpanded = $saveExpanded -replace '%PUBLIC%', $env:PUBLIC
+            $saveExpanded = [System.Environment]::ExpandEnvironmentVariables($save)
 
             # 构建忽略参数
             $ignoreArgs = @()
@@ -1214,9 +1299,7 @@ $startButton.Add_Click({
 
             if ($ignore) {
                 foreach ($item in $ignore) {
-                    $itemExpanded = $item -replace '%USERPROFILE%', $env:USERPROFILE
-                    $itemExpanded = $itemExpanded -replace '%PROGRAMDATA%', $env:PROGRAMDATA
-                    $itemExpanded = $itemExpanded -replace '%PUBLIC%', $env:PUBLIC
+                    $itemExpanded = [System.Environment]::ExpandEnvironmentVariables($item)
                     Show-Log-Async ($Ui.INFO_IgnoreItem + ": '" + $itemExpanded + "'") 'Debug'
                     $ignoreArgs += '/XF'
                     $ignoreArgs += $itemExpanded
@@ -1226,37 +1309,15 @@ $startButton.Add_Click({
             }
 
             # 构建备份目录（在备份根目录下）
-            $backupDir = Join-Path $backupDirectory $name
+            $backupDir = Join-Path $BackupDirectory $name
 
             # 获取本地文件修改时间
-            $maxLocalTime = $null
-            $maxLocalTimeString = ''
-            if (Test-Path $saveExpanded) {
-                try {
-                    $files = Get-ChildItem -Recurse -Path $saveExpanded -File -ErrorAction SilentlyContinue
-                    if ($files) {
-                        $latestFile = $files | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-                        $maxLocalTime = $latestFile.LastWriteTime.Ticks
-                        $maxLocalTimeString = $latestFile.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss UTC')
-                    }
-                }
-                catch {}
-            }
+            $maxLocalTime = Get-Max-File-Time -DirectoryPath $saveExpanded
+            $maxLocalTimeString = Format-File-Time -FileTime $maxLocalTime
 
             # 获取备份文件修改时间
-            $maxBackupTime = $null
-            $maxBackupTimeString = ''
-            if (Test-Path $backupDir) {
-                try {
-                    $files = Get-ChildItem -Recurse -Path $backupDir -File -ErrorAction SilentlyContinue
-                    if ($files) {
-                        $latestFile = $files | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-                        $maxBackupTime = $latestFile.LastWriteTime.Ticks
-                        $maxBackupTimeString = $latestFile.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss UTC')
-                    }
-                }
-                catch {}
-            }
+            $maxBackupTime = Get-Max-File-Time -DirectoryPath $backupDir
+            $maxBackupTimeString = Format-File-Time -FileTime $maxBackupTime
 
             Show-Log-Async ($Ui.INFO_FileTimeComparison -f $maxLocalTimeString, $maxBackupTimeString) 'Info'
 
@@ -1276,7 +1337,7 @@ $startButton.Add_Click({
 
             # 进入备份目录
             Set-Location -LiteralPath $backupDir
-            Show-Log-Async ($Ui.INFO_EnteringBackupDir -f (Get-Location).Path) 'Info'
+            Show-Log-Async ($Ui.INFO_EnteringBackupDir -f $backupDir) 'Info'
 
             # 判断备份策略
             if ($null -eq $maxLocalTime) {
@@ -1290,7 +1351,7 @@ $startButton.Add_Click({
                         $sh.Namespace(10).MoveHere($saveExpanded)
                     }
                     finally {
-                        [System.Runtime.Interopservices.Marshal]::ReleaseComObject($sh) | Out-Null
+                        [System.Runtime.InteropServices.Marshal]::ReleaseComObject($sh) | Out-Null
                     }
 
                     $robocopyCommand = "robocopy . `"$saveExpanded`" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
@@ -1315,8 +1376,8 @@ $startButton.Add_Click({
                 # 使用无 BOM 的 UTF-8 写入，避免 cmd 运行 bat 时首行出现乱码
                 # 使用绝对路径写入游戏子目录（.NET 当前目录是备份根目录，不会随 Set-Location 改变）
                 $saveLocationBatPath = Join-Path $backupDir $saveLocationBatName
-                [System.IO.File]::WriteAllText($saveLocationBatPath, $batContent, [System.Text.UTF8Encoding]::new($false))
-                (Get-Item $saveLocationBatPath).LastWriteTime = [System.DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime
+                [System.IO.File]::WriteAllText($saveLocationBatPath, $batContent, $WorkingEncoding)
+                [System.IO.File]::SetLastWriteTime($saveLocationBatPath, [System.DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime)
 
                 if ($null -eq $maxBackupTime) {
                     Show-Log-Async $Ui.INFO_BackupMissing 'Info'
@@ -1337,12 +1398,12 @@ $startButton.Add_Click({
                     Show-Log-Async ($Ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
 
                     try {
-                        $null = Run-Git-Command -Arguments 'add .' -ErrorMessage 'Git add failed'
+                        $null = Run-Git-Command -Arguments 'add .'
 
-                        $diffResult = & git diff --cached --quiet 2>&1
+                        $null = & git diff --cached --quiet 2>&1
                         if ($LASTEXITCODE -ne 0) {
-                            $commitMsg = 'Update - ' + $name + ' on ' + $machineName + ' by ' + $userName
-                            $null = Run-Git-Command -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed"
+                            $commitMsg = 'Update - ' + $name + ' on ' + $MachineName + ' by ' + $UserName
+                            $null = Run-Git-Command -Arguments "commit -m `"$commitMsg`""
                             Show-Log-Async $Ui.SUCCESS_GitCommit 'Success'
                         }
                     }
@@ -1357,7 +1418,7 @@ $startButton.Add_Click({
                         $sh.Namespace(10).MoveHere($saveExpanded)
                     }
                     finally {
-                        [System.Runtime.Interopservices.Marshal]::ReleaseComObject($sh) | Out-Null
+                        [System.Runtime.InteropServices.Marshal]::ReleaseComObject($sh) | Out-Null
                     }
 
                     $robocopyCommand = "robocopy . `"$saveExpanded`" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
@@ -1394,12 +1455,12 @@ $startButton.Add_Click({
                     Show-Log-Async ($Ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
 
                     try {
-                        $null = Run-Git-Command -Arguments 'add .' -ErrorMessage 'Git add failed'
+                        $null = Run-Git-Command -Arguments 'add .'
 
-                        $diffResult = & git diff --cached --quiet 2>&1
+                        $null = & git diff --cached --quiet 2>&1
                         if ($LASTEXITCODE -ne 0) {
-                            $commitMsg = 'Update - ' + $name + ' on ' + $machineName + ' by ' + $userName
-                            $null = Run-Git-Command -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed"
+                            $commitMsg = 'Update - ' + $name + ' on ' + $MachineName + ' by ' + $UserName
+                            $null = Run-Git-Command -Arguments "commit -m `"$commitMsg`""
                             Show-Log-Async $Ui.SUCCESS_GitCommit 'Success'
                         }
                     }
@@ -1412,19 +1473,19 @@ $startButton.Add_Click({
                 }
             }
 
-            $asyncProgressState['Value'] = [int](($gameIndex / $totalGames) * 90)
+            $AsyncProgressState['Value'] = [int](($gameIndex / $totalGames) * 90)
         }
 
         # 恢复工作目录到备份根目录
-        Set-Location -LiteralPath $backupDirectory
-        Show-Log-Async ($Ui.INFO_EnteringBackupDir -f (Get-Location).Path) 'Info'
+        Set-Location -LiteralPath $BackupDirectory
+        Show-Log-Async ($Ui.INFO_EnteringBackupDir -f $BackupDirectory) 'Info'
 
         # 最终 Git 提交
-        Run-Git-Command -Arguments 'add .' -ErrorMessage 'Final Git add failed'
-        $diffResult = & git diff --cached --quiet 2>&1
+        Run-Git-Command -Arguments 'add .'
+        $null = & git diff --cached --quiet 2>&1
         if ($LASTEXITCODE -ne 0) {
-            $commitMsg = 'Update - on ' + $machineName + ' by ' + $userName
-            Run-Git-Command -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Final Git commit failed"
+            $commitMsg = 'Update - on ' + $MachineName + ' by ' + $UserName
+            Run-Git-Command -Arguments "commit -m `"$commitMsg`""
             Show-Log-Async $Ui.SUCCESS_FinalCommit 'Success'
         }
 
@@ -1434,20 +1495,21 @@ $startButton.Add_Click({
             Show-Log-Async ('Git clean output: ' + $cleanOutput) 'Debug'
         }
 
-        $asyncProgressState['Value'] = 100
+        $AsyncProgressState['Value'] = 100
     }
 
     # 创建执行实例
     $script:backupPsInstance = [System.Management.Automation.PowerShell]::Create()
     $backupPsInstance.RunspacePool = $backupRunspacePool
     $backupPsInstance.AddScript($backupPs)
-    $backupPsInstance.AddParameter('Ui', $Ui)
-    $backupPsInstance.AddParameter('Config', $Config)
-    $backupPsInstance.AddParameter('machineName', $machineName)
-    $backupPsInstance.AddParameter('userName', $userName)
-    $backupPsInstance.AddParameter('backupDirectory', $backupDirectory)
-    $backupPsInstance.AddParameter('asyncShowLogQueue', $asyncShowLogQueue)
-    $backupPsInstance.AddParameter('asyncProgressState', $asyncProgressState)
+    $backupPsInstance.AddParameter('Ui', $ui)
+    $backupPsInstance.AddParameter('Config', $config)
+    $backupPsInstance.AddParameter('MachineName', $machineName)
+    $backupPsInstance.AddParameter('UserName', $userName)
+    $backupPsInstance.AddParameter('BackupDirectory', $backupDirectory)
+    $backupPsInstance.AddParameter('WorkingEncoding', $workingEncoding)
+    $backupPsInstance.AddParameter('AsyncShowLogQueue', $asyncShowLogQueue)
+    $backupPsInstance.AddParameter('AsyncProgressState', $asyncProgressState)
 
     # 开始异步执行
     $script:backupAsyncResult = $backupPsInstance.BeginInvoke()
@@ -1470,6 +1532,7 @@ $startButton.Add_Click({
                 if ($backupPsInstance) { $backupPsInstance.Dispose() }
                 $startButton.Enabled = $true
                 $browseButton.Enabled = $true
+                $progressBar.Visible = $false
                 $script:isBackupRunning = $false
                 $this.Dispose()
             }
@@ -1503,9 +1566,7 @@ $contextMenu.Add_Opening({
         }
         $selectedRow = $dataGridView.SelectedRows[0]
         $savePath = $selectedRow.Cells[2].Value
-        $realPath = $savePath -replace '%USERPROFILE%', $env:USERPROFILE
-        $realPath = $realPath -replace '%PROGRAMDATA%', $env:PROGRAMDATA
-        $realPath = $realPath -replace '%PUBLIC%', $env:PUBLIC
+        $realPath = [System.Environment]::ExpandEnvironmentVariables($savePath)
         if (Test-Path $realPath) {
             $openLocationMenuItem.Enabled = $true
             $openLocationMenuItem.Text = $ui.OpenSaveLocation
@@ -1526,9 +1587,7 @@ $openLocationMenuItem.Add_Click({
         $selectedRow = $dataGridView.SelectedRows[0]
         $gameName = $selectedRow.Cells[1].Value
         $savePath = $selectedRow.Cells[2].Value
-        $realPath = $savePath -replace '%USERPROFILE%', $env:USERPROFILE
-        $realPath = $realPath -replace '%PROGRAMDATA%', $env:PROGRAMDATA
-        $realPath = $realPath -replace '%PUBLIC%', $env:PUBLIC
+        $realPath = [System.Environment]::ExpandEnvironmentVariables($savePath)
         if (Test-Path $realPath) {
             Start-Process 'explorer.exe' -ArgumentList $realPath
             Show-Log ($ui.OpeningSaveLocation -f $gameName, $realPath) 'Info'
@@ -1546,4 +1605,10 @@ $openLocationMenuItem.Add_Click({
 
 # ———————————————————————————————— 6: 程序启动 ————————————————————————————————
 
-[System.Windows.Forms.Application]::Run($mainForm);
+try {
+    [System.Windows.Forms.Application]::Run($mainForm)
+} catch {
+    Handle-Exception $_
+    pause
+    exit 1
+}
