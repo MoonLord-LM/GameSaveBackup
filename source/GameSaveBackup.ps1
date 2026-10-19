@@ -1298,8 +1298,10 @@ $startButton.Add_Click({
                 $batContent = "if not exist `"" + $saveExpanded + "`" mkdir `"" + $saveExpanded + "`"`r`n"
                 $batContent += "`"explorer.exe`" `"" + $saveExpanded + "`""
                 # 使用无 BOM 的 UTF-8 写入，避免 cmd 运行 bat 时首行出现乱码
-                [System.IO.File]::WriteAllText($saveLocationBatName, $batContent, [System.Text.UTF8Encoding]::new($false))
-                (Get-Item $saveLocationBatName).LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime
+                # 使用绝对路径写入游戏子目录（.NET 当前目录是备份根目录，不会随 Set-Location 改变）
+                $saveLocationBatPath = Join-Path $backupDir $saveLocationBatName
+                [System.IO.File]::WriteAllText($saveLocationBatPath, $batContent, [System.Text.UTF8Encoding]::new($false))
+                (Get-Item $saveLocationBatPath).LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime
 
                 if ($null -eq $maxBackupTime) {
                     Show-Log-Async $ui.INFO_BackupMissing 'Info'
