@@ -20,7 +20,9 @@ Git 提交信息统一使用英文，不需要区分中英文版本
 
 需要提供准确的标准中文名、标准英文名、存档路径示例  
 保存的路径应当以环境变量开头，例如 `%USERPROFILE%`，严禁硬编码，使用类似 `C:\` 这种路径开头  
-修改时，要对中文、英文、GUI 版本都同步修改  
+修改时，要对命令行中文版、命令行英文版、图形界面版，都同步修改  
+
+
 
 # TODO
 
@@ -32,5 +34,8 @@ Git 提交信息统一使用英文，不需要区分中英文版本
 
 本工程的 Batch 和 PowerShell 编码规范，参考 [MyBatch](https://github.com/MoonLord-LM/MyBatch) 工程  
 需要严格遵守 MyBatch 工程的 [编码规范](https://github.com/MoonLord-LM/MyBatch/blob/master/LLM.md#%E7%BC%96%E7%A0%81%E8%A7%84%E8%8C%83)  
+
+本工程的 [`self-check.bat`](self-check.bat) 自检脚本，与 MyBatch 工程的 [`self-check.bat`](https://github.com/MoonLord-LM/MyBatch/blob/master/self-check.bat) 相同  
+本工程的 [`build.bat`](build.bat) 构建脚本，与 MyBatch 工程的 [`文件打包为 gui-exe 格式.bat`](https://github.com/MoonLord-LM/MyBatch/blob/master/console/file/%E6%96%87%E4%BB%B6%E6%89%93%E5%8C%85%E4%B8%BA%20gui-exe%20%E6%A0%BC%E5%BC%8F.bat) 相同  
 
 
