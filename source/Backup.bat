@@ -21,7 +21,12 @@ set "backup_dir=!script_dir!Backup"
 if not exist "!backup_dir!" (
     mkdir "!backup_dir!"
 )
-cd /d "!backup_dir!"
+cd /d "!backup_dir!" || (
+    echo Error: Failed to enter backup directory "!backup_dir!"
+    echo.
+    pause
+    exit /b 1
+)
 
 REM Check git component availability
 "git.exe" --version >nul 2>&1

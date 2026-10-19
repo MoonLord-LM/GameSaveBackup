@@ -26,9 +26,9 @@ jobs:
       - name: Run build.bat
         shell: cmd
         run: |
-          if exist 'build\GameSaveBackup.exe' ( del /f /q 'build\GameSaveBackup.exe' )
-          pushd 'build'
-          call 'build.bat' '..\source\GameSaveBackup.ps1' <nul
+          if exist "build\GameSaveBackup.exe" ( del /f /q "build\GameSaveBackup.exe" )
+          pushd "build"
+          call "build.bat" "..\source\GameSaveBackup.ps1" <nul
           popd
 
       - name: Commit and push

@@ -1297,7 +1297,8 @@ $startButton.Add_Click({
             else {
                 $batContent = "if not exist `"" + $saveExpanded + "`" mkdir `"" + $saveExpanded + "`"`r`n"
                 $batContent += "`"explorer.exe`" `"" + $saveExpanded + "`""
-                Set-Content -Path $saveLocationBatName -Value $batContent -Encoding UTF8
+                # 使用无 BOM 的 UTF-8 写入，避免 cmd 运行 bat 时首行出现乱码
+                [System.IO.File]::WriteAllText($saveLocationBatName, $batContent, [System.Text.UTF8Encoding]::new($false))
                 (Get-Item $saveLocationBatName).LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime
 
                 if ($null -eq $maxBackupTime) {

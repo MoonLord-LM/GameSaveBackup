@@ -21,7 +21,12 @@ set "backup_dir=!script_dir!Backup"
 if not exist "!backup_dir!" (
     mkdir "!backup_dir!"
 )
-cd /d "!backup_dir!"
+cd /d "!backup_dir!" || (
+    echo 错误: 无法进入备份目录 "!backup_dir!"
+    echo.
+    pause
+    exit /b 1
+)
 
 REM 检查 git 组件是否可用
 "git.exe" --version >nul 2>&1
