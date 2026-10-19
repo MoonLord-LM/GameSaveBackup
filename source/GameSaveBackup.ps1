@@ -656,7 +656,7 @@ try {
     # 中部: 标签页容器
     $tabControl = [System.Windows.Forms.TabControl]::new()
     $tabControl.Dock = 'Fill'
-    $tabControl.Padding = [System.Windows.Forms.Padding]::new(20, 3)
+    $tabControl.Padding = [System.Drawing.Point]::new(20, 3)
     $centerPanel.Controls.Add($tabControl)
 
     # 中部: 日志标签页
