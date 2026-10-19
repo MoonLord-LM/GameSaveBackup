@@ -1,4 +1,6 @@
 # GameSaveBackup
+[![self-check](https://github.com/MoonLord-LM/GameSaveBackup/actions/workflows/self-check.yml/badge.svg)](https://github.com/MoonLord-LM/GameSaveBackup/actions/workflows/self-check.yml)
+[![build](https://github.com/MoonLord-LM/GameSaveBackup/actions/workflows/build.yml/badge.svg)](https://github.com/MoonLord-LM/GameSaveBackup/actions/workflows/build.yml)
 
 一个简单的文件备份工具，可用于游戏存档或其他用途。  
 
