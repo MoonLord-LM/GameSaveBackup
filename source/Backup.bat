@@ -8,19 +8,24 @@ powershell -NoProfile -Command "Write-Host '[ !script_name_ext! ]' -ForegroundCo
 
 
 
-REM 开源地址：https://github.com/MoonLord-LM/GameSaveBackup
-REM 功能：把本地游戏存档备份到当前目录的 Git 仓库，并按修改时间自动双向同步
 
 
-
+powershell -NoProfile -Command "Write-Host 'https://github.com/MoonLord-LM/GameSaveBackup' -ForegroundColor Green"
 powershell -NoProfile -Command "Write-Host '把本地游戏存档备份到 Git 仓库，并自动双向同步' -ForegroundColor Green"
 echo.
 
 
 
-REM 检查 git 组件是否可用
+REM Define the backup root directory (unified Backup subfolder, to avoid modifying files outside the script directory)
+set "backup_dir=!script_dir!Backup"
+if not exist "!backup_dir!" (
+    mkdir "!backup_dir!"
+)
+cd /d "!backup_dir!"
+
+REM Check git component availability
 "git.exe" --version >nul 2>&1
-if errorlevel 1 (
+if !errorlevel! neq 0 (
     echo Error: Missing git.exe component
     echo Please download from https://git-scm.com/install/windows
     "explorer.exe" "https://git-scm.com/install/windows"
@@ -45,29 +50,33 @@ for /f "tokens=*" %%a in ('hostname') do set "machine_name=%%a"
 for /f "tokens=*" %%b in ('powershell -NoProfile -Command "[Environment]::UserName"') do set "user_name=%%b"
 echo Machine Name: !machine_name! User Name: !user_name!
 
-REM 从本脚本末尾的标记区块中提取内嵌的 JSON 配置，写入临时文件
-set "json_config_marker=-----BEGIN JSON CONFIG-----"
-set "json_config_temp=%temp%\GameSaveBackup_!random!_!random!_!random!_!random!.json" & type nul > "!json_config_temp!"
-powershell -NoProfile -Command ^
-    "[System.Console]::OutputEncoding=[System.Text.Encoding]::UTF8;" ^
-    "$lines = Get-Content -Encoding UTF8 -LiteralPath $env:script_path;" ^
-    "$begin = [array]::IndexOf($lines, $env:json_config_marker) + 1;" ^
-    "$end = [array]::IndexOf($lines, '-----END JSON CONFIG-----');" ^
-    "if ($begin -lt 1 -or $end -lt $begin) {" ^
-    "    Write-Host 'Error: No embedded JSON configuration found' -ForegroundColor Red;" ^
-    "    exit 1;" ^
-    "};" ^
-    "$json = $lines[$begin..($end - 1)] -join [Environment]::NewLine;" ^
-    "[System.IO.File]::WriteAllText($env:json_config_temp, $json, [System.Text.UTF8Encoding]::new($false));"
-if !errorlevel! neq 0 (
-    echo Error: Failed to extract embedded JSON configuration
-    echo.
-    pause
-    exit /b 1
+REM Prefer Backup\config.json, otherwise write embedded default config to it
+set "config_external=!backup_dir!\config.json"
+if exist "!config_external!" (
+    set "config=!config_external!"
+    echo Using external config file: "!config!"
+) else (
+    set "json_config_marker=-----BEGIN JSON CONFIG-----"
+    powershell -NoProfile -Command ^
+        "[System.Console]::OutputEncoding=[System.Text.Encoding]::UTF8;" ^
+        "$lines = Get-Content -Encoding UTF8 -LiteralPath $env:script_path;" ^
+        "$begin = [array]::IndexOf($lines, $env:json_config_marker) + 1;" ^
+        "$end = [array]::IndexOf($lines, '-----END JSON CONFIG-----');" ^
+        "if ($begin -lt 1 -or $end -lt $begin) {" ^
+        "    Write-Host 'Error: No embedded JSON configuration found' -ForegroundColor Red;" ^
+        "    exit 1;" ^
+        "};" ^
+        "$json = $lines[$begin..($end - 1)] -join [Environment]::NewLine;" ^
+        "[System.IO.File]::WriteAllText($env:config_external, $json, [System.Text.UTF8Encoding]::new($false));"
+    if !errorlevel! neq 0 (
+        echo Error: Failed to write default config file
+        echo.
+        pause
+        exit /b 1
+    )
+    set "config=!config_external!"
+    echo Default config file written: "!config!"
 )
-
-set "config=!json_config_temp!"
-echo Using embedded configuration
 for /f %%i in ('powershell -NoProfile -Command "$arr = (Get-Content -Raw -Encoding UTF8 -Path \""!config!\"" | ConvertFrom-Json); [string]$arr.Count"') do set "length=%%i"
 echo.
 
@@ -128,6 +137,9 @@ for /l %%i in (1, 1, !length!) do (
             echo Local save files are missing, begin to restore from backup files
             powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
             robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
+            if !errorlevel! geq 8 (
+                echo Error: Restore failed
+            )
         )
     ) else (
         echo if not exist "!save!" mkdir "!save!" > "SaveLocation.bat"
@@ -137,22 +149,35 @@ for /l %%i in (1, 1, !length!) do (
         if "!max_backup_time!"=="" (
             echo Backup files are missing, begin to backup
             robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
-            git add .
-            git diff --cached --quiet || git commit -m "Update - !name! on !machine_name! by !user_name!"
+            if !errorlevel! geq 8 (
+                echo Error: Backup failed
+            ) else (
+                git add .
+                git diff --cached --quiet || git commit -m "Update - !name! on !machine_name! by !user_name!"
+            )
         ) else (
-            if !max_local_time! lss !max_backup_time! (
+            REM Use PowerShell for safe Ticks comparison (exceeds 32-bit integer range, cannot use cmd if numeric comparison)
+            for /f "delims=" %%d in ('powershell -NoProfile -Command "try { $a=[long]::Parse($env:max_local_time); $b=[long]::Parse($env:max_backup_time); if ($a -lt $b) { Write-Output 'older' } elseif ($a -gt $b) { Write-Output 'newer' } else { Write-Output 'same' } } catch { Write-Output 'error' }"') do set "decision=%%d"
+            if "!decision!"=="older" (
                 echo Local files are older, moving to recycle bin and updating with backup files
                 powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
                 robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
-            ) else (
-                if !max_local_time! gtr !max_backup_time! (
-                    echo Local files are newer, begin to backup
-                    robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
+                if !errorlevel! geq 8 (
+                    echo Error: Restore failed
+                )
+            ) else if "!decision!"=="newer" (
+                echo Local files are newer, begin to backup
+                robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
+                if !errorlevel! geq 8 (
+                    echo Error: Backup failed
+                ) else (
                     git add .
                     git diff --cached --quiet || git commit -m "Update - !name! on !machine_name! by !user_name!"
-                ) else (
-                    echo Local save files and backup files are modified at same time, skip with no operation
                 )
+            ) else if "!decision!"=="same" (
+                echo Local save files and backup files are modified at same time, skip with no operation
+            ) else (
+                echo Error: Failed to compare modification time
             )
         )
     )
@@ -165,9 +190,6 @@ REM 提交整体变更并清理未跟踪文件
 git add .
 git diff --cached --quiet || ( git commit -m "Update - on !machine_name! by !user_name!" && echo. )
 git clean -df >nul
-
-REM 清理临时配置文件
-if exist "!json_config_temp!" ( del /f /q "!json_config_temp!" )
 
 echo Backup completed
 

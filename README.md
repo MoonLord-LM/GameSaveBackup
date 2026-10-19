@@ -18,10 +18,14 @@ A simple file backup tool that can be used for game saves and other purposes.
 双向同步：按本地目录与备份目录中文件的最近修改时间，自动判断执行「备份」还是「还原」  
 版本控制：每次产生备份文件变动，都会提交到本地 Git 仓库，可追溯历史  
 文件安全：修改本地文件时，会先将旧文件删除到回收站，支持从回收站找回  
+备份位置：所有备份数据统一存放在程序所在目录的 `Backup` 子文件夹内  
 
 ### 配置文件
 
-程序同目录下的 `config.json` 文件，视为配置文件，示例如下：  
+配置文件路径：程序目录下的 `Backup/config.json`  
+当文件不存在时，程序会使用内嵌的默认配置，并自动创建该文件  
+
+格式示例如下：  
 
 ```json
 [
@@ -39,14 +43,14 @@ A simple file backup tool that can be used for game saves and other purposes.
 ]
 ```
 
-配置文件是一个 JSON 数组，每个元素描述一个游戏  
+配置文件是一个 JSON 数组，每个 { } 元素代表一个需要备份的项目，多个元素用逗号分隔  
 `name` 属性，游戏名称，同时也作为备份的子目录名使用，不能包含 Windows 文件名非法字符（`< > : " / \ \| ? *`）  
 `save` 属性，存档所在路径，建议使用 `%USERPROFILE%` / `%PROGRAMDATA%` 等环境变量路径开头  
 `ignore` 可选属性，排除路径数组，备份时需要排除的文件或目录  
 
 ### 默认配置
 
-当没有配置文件时，使用内嵌的默认配置：  
+默认的备份配置如下：  
 
 | 名称 | 备份路径 |
 | --- | --- |

@@ -8,19 +8,24 @@ powershell -NoProfile -Command "Write-Host '[ !script_name_ext! ]' -ForegroundCo
 
 
 
-REM 开源地址：https://github.com/MoonLord-LM/GameSaveBackup
-REM 功能：把本地游戏存档备份到当前目录的 Git 仓库，并按修改时间自动双向同步
 
 
-
+powershell -NoProfile -Command "Write-Host 'https://github.com/MoonLord-LM/GameSaveBackup' -ForegroundColor Green"
 powershell -NoProfile -Command "Write-Host '把本地游戏存档备份到 Git 仓库，并自动双向同步' -ForegroundColor Green"
 echo.
 
 
 
+REM 定义备份根目录（统一使用 Backup 子文件夹，避免误改脚本所在目录之外的文件）
+set "backup_dir=!script_dir!Backup"
+if not exist "!backup_dir!" (
+    mkdir "!backup_dir!"
+)
+cd /d "!backup_dir!"
+
 REM 检查 git 组件是否可用
 "git.exe" --version >nul 2>&1
-if errorlevel 1 (
+if !errorlevel! neq 0 (
     echo 错误: 缺少 git.exe 组件
     echo 请从 https://git-scm.com/install/windows 下载
     "explorer.exe" "https://git-scm.com/install/windows"
@@ -45,29 +50,33 @@ for /f "tokens=*" %%a in ('hostname') do set "machine_name=%%a"
 for /f "tokens=*" %%b in ('powershell -NoProfile -Command "[Environment]::UserName"') do set "user_name=%%b"
 echo 机器名: !machine_name! 用户名: !user_name!
 
-REM 从本脚本末尾的标记区块中提取内嵌的 JSON 配置，写入临时文件
-set "json_config_marker=-----BEGIN JSON CONFIG-----"
-set "json_config_temp=%temp%\GameSaveBackup_!random!_!random!_!random!_!random!.json" & type nul > "!json_config_temp!"
-powershell -NoProfile -Command ^
-    "[System.Console]::OutputEncoding=[System.Text.Encoding]::UTF8;" ^
-    "$lines = Get-Content -Encoding UTF8 -LiteralPath $env:script_path;" ^
-    "$begin = [array]::IndexOf($lines, $env:json_config_marker) + 1;" ^
-    "$end = [array]::IndexOf($lines, '-----END JSON CONFIG-----');" ^
-    "if ($begin -lt 1 -or $end -lt $begin) {" ^
-    "    Write-Host '错误: 未找到内嵌的 JSON 配置' -ForegroundColor Red;" ^
-    "    exit 1;" ^
-    "};" ^
-    "$json = $lines[$begin..($end - 1)] -join [Environment]::NewLine;" ^
-    "[System.IO.File]::WriteAllText($env:json_config_temp, $json, [System.Text.UTF8Encoding]::new($false));"
-if !errorlevel! neq 0 (
-    echo 错误: 提取内嵌的 JSON 配置失败
-    echo.
-    pause
-    exit /b 1
+REM 优先读取 Backup\config.json，不存在则写入内嵌默认配置再使用
+set "config_external=!backup_dir!\config.json"
+if exist "!config_external!" (
+    set "config=!config_external!"
+    echo 使用外部配置文件: "!config!"
+) else (
+    set "json_config_marker=-----BEGIN JSON CONFIG-----"
+    powershell -NoProfile -Command ^
+        "[System.Console]::OutputEncoding=[System.Text.Encoding]::UTF8;" ^
+        "$lines = Get-Content -Encoding UTF8 -LiteralPath $env:script_path;" ^
+        "$begin = [array]::IndexOf($lines, $env:json_config_marker) + 1;" ^
+        "$end = [array]::IndexOf($lines, '-----END JSON CONFIG-----');" ^
+        "if ($begin -lt 1 -or $end -lt $begin) {" ^
+        "    Write-Host '错误: 未找到内嵌的 JSON 配置' -ForegroundColor Red;" ^
+        "    exit 1;" ^
+        "};" ^
+        "$json = $lines[$begin..($end - 1)] -join [Environment]::NewLine;" ^
+        "[System.IO.File]::WriteAllText($env:config_external, $json, [System.Text.UTF8Encoding]::new($false));"
+    if !errorlevel! neq 0 (
+        echo 错误: 写入默认配置文件失败
+        echo.
+        pause
+        exit /b 1
+    )
+    set "config=!config_external!"
+    echo 已写入默认配置文件: "!config!"
 )
-
-set "config=!json_config_temp!"
-echo 使用内嵌配置
 for /f %%i in ('powershell -NoProfile -Command "$arr = (Get-Content -Raw -Encoding UTF8 -Path \""!config!\"" | ConvertFrom-Json); [string]$arr.Count"') do set "length=%%i"
 echo.
 
@@ -128,6 +137,9 @@ for /l %%i in (1, 1, !length!) do (
             echo 本地存档文件缺失，使用备份文件恢复
             powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
             robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
+            if !errorlevel! geq 8 (
+                echo 错误: 还原失败
+            )
         )
     ) else (
         echo if not exist "!save!" mkdir "!save!" > "存档位置.bat"
@@ -137,22 +149,35 @@ for /l %%i in (1, 1, !length!) do (
         if "!max_backup_time!"=="" (
             echo 备份文件缺失，进行备份
             robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
-            git add .
-            git diff --cached --quiet || git commit -m "Update - !name! on !machine_name! by !user_name!"
+            if !errorlevel! geq 8 (
+                echo 错误: 备份失败
+            ) else (
+                git add .
+                git diff --cached --quiet || git commit -m "Update - !name! on !machine_name! by !user_name!"
+            )
         ) else (
-            if "!max_local_time!" lss "!max_backup_time!" (
+            REM 使用 PowerShell 安全比较 Ticks（超出 32 位整数范围，不能使用 cmd 的 if 数字比较）
+            for /f "delims=" %%d in ('powershell -NoProfile -Command "try { $a=[long]::Parse($env:max_local_time); $b=[long]::Parse($env:max_backup_time); if ($a -lt $b) { Write-Output 'older' } elseif ($a -gt $b) { Write-Output 'newer' } else { Write-Output 'same' } } catch { Write-Output 'error' }"') do set "decision=%%d"
+            if "!decision!"=="older" (
                 echo 本地存档文件修改时间较旧，删除到回收站，并使用备份文件更新
                 powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
                 robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
-            ) else (
-                if "!max_local_time!" gtr "!max_backup_time!" (
-                    echo 本地存档文件修改时间较新，进行备份
-                    robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
+                if !errorlevel! geq 8 (
+                    echo 错误: 还原失败
+                )
+            ) else if "!decision!"=="newer" (
+                echo 本地存档文件修改时间较新，进行备份
+                robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
+                if !errorlevel! geq 8 (
+                    echo 错误: 备份失败
+                ) else (
                     git add .
                     git diff --cached --quiet || git commit -m "Update - !name! on !machine_name! by !user_name!"
-                ) else (
-                    echo 本地存档文件与备份文件修改时间相同，跳过操作
                 )
+            ) else if "!decision!"=="same" (
+                echo 本地存档文件与备份文件修改时间相同，跳过操作
+            ) else (
+                echo 错误: 比较修改时间失败
             )
         )
     )
@@ -165,9 +190,6 @@ REM 提交整体变更并清理未跟踪文件
 git add .
 git diff --cached --quiet || ( git commit -m "Update - on !machine_name! by !user_name!" && echo. )
 git clean -df >nul
-
-REM 清理临时配置文件
-if exist "!json_config_temp!" ( del /f /q "!json_config_temp!" )
 
 echo 备份完成
 
