@@ -80,7 +80,7 @@ A simple Git-based file backup tool for backing up, restoring and synchronizing 
 | 虫虫大作战 | `%PROGRAMDATA%\AlderGames\BugBits` |
 | 棋弈无限：围棋 | `%USERPROFILE%\AppData\LocalLow\Studio Amateur\JustGo` |
 
-## [代码结构]
+## [工程结构]
 
 ```
 GameSaveBackup/
