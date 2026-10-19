@@ -678,8 +678,8 @@ try {
         }
 
         $logColor = if ($logColorMap.ContainsKey($Level)) {
-            $logColorMap[$Level] 
-        } else { 
+            $logColorMap[$Level]
+        } else {
             [System.Drawing.Color]::Black
         }
         $logText = "[{0}] {1}`r`n" -f $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $Message
@@ -715,8 +715,8 @@ try {
         try {
             foreach ($log in $Logs) {
                 $logColor = if ($logColorMap.ContainsKey($log.Level)) {
-                    $logColorMap[$log.Level] 
-                } else { 
+                    $logColorMap[$log.Level]
+                } else {
                     [System.Drawing.Color]::Black
                 }
                 $logText = "[{0}] {1}`r`n" -f $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $log.Message
@@ -1086,7 +1086,7 @@ $browseButton.Add_Click({
     $fileDialog.Title = $ui.FileDialogTitle
     $fileDialog.InitialDirectory = $fileDialogInitialDirectory
 
-    if ($fileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {  
+    if ($fileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
         $script:configFilePath = $fileDialog.FileName
         $script:fileDialogInitialDirectory = $(Split-Path -Parent $fileDialog.FileName)
         Show-Log ($ui.ConfigSelected -f "[  $(Split-Path -Leaf $configFilePath)  ]") "Info"
