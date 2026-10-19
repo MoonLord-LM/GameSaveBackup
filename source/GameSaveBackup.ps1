@@ -180,9 +180,9 @@ try {
     $callDirectory = powershell -NoProfile -Command '(Get-Location).Path'
     $scriptDirectory = $PSScriptRoot
     $systemDirectory = [System.Environment]::SystemDirectory
-    $userDirectory = [System.Environment]::GetFolderPath([System.Environment.SpecialFolder]::UserProfile)
+    $userDirectory = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::UserProfile)
     $tempDirectory = [System.IO.Path]::GetTempPath()
-    $workingDirectory = [System.Environment]::GetFolderPath([System.Environment.SpecialFolder]::Desktop)
+    $workingDirectory = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop)
     foreach ($dir in @($currentDirectory, $callDirectory, $scriptDirectory)) {
         if ($dir) {
             if ($dir -ine $systemDirectory) {
