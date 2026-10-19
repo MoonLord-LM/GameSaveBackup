@@ -857,22 +857,37 @@ try {
         [System.IO.Directory]::CreateDirectory($backupDirectory) | Out-Null
     }
 
-    $jsonFiles = [System.IO.Directory]::GetFiles($backupDirectory, '*.json')
-    $jsonFilesCount = $jsonFiles.Count
-    "[ Debug ] jsonFilesCount = $jsonFilesCount"
+    # 依据当前语言确定首选与兼容的配置文件名
+    # 中文版默认使用 配置.json，英文版默认使用 config.json，同时兼容另一种命名
+    $configFileName = $ui.ConfigFileName
+    $configFileNameAlt = if ($configFileName -eq '配置.json') { 'config.json' } else { '配置.json' }
+    $configFilePathPref = [System.IO.Path]::Combine($backupDirectory, $configFileName)
+    $configFilePathAlt = [System.IO.Path]::Combine($backupDirectory, $configFileNameAlt)
+    "[ Debug ] configFileName = $configFileName"
+    "[ Debug ] configFileNameAlt = $configFileNameAlt"
 
-    if ($jsonFilesCount -eq 0) {
-        # 没有 json 文件，新建默认的配置文件
-        $configFileName = $ui.ConfigFileName
-        $configFilePath = [System.IO.Path]::Combine($backupDirectory, $configFileName)
+    # 仅在这两个专用文件名中查找配置文件，避免把备份目录里其它 json 文件误当作配置
+    $configFileCandidates = [System.Collections.Generic.List[string]]::new()
+    if ([System.IO.File]::Exists($configFilePathPref)) {
+        $configFileCandidates.Add($configFilePathPref) | Out-Null
+    }
+    if ([System.IO.File]::Exists($configFilePathAlt)) {
+        $configFileCandidates.Add($configFilePathAlt) | Out-Null
+    }
+    $configFileCandidatesCount = $configFileCandidates.Count
+    "[ Debug ] configFileCandidatesCount = $configFileCandidatesCount"
+
+    if ($configFileCandidatesCount -eq 0) {
+        # 两个配置文件都不存在，按语言默认创建新的配置文件并写入内嵌默认配置
+        $configFilePath = $configFilePathPref
         [System.IO.File]::WriteAllText($configFilePath, $defaultJsonConfig, [System.Text.Encoding]::UTF8)
     }
-    elseif ($jsonFilesCount -eq 1) {
-        # 有一个 json 文件，视为配置文件
-        $configFilePath = $jsonFiles[0]
+    elseif ($configFileCandidatesCount -eq 1) {
+        # 仅存在一个配置文件，直接使用（兼容另一种命名）
+        $configFilePath = $configFileCandidates[0]
     }
     else {
-        # 有多个 json 文件，提示用户选择
+        # 两个配置文件同时存在，提示用户选择
         $selectForm = [System.Windows.Forms.Form]::new()
         $selectForm.Text = $ui.FormTitle
         $selectForm.Size = [System.Drawing.Size]::new(800, 450)
@@ -910,7 +925,7 @@ try {
 
         # 提示信息
         $selectInfoLabel1 = [System.Windows.Forms.Label]::new()
-        $selectInfoLabel1.Text = "$($ui.INFO_MultipleConfigSelect -f $jsonFilesCount)"
+        $selectInfoLabel1.Text = "$($ui.INFO_MultipleConfigSelect -f $configFileCandidatesCount)"
         $selectInfoLabel1.Dock = 'Bottom'
         $selectInfoLabel1.Height = 28
         $selectInfoLabel1.AutoEllipsis = $true
@@ -927,7 +942,7 @@ try {
         $selectListBox.Dock = 'Fill'
         $selectListBox.SelectionMode = 'One'
         $selectListBox.IntegralHeight = $false
-        foreach ($file in $jsonFiles) {
+        foreach ($file in $configFileCandidates) {
             $selectListBox.Items.Add((Split-Path -Leaf $file)) | Out-Null
         }
         $selectListBox.SelectedIndex = 0
@@ -951,7 +966,7 @@ try {
 
         # 显示对话框
         if ($selectForm.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK -and $selectListBox.SelectedIndex -ge 0) {
-            $configFilePath = $jsonFiles[$selectListBox.SelectedIndex]
+            $configFilePath = $configFileCandidates[$selectListBox.SelectedIndex]
         } else {
             ''
             '[ Error ] Config file not selected'

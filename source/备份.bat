@@ -55,11 +55,16 @@ for /f "tokens=*" %%a in ('hostname') do set "machine_name=%%a"
 for /f "tokens=*" %%b in ('powershell -NoProfile -Command "[Environment]::UserName"') do set "user_name=%%b"
 echo 机器名: !machine_name! 用户名: !user_name!
 
-REM 优先读取 Backup\config.json，不存在则写入内嵌默认配置再使用
-set "config_external=!backup_dir!\config.json"
-if exist "!config_external!" (
-    set "config=!config_external!"
-    echo 使用外部配置文件: "!config!"
+REM 配置文件路径：Backup\配置.json（中文默认）或 Backup\config.json（兼容）
+REM 中文版优先使用 配置.json，若不存在则兼容使用 config.json，再不存在则写入内嵌默认配置
+set "config_primary=!backup_dir!\配置.json"
+set "config_secondary=!backup_dir!\config.json"
+if exist "!config_primary!" (
+    set "config=!config_primary!"
+    echo 使用配置文件: "!config!"
+) else if exist "!config_secondary!" (
+    set "config=!config_secondary!"
+    echo 使用配置文件: "!config!"
 ) else (
     set "json_config_marker=-----BEGIN JSON CONFIG-----"
     powershell -NoProfile -Command ^
@@ -72,14 +77,14 @@ if exist "!config_external!" (
         "    exit 1;" ^
         "};" ^
         "$json = $lines[$begin..($end - 1)] -join [Environment]::NewLine;" ^
-        "[System.IO.File]::WriteAllText($env:config_external, $json, [System.Text.UTF8Encoding]::new($false));"
+        "[System.IO.File]::WriteAllText($env:config_primary, $json, [System.Text.UTF8Encoding]::new($false));"
     if !errorlevel! neq 0 (
         echo 错误: 写入默认配置文件失败
         echo.
         pause
         exit /b 1
     )
-    set "config=!config_external!"
+    set "config=!config_primary!"
     echo 已写入默认配置文件: "!config!"
 )
 for /f %%i in ('powershell -NoProfile -Command "$arr = (Get-Content -Raw -Encoding UTF8 -Path \""!config!\"" | ConvertFrom-Json); [string]$arr.Count"') do set "length=%%i"

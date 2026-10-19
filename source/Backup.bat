@@ -55,11 +55,16 @@ for /f "tokens=*" %%a in ('hostname') do set "machine_name=%%a"
 for /f "tokens=*" %%b in ('powershell -NoProfile -Command "[Environment]::UserName"') do set "user_name=%%b"
 echo Machine Name: !machine_name! User Name: !user_name!
 
-REM Prefer Backup\config.json, otherwise write embedded default config to it
-set "config_external=!backup_dir!\config.json"
-if exist "!config_external!" (
-    set "config=!config_external!"
-    echo Using external config file: "!config!"
+REM Config path: Backup\config.json (English default) or Backup\配置.json (compatible)
+REM English version prefers config.json, falls back to 配置.json if missing, otherwise writes embedded default config
+set "config_primary=!backup_dir!\config.json"
+set "config_secondary=!backup_dir!\配置.json"
+if exist "!config_primary!" (
+    set "config=!config_primary!"
+    echo Using config file: "!config!"
+) else if exist "!config_secondary!" (
+    set "config=!config_secondary!"
+    echo Using config file: "!config!"
 ) else (
     set "json_config_marker=-----BEGIN JSON CONFIG-----"
     powershell -NoProfile -Command ^
@@ -72,14 +77,14 @@ if exist "!config_external!" (
         "    exit 1;" ^
         "};" ^
         "$json = $lines[$begin..($end - 1)] -join [Environment]::NewLine;" ^
-        "[System.IO.File]::WriteAllText($env:config_external, $json, [System.Text.UTF8Encoding]::new($false));"
+        "[System.IO.File]::WriteAllText($env:config_primary, $json, [System.Text.UTF8Encoding]::new($false));"
     if !errorlevel! neq 0 (
         echo Error: Failed to write default config file
         echo.
         pause
         exit /b 1
     )
-    set "config=!config_external!"
+    set "config=!config_primary!"
     echo Default config file written: "!config!"
 )
 for /f %%i in ('powershell -NoProfile -Command "$arr = (Get-Content -Raw -Encoding UTF8 -Path \""!config!\"" | ConvertFrom-Json); [string]$arr.Count"') do set "length=%%i"
