@@ -130,13 +130,12 @@ for /l %%i in (1, 1, !length!) do (
             robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
         )
     ) else (
+        echo if not exist "!save!" mkdir "!save!" > "SaveLocation.bat"
+        echo "explorer.exe" "!save!" >> "SaveLocation.bat"
+        powershell -NoProfile -Command "(Get-Item 'SaveLocation.bat').LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime"
+
         if "!max_backup_time!"=="" (
             echo Backup files are missing, begin to backup
-            if not exist "SaveLocation.bat" (
-                echo if not exist "!save!" mkdir "!save!" > "SaveLocation.bat"
-                echo "explorer.exe" "!save!" >> "SaveLocation.bat"
-                powershell -NoProfile -Command "(Get-Item 'SaveLocation.bat').LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime"
-            )
             robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
             git add .
             git diff --cached --quiet || git commit -m "Update - !name! on !machine_name! by !user_name!"
