@@ -472,7 +472,7 @@ for %%i in ("!input_file!") do (
     REM 临时文件写入完成后，把时间统一刷新为 UNIX 0 时间戳（1970-01-01 00:00:00 UTC），保证生成一致性
     powershell -NoProfile -Command ^
         "[System.Console]::OutputEncoding=[System.Text.Encoding]::UTF8;" ^
-        "$epoch = [System.DateTime]::new(1970, 1, 1, 0, 0, 0, [System.DateTimeKind]::Utc);" ^
+        "$epoch = [System.DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime;" ^
         "$paths = @($env:temp_gzip, $env:temp_cab, $env:temp_7z, $env:temp_7z_exe, $env:temp_cs, $env:temp_ico);" ^
         "foreach ($p in $paths) {" ^
         "    if ([string]::IsNullOrEmpty($p)) { continue };" ^

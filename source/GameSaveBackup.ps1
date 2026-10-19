@@ -10,7 +10,7 @@
 # 异常处理
 function Handle-Exception {
     param([Parameter(Mandatory=$true)][System.Management.Automation.ErrorRecord]$ErrorRecord)
-    ""
+    ''
     "[ Error ] Message: $($ErrorRecord.Exception.Message)"
     if ($ErrorRecord.InvocationInfo) {
         "[ Error ] Line: $($ErrorRecord.InvocationInfo.ScriptLineNumber)"
@@ -18,7 +18,7 @@ function Handle-Exception {
             "[ Error ] Code: $($ErrorRecord.InvocationInfo.Line.Trim())"
         }
     }
-    ""
+    ''
 }
 
 try {
@@ -34,7 +34,7 @@ try {
     # 获取环境信息，使用单独进程隔离 Get-CimInstance 对语言的影响
     $windowsVersion = powershell -NoProfile -Command {
         $windowsOSInfo = Get-CimInstance Win32_OperatingSystem
-        $windowsCurrentVersion = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+        $windowsCurrentVersion = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
         $windowsVersion = "$($windowsOSInfo.Caption) $($windowsCurrentVersion.DisplayVersion)"
         return $windowsVersion
     }
@@ -86,7 +86,7 @@ try {
         param([Parameter(Mandatory=$true)][System.Windows.Forms.Control]$Control)
 
         $doubleBufferedBindingFlags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Instance
-        $doubleBufferedProperty = [System.Windows.Forms.Control].GetProperty("DoubleBuffered", $doubleBufferedBindingFlags)
+        $doubleBufferedProperty = [System.Windows.Forms.Control].GetProperty('DoubleBuffered', $doubleBufferedBindingFlags)
         $doubleBufferedProperty.SetValue($Control, $true)
         return $doubleBufferedProperty.GetValue($Control)
     }
@@ -158,188 +158,188 @@ try {
     # 界面支持中英文，定义多语言文本资源
     $uiTextResources = @{
         'zh-CN' = @{
-            FormTitle = "游戏存档备份工具"
-            ConfigLabel = "配置文件:"
-            BrowseButton = "选择配置"
-            StartButton = "开始备份"
-            CopyLogMenu = "复制日志"
-            ClearLogMenu = "清空日志"
-            LogTabPage = "运行日志"
-            GameListTabPage = "游戏列表"
-            MachineInfo = "机器名: [ {0} ]  用户名: [ {1} ]"
-            CheckingConfig = "检查配置文件..."
-            ConfigLoaded = "成功加载配置文件，共 {0} 个游戏"
-            GameListUpdated = "游戏列表已更新"
-            ConfigNotFound = "当前目录下未找到 JSON 配置文件，将使用内嵌默认配置"
-            ConfigSelected = "已选择配置文件: {0}"
-            BackupStarted = "开始备份任务"
-            RunspaceStarted = "Runspace 已启动，开始监控备份任务"
-            LogCopied = "日志已复制到剪贴板"
-            NoLog = "当前没有日志内容"
-            ColumnIndex = "序号"
-            ColumnGameName = "游戏名称"
-            ColumnSavePath = "存档路径"
-            FileFilter = "JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*"
-            FileDialogTitle = "选择配置文件"
-            DefaultConfigLoaded = "已加载内嵌默认配置文件，共 {0} 个游戏"
-            OpenSaveLocation = "打开存档位置"
-            OpenSaveLocationNotExist = "打开存档位置（文件不存在）"
-            BuiltInConfigDisplay = "内置配置 ({0} 个游戏)"
-            OpeningSaveLocation = "打开存档位置: {0} - {1}"
-            SaveLocationNotFound = "存档路径不存在，打开父目录: {0} - {1}"
-            SaveLocationNotExist = "存档路径不存在: {0} - {1}"
-            DirectoryCreated = "目录已创建: {0} - {1}"
-            FailedToCreateDirectory = "创建目录失败: {0} - {1}"
-            ConfirmPrompt = "提示"
-            ConfirmButton = "确认"
+            FormTitle = '游戏存档备份工具'
+            ConfigLabel = '配置文件:'
+            BrowseButton = '选择配置'
+            StartButton = '开始备份'
+            CopyLogMenu = '复制日志'
+            ClearLogMenu = '清空日志'
+            LogTabPage = '运行日志'
+            GameListTabPage = '游戏列表'
+            MachineInfo = '机器名: [ {0} ]  用户名: [ {1} ]'
+            CheckingConfig = '检查配置文件...'
+            ConfigLoaded = '成功加载配置文件，共 {0} 个游戏'
+            GameListUpdated = '游戏列表已更新'
+            ConfigNotFound = '当前目录下未找到 JSON 配置文件，将使用内嵌默认配置'
+            ConfigSelected = '已选择配置文件: {0}'
+            BackupStarted = '开始备份任务'
+            RunspaceStarted = 'Runspace 已启动，开始监控备份任务'
+            LogCopied = '日志已复制到剪贴板'
+            NoLog = '当前没有日志内容'
+            ColumnIndex = '序号'
+            ColumnGameName = '游戏名称'
+            ColumnSavePath = '存档路径'
+            FileFilter = 'JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*'
+            FileDialogTitle = '选择配置文件'
+            DefaultConfigLoaded = '已加载内嵌默认配置文件，共 {0} 个游戏'
+            OpenSaveLocation = '打开存档位置'
+            OpenSaveLocationNotExist = '打开存档位置（文件不存在）'
+            BuiltInConfigDisplay = '内置配置 ({0} 个游戏)'
+            OpeningSaveLocation = '打开存档位置: {0} - {1}'
+            SaveLocationNotFound = '存档路径不存在，打开父目录: {0} - {1}'
+            SaveLocationNotExist = '存档路径不存在: {0} - {1}'
+            DirectoryCreated = '目录已创建: {0} - {1}'
+            FailedToCreateDirectory = '创建目录失败: {0} - {1}'
+            ConfirmPrompt = '提示'
+            ConfirmButton = '确认'
             ConfirmCreateDirectory = "存档路径不存在:`n{0}`n`n是否要创建此目录？"
-            SaveLocationBatName = "存档位置.bat"
-            CreateBackupDir = "创建备份目录: {0}"
-            ERROR_OpenSaveLocationFailed = "打开存档位置失败: {0}"
-            ERROR_GitMissing = "错误：缺少 git.exe 组件"
-            ERROR_GitDownload = "请从 https://git-scm.com/install/windows 下载"
-            ERROR_ConfigNotFound = "错误：选定的配置文件不存在"
-            ERROR_ConfigNotSelected = "未选择配置文件"
-            ERROR_ConfigReadFailed = "读取配置文件失败"
-            INFO_UsingConfig = "使用配置文件"
-            INFO_GitCommand = "Git 命令"
-            INFO_RobocopyCommand = "Robocopy 命令"
-            ERROR_GitCommandFailed = "Git 命令执行失败，错误码：{0}，输出信息：{1}"
-            INFO_GamesFound = "找到游戏配置数量"
-            INFO_MultipleConfigFound = "当前目录下找到 {0} 个 JSON 配置文件，请删除多余的，只保留一个"
-            INFO_MultipleConfigSelect = "当前位置存在 {0} 个配置文件，请选择"
-            ERROR_DefaultConfigFailed = "内嵌默认配置加载失败"
-            ERROR_ConfigLoadFailed = "配置文件加载失败: {0}"
-            PROGRESS_Processing = "处理"
-            INFO_IgnoreItem = "忽略项"
-            INFO_CurrentWorkingDir = "当前工作目录: {0}"
-            INFO_GitWorkingDir = "当前 Git 工作目录: {0}"
-            INFO_EnteringBackupDir = "进入备份目录: {0}"
-            INFO_BackupRootDir = "备份根目录: {0}"
-            ERROR_ConfigNotArrayFormat = "配置内容必须是数组格式"
-            ERROR_ConfigEmptyCount = "配置内容的配置项个数为零"
-            ERROR_ConfigItemNotObject = "第 {0} 个配置项不是 JSON 对象"
+            SaveLocationBatName = '存档位置.bat'
+            CreateBackupDir = '创建备份目录: {0}'
+            ERROR_OpenSaveLocationFailed = '打开存档位置失败: {0}'
+            ERROR_GitMissing = '错误：缺少 git.exe 组件'
+            ERROR_GitDownload = '请从 https://git-scm.com/install/windows 下载'
+            ERROR_ConfigNotFound = '错误：选定的配置文件不存在'
+            ERROR_ConfigNotSelected = '未选择配置文件'
+            ERROR_ConfigReadFailed = '读取配置文件失败'
+            INFO_UsingConfig = '使用配置文件'
+            INFO_GitCommand = 'Git 命令'
+            INFO_RobocopyCommand = 'Robocopy 命令'
+            ERROR_GitCommandFailed = 'Git 命令执行失败，错误码：{0}，输出信息：{1}'
+            INFO_GamesFound = '找到游戏配置数量'
+            INFO_MultipleConfigFound = '当前目录下找到 {0} 个 JSON 配置文件，请删除多余的，只保留一个'
+            INFO_MultipleConfigSelect = '当前位置存在 {0} 个配置文件，请选择'
+            ERROR_DefaultConfigFailed = '内嵌默认配置加载失败'
+            ERROR_ConfigLoadFailed = '配置文件加载失败: {0}'
+            PROGRESS_Processing = '处理'
+            INFO_IgnoreItem = '忽略项'
+            INFO_CurrentWorkingDir = '当前工作目录: {0}'
+            INFO_GitWorkingDir = '当前 Git 工作目录: {0}'
+            INFO_EnteringBackupDir = '进入备份目录: {0}'
+            INFO_BackupRootDir = '备份根目录: {0}'
+            ERROR_ConfigNotArrayFormat = '配置内容必须是数组格式'
+            ERROR_ConfigEmptyCount = '配置内容的配置项个数为零'
+            ERROR_ConfigItemNotObject = '第 {0} 个配置项不是 JSON 对象'
             ERROR_ConfigItemMissingName = "第 {0} 个配置项缺少 'name' 属性"
             ERROR_ConfigItemMissingSave = "第 {0} 个配置项缺少 'save' 属性"
             ERROR_ConfigItemNameEmpty = "第 {0} 个配置项的 'name' 属性为空"
             ERROR_ConfigItemSaveEmpty = "第 {0} 个配置项的 'save' 属性为空"
-            ERROR_ConfigItemNameIllegalChars = "第 {0} 个配置项的 'name' 属性包含 Windows 文件名非法字符（< > : "" / \ | ? *）"
+            ERROR_ConfigItemNameIllegalChars = "第 {0} 个配置项的 'name' 属性包含 Windows 文件名非法字符（< > : '' / \ | ? *）"
             ERROR_ConfigItemInvalidIgnore = "第 {0} 个配置项的 'ignore' 属性必须是数组格式"
             ERROR_ConfigItemInvalidIgnoreElement = "第 {0} 个配置项的 'ignore' 数组中包含空元素或非字符串元素"
-            ERROR_CreateBackupDirFailed = "创建备份目录失败: {0}"
-            ERROR_ErrorDetails = "错误详情: {0}"
-            INFO_FileTimeComparison = "本地文件修改时间:[{0}] 备份文件修改时间:[{1}]"
-            WARNING_BothMissing = "本地存档文件与备份文件都不存在，跳过操作"
-            WARNING_LocalMissing = "本地存档文件缺失，使用备份文件恢复"
-            INFO_BackupMissing = "备份文件缺失，进行备份"
-            WARNING_LocalOlder = "本地存档文件修改时间较旧，删除到回收站，并使用备份文件更新"
-            INFO_LocalNewer = "本地存档文件修改时间较新，进行备份"
-            INFO_SameTime = "本地存档文件与备份文件修改时间相同，跳过操作"
-            INFO_RobocopyReturn = "详细信息"
-            INFO_RobocopySuccess = "Robocopy 执行成功（返回码 {0}）"
-            INFO_RobocopyFailed = "Robocopy 执行失败（返回码 {0}）"
-            INFO_GitExecuting = "执行 Git 命令"
-            INFO_GitOutput = "Git 输出信息"
-            SUCCESS_GitCommit = "Git 提交完成"
-            SUCCESS_FinalCommit = "最终 Git 提交完成"
-            SUCCESS_BackupComplete = "备份完成"
-            ERROR_BackupTaskFailed = "备份任务失败: {0}"
-            SUCCESS_GitInitialized = "Git 仓库已初始化并配置"
-            INFO_SystemInfo = "系统版本: [ {0} ]  PowerShell 版本: [ {1} ]"
-            ConfigFileName = "配置.json"
-            BackupDirName = "备份"
+            ERROR_CreateBackupDirFailed = '创建备份目录失败: {0}'
+            ERROR_ErrorDetails = '错误详情: {0}'
+            INFO_FileTimeComparison = '本地文件修改时间:[{0}] 备份文件修改时间:[{1}]'
+            WARNING_BothMissing = '本地存档文件与备份文件都不存在，跳过操作'
+            WARNING_LocalMissing = '本地存档文件缺失，使用备份文件恢复'
+            INFO_BackupMissing = '备份文件缺失，进行备份'
+            WARNING_LocalOlder = '本地存档文件修改时间较旧，删除到回收站，并使用备份文件更新'
+            INFO_LocalNewer = '本地存档文件修改时间较新，进行备份'
+            INFO_SameTime = '本地存档文件与备份文件修改时间相同，跳过操作'
+            INFO_RobocopyReturn = '详细信息'
+            INFO_RobocopySuccess = 'Robocopy 执行成功（返回码 {0}）'
+            INFO_RobocopyFailed = 'Robocopy 执行失败（返回码 {0}）'
+            INFO_GitExecuting = '执行 Git 命令'
+            INFO_GitOutput = 'Git 输出信息'
+            SUCCESS_GitCommit = 'Git 提交完成'
+            SUCCESS_FinalCommit = '最终 Git 提交完成'
+            SUCCESS_BackupComplete = '备份完成'
+            ERROR_BackupTaskFailed = '备份任务失败: {0}'
+            SUCCESS_GitInitialized = 'Git 仓库已初始化并配置'
+            INFO_SystemInfo = '系统版本: [ {0} ]  PowerShell 版本: [ {1} ]'
+            ConfigFileName = '配置.json'
+            BackupDirName = '备份'
         }
         'en-US' = @{
-            FormTitle = "Game Save Backup Tool"
-            ConfigLabel = "Config File:"
-            BrowseButton = "Browse Config"
-            StartButton = "Start Backup"
-            CopyLogMenu = "Copy Log"
-            ClearLogMenu = "Clear Log"
-            LogTabPage = "Run Log"
-            GameListTabPage = "Game List"
-            MachineInfo = "Machine: [ {0} ]  User: [ {1} ]"
-            CheckingConfig = "Check config file..."
-            ConfigLoaded = "Config file loaded successfully, {0} game(s) found"
-            GameListUpdated = "Game list updated"
-            ConfigNotFound = "No JSON config file found in current directory, will use embedded default config"
-            ConfigSelected = "Config file selected: {0}"
-            BackupStarted = "Starting backup task"
-            RunspaceStarted = "Runspace started, monitoring backup task"
-            LogCopied = "Log copied to clipboard"
-            NoLog = "No log content"
-            ColumnIndex = "#"
-            ColumnGameName = "Game Name"
-            ColumnSavePath = "Save Path"
-            FileFilter = "JSON Files (*.json)|*.json|All Files (*.*)|*.*"
-            FileDialogTitle = "Select Config File"
-            DefaultConfigLoaded = "Embedded default config loaded, {0} game(s) found"
-            OpenSaveLocation = "Open Save Path"
-            OpenSaveLocationNotExist = "Open Save Path (Not Exist)"
-            BuiltInConfigDisplay = "Built-in Config ({0} games)"
-            OpeningSaveLocation = "Open save location: {0} - {1}"
-            SaveLocationNotFound = "Save path not found, opening parent directory: {0} - {1}"
-            SaveLocationNotExist = "Save location does not exist: {0} - {1}"
-            DirectoryCreated = "Directory created: {0} - {1}"
-            FailedToCreateDirectory = "Failed to create directory: {0} - {1}"
-            ConfirmPrompt = "Confirm"
-            ConfirmButton = "Confirm"
+            FormTitle = 'Game Save Backup Tool'
+            ConfigLabel = 'Config File:'
+            BrowseButton = 'Browse Config'
+            StartButton = 'Start Backup'
+            CopyLogMenu = 'Copy Log'
+            ClearLogMenu = 'Clear Log'
+            LogTabPage = 'Run Log'
+            GameListTabPage = 'Game List'
+            MachineInfo = 'Machine: [ {0} ]  User: [ {1} ]'
+            CheckingConfig = 'Check config file...'
+            ConfigLoaded = 'Config file loaded successfully, {0} game(s) found'
+            GameListUpdated = 'Game list updated'
+            ConfigNotFound = 'No JSON config file found in current directory, will use embedded default config'
+            ConfigSelected = 'Config file selected: {0}'
+            BackupStarted = 'Starting backup task'
+            RunspaceStarted = 'Runspace started, monitoring backup task'
+            LogCopied = 'Log copied to clipboard'
+            NoLog = 'No log content'
+            ColumnIndex = '#'
+            ColumnGameName = 'Game Name'
+            ColumnSavePath = 'Save Path'
+            FileFilter = 'JSON Files (*.json)|*.json|All Files (*.*)|*.*'
+            FileDialogTitle = 'Select Config File'
+            DefaultConfigLoaded = 'Embedded default config loaded, {0} game(s) found'
+            OpenSaveLocation = 'Open Save Path'
+            OpenSaveLocationNotExist = 'Open Save Path (Not Exist)'
+            BuiltInConfigDisplay = 'Built-in Config ({0} games)'
+            OpeningSaveLocation = 'Open save location: {0} - {1}'
+            SaveLocationNotFound = 'Save path not found, opening parent directory: {0} - {1}'
+            SaveLocationNotExist = 'Save location does not exist: {0} - {1}'
+            DirectoryCreated = 'Directory created: {0} - {1}'
+            FailedToCreateDirectory = 'Failed to create directory: {0} - {1}'
+            ConfirmPrompt = 'Confirm'
+            ConfirmButton = 'Confirm'
             ConfirmCreateDirectory = "Archive path does not exist:`n{0}`n`nDo you want to create this directory?"
-            SaveLocationBatName = "SaveLocation.bat"
-            CreateBackupDir = "Creating backup directory: {0}"
-            ERROR_OpenSaveLocationFailed = "Failed to open save location: {0}"
-            ERROR_GitMissing = "Error: git.exe component is missing"
-            ERROR_GitDownload = "Please download from https://git-scm.com/install/windows"
-            ERROR_ConfigNotFound = "Error: Selected config file does not exist"
-            ERROR_ConfigNotSelected = "Config file not selected"
-            ERROR_ConfigReadFailed = "Failed to read config file"
-            INFO_UsingConfig = "Using config file"
-            INFO_GitCommand = "Git command"
-            INFO_RobocopyCommand = "Robocopy command"
-            ERROR_GitCommandFailed = "Git command execution failed, error code: {0}, output: {1}"
-            INFO_GamesFound = "game(s) found in configuration"
-            INFO_MultipleConfigFound = "Found {0} JSON config files in current directory. Please remove extra files and keep only one"
-            INFO_MultipleConfigSelect = "Location: {0} config files found, please select"
-            ERROR_DefaultConfigFailed = "Failed to load embedded default config"
-            ERROR_ConfigLoadFailed = "Config file load failed: {0}"
-            PROGRESS_Processing = "Processing"
-            INFO_IgnoreItem = "Ignore item"
-            INFO_CurrentWorkingDir = "Current working directory: {0}"
-            INFO_GitWorkingDir = "Current Git working directory: {0}"
-            INFO_EnteringBackupDir = "Entering backup directory: {0}"
-            INFO_BackupRootDir = "Backup root directory: {0}"
-            ERROR_ConfigNotArrayFormat = "Config content must be an array format"
-            ERROR_ConfigEmptyCount = "Config contains zero items"
-            ERROR_ConfigItemNotObject = "Item {0} is not a JSON object"
+            SaveLocationBatName = 'SaveLocation.bat'
+            CreateBackupDir = 'Creating backup directory: {0}'
+            ERROR_OpenSaveLocationFailed = 'Failed to open save location: {0}'
+            ERROR_GitMissing = 'Error: git.exe component is missing'
+            ERROR_GitDownload = 'Please download from https://git-scm.com/install/windows'
+            ERROR_ConfigNotFound = 'Error: Selected config file does not exist'
+            ERROR_ConfigNotSelected = 'Config file not selected'
+            ERROR_ConfigReadFailed = 'Failed to read config file'
+            INFO_UsingConfig = 'Using config file'
+            INFO_GitCommand = 'Git command'
+            INFO_RobocopyCommand = 'Robocopy command'
+            ERROR_GitCommandFailed = 'Git command execution failed, error code: {0}, output: {1}'
+            INFO_GamesFound = 'game(s) found in configuration'
+            INFO_MultipleConfigFound = 'Found {0} JSON config files in current directory. Please remove extra files and keep only one'
+            INFO_MultipleConfigSelect = 'Location: {0} config files found, please select'
+            ERROR_DefaultConfigFailed = 'Failed to load embedded default config'
+            ERROR_ConfigLoadFailed = 'Config file load failed: {0}'
+            PROGRESS_Processing = 'Processing'
+            INFO_IgnoreItem = 'Ignore item'
+            INFO_CurrentWorkingDir = 'Current working directory: {0}'
+            INFO_GitWorkingDir = 'Current Git working directory: {0}'
+            INFO_EnteringBackupDir = 'Entering backup directory: {0}'
+            INFO_BackupRootDir = 'Backup root directory: {0}'
+            ERROR_ConfigNotArrayFormat = 'Config content must be an array format'
+            ERROR_ConfigEmptyCount = 'Config contains zero items'
+            ERROR_ConfigItemNotObject = 'Item {0} is not a JSON object'
             ERROR_ConfigItemMissingName = "Item {0} missing 'name' property"
             ERROR_ConfigItemMissingSave = "Item {0} missing 'save' property"
             ERROR_ConfigItemNameEmpty = "Item {0} has empty 'name' property"
             ERROR_ConfigItemSaveEmpty = "Item {0} has empty 'save' property"
-            ERROR_ConfigItemNameIllegalChars = "Item {0} 'name' property contains illegal filename characters (<>:""/\|?*)"
+            ERROR_ConfigItemNameIllegalChars = "Item {0} 'name' property contains illegal filename characters (<>:''/\|?*)"
             ERROR_ConfigItemInvalidIgnore = "Item {0} 'ignore' property must be an array format"
             ERROR_ConfigItemInvalidIgnoreElement = "Item {0} 'ignore' array contains empty or non-string elements"
-            ERROR_CreateBackupDirFailed = "Failed to create backup directory: {0}"
-            ERROR_ErrorDetails = "Error details: {0}"
-            INFO_FileTimeComparison = "Local file time:[{0}] Backup file time:[{1}]"
-            WARNING_BothMissing = "Both local save and backup files are missing, skipping"
-            WARNING_LocalMissing = "Local save file is missing, restoring from backup"
-            INFO_BackupMissing = "Backup file is missing, performing backup"
-            WARNING_LocalOlder = "Local save file is older, deleting to recycle bin and updating from backup"
-            INFO_LocalNewer = "Local save file is newer, performing backup"
-            INFO_SameTime = "Local and backup files have the same modification time, skipping"
-            INFO_RobocopyReturn = "Details"
-            INFO_RobocopySuccess = "Robocopy executed successfully (exit code {0})"
-            INFO_RobocopyFailed = "Robocopy execution failed (exit code {0})"
-            INFO_GitExecuting = "Execute Git command"
-            INFO_GitOutput = "Git output"
-            SUCCESS_GitCommit = "Git commit completed"
-            SUCCESS_FinalCommit = "Final Git commit completed"
-            SUCCESS_BackupComplete = "Backup completed successfully"
-            ERROR_BackupTaskFailed = "Backup task failed: {0}"
-            SUCCESS_GitInitialized = "Git repository initialized and configured"
-            INFO_SystemInfo = "System Version: [ {0} ]  PowerShell Version: [ {1} ]"
-            ConfigFileName = "config.json"
-            BackupDirName = "Backup"
+            ERROR_CreateBackupDirFailed = 'Failed to create backup directory: {0}'
+            ERROR_ErrorDetails = 'Error details: {0}'
+            INFO_FileTimeComparison = 'Local file time:[{0}] Backup file time:[{1}]'
+            WARNING_BothMissing = 'Both local save and backup files are missing, skipping'
+            WARNING_LocalMissing = 'Local save file is missing, restoring from backup'
+            INFO_BackupMissing = 'Backup file is missing, performing backup'
+            WARNING_LocalOlder = 'Local save file is older, deleting to recycle bin and updating from backup'
+            INFO_LocalNewer = 'Local save file is newer, performing backup'
+            INFO_SameTime = 'Local and backup files have the same modification time, skipping'
+            INFO_RobocopyReturn = 'Details'
+            INFO_RobocopySuccess = 'Robocopy executed successfully (exit code {0})'
+            INFO_RobocopyFailed = 'Robocopy execution failed (exit code {0})'
+            INFO_GitExecuting = 'Execute Git command'
+            INFO_GitOutput = 'Git output'
+            SUCCESS_GitCommit = 'Git commit completed'
+            SUCCESS_FinalCommit = 'Final Git commit completed'
+            SUCCESS_BackupComplete = 'Backup completed successfully'
+            ERROR_BackupTaskFailed = 'Backup task failed: {0}'
+            SUCCESS_GitInitialized = 'Git repository initialized and configured'
+            INFO_SystemInfo = 'System Version: [ {0} ]  PowerShell Version: [ {1} ]'
+            ConfigFileName = 'config.json'
+            BackupDirName = 'Backup'
         }
     }
     $ui = $uiTextResources[$workingLanguage]
@@ -553,8 +553,8 @@ try {
     $mainForm = [System.Windows.Forms.Form]::new()
     $mainForm.Text = $ui.FormTitle
     $mainForm.Size = [System.Drawing.Size]::new(1280, 720)
-    $mainForm.StartPosition = "CenterScreen"
-    $mainForm.Font = [System.Drawing.Font]::new("Microsoft YaHei", 10)
+    $mainForm.StartPosition = 'CenterScreen'
+    $mainForm.Font = [System.Drawing.Font]::new('Microsoft YaHei', 10)
     $mainForm.MinimumSize = [System.Drawing.Size]::new(1000, 600)
 
     # 启用双缓冲减少闪烁
@@ -562,18 +562,18 @@ try {
 
     # 创建顶部面板（操作区）
     $topPanel = [System.Windows.Forms.Panel]::new()
-    $topPanel.Dock = "Top"
+    $topPanel.Dock = 'Top'
     $topPanel.Height = 60
     $topPanel.Padding = [System.Windows.Forms.Padding]::new(10, 10, 10, 10)
 
     # 创建中部面板（内容区）
     $centerPanel = [System.Windows.Forms.Panel]::new()
-    $centerPanel.Dock = "Fill"
+    $centerPanel.Dock = 'Fill'
     $centerPanel.Padding = [System.Windows.Forms.Padding]::new(10, 0, 10, 0)
 
     # 创建底部面板（提示区）
     $bottomPanel = [System.Windows.Forms.Panel]::new()
-    $bottomPanel.Dock = "Bottom"
+    $bottomPanel.Dock = 'Bottom'
     $bottomPanel.Height = 40
     $bottomPanel.Padding = [System.Windows.Forms.Padding]::new(10, 10, 10, 10)
 
@@ -584,7 +584,7 @@ try {
 
     # 顶部: 左侧配置文件标签和文本框
     $topInfoPanel = [System.Windows.Forms.Panel]::new()
-    $topInfoPanel.Dock = "Fill"
+    $topInfoPanel.Dock = 'Fill'
     $topPanel.Controls.Add($topInfoPanel)
 
     # 顶部: 配置文件标签
@@ -603,7 +603,7 @@ try {
 
     # 顶部: 右侧按钮组
     $topButtonGroupPanel = [System.Windows.Forms.Panel]::new()
-    $topButtonGroupPanel.Dock = "Right"
+    $topButtonGroupPanel.Dock = 'Right'
     $topButtonGroupPanel.Width = 280
     $topPanel.Controls.Add($topButtonGroupPanel)
 
@@ -626,7 +626,7 @@ try {
 
     # 中部: 标签页容器
     $tabControl = [System.Windows.Forms.TabControl]::new()
-    $tabControl.Dock = "Fill"
+    $tabControl.Dock = 'Fill'
     $tabControl.Padding = [System.Drawing.Point]::new(20, 3)
     $centerPanel.Controls.Add($tabControl)
 
@@ -645,7 +645,7 @@ try {
     $logTextBox.ScrollBars = [System.Windows.Forms.RichTextBoxScrollBars]::Vertical
     $logTextBox.BorderStyle = [System.Windows.Forms.BorderStyle]::None
     $logTextBox.BackColor = [System.Drawing.Color]::White
-    $logTextBox.Dock = "Fill"
+    $logTextBox.Dock = 'Fill'
     $logTabPage.Controls.Add($logTextBox)
 
     # 日志文本框的右键菜单
@@ -764,7 +764,7 @@ try {
     $dataGridView.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::LightGray
     $dataGridView.ColumnHeadersHeight = 40
     $dataGridView.RowTemplate.Height = 30
-    $dataGridView.Dock = "Fill"
+    $dataGridView.Dock = 'Fill'
     $dataGridView.ColumnCount = 3
     $dataGridView.Columns[0].Name = $ui.ColumnIndex
     $dataGridView.Columns[1].Name = $ui.ColumnGameName
@@ -795,7 +795,7 @@ try {
 
     # 底部: 进度条
     $progressBar = [System.Windows.Forms.ProgressBar]::new()
-    $progressBar.Dock = "Fill"
+    $progressBar.Dock = 'Fill'
     $progressBar.Style = [System.Windows.Forms.ProgressBarStyle]::Continuous
     $progressBar.Minimum = 0
     $progressBar.Maximum = 100
@@ -809,8 +809,8 @@ try {
     $asyncProgressTimer = [System.Windows.Forms.Timer]::new()
     $asyncProgressTimer.Add_Tick({
         $value = $asyncProgressState['Value']
-        $value = [Math]::Max($value, $progressBar.Minimum)
-        $value = [Math]::Min($value, $progressBar.Maximum)
+        $value = [System.Math]::Max($value, $progressBar.Minimum)
+        $value = [System.Math]::Min($value, $progressBar.Maximum)
         if ($value -ne $asyncProgressState['LastValue']) {
             $progressBar.Value = $value
             $asyncProgressState['LastValue'] = $value
@@ -857,7 +857,7 @@ try {
         [System.IO.Directory]::CreateDirectory($backupDirectory) | Out-Null
     }
 
-    $jsonFiles = [System.IO.Directory]::GetFiles($backupDirectory, "*.json")
+    $jsonFiles = [System.IO.Directory]::GetFiles($backupDirectory, '*.json')
     $jsonFilesCount = $jsonFiles.Count
     "[ Debug ] jsonFilesCount = $jsonFilesCount"
 
@@ -876,9 +876,9 @@ try {
         $selectForm = [System.Windows.Forms.Form]::new()
         $selectForm.Text = $ui.FormTitle
         $selectForm.Size = [System.Drawing.Size]::new(800, 450)
-        $selectForm.StartPosition = "CenterScreen"
-        $selectForm.Font = [System.Drawing.Font]::new("Microsoft YaHei", 10)
-        $selectForm.FormBorderStyle = "FixedDialog"
+        $selectForm.StartPosition = 'CenterScreen'
+        $selectForm.Font = [System.Drawing.Font]::new('Microsoft YaHei', 10)
+        $selectForm.FormBorderStyle = 'FixedDialog'
         $selectForm.MaximizeBox = $false
         $selectForm.MinimizeBox = $false
         $selectForm.TopMost = $true
@@ -888,18 +888,18 @@ try {
 
         # 顶部面板（提示区）
         $selectTopPanel = [System.Windows.Forms.Panel]::new()
-        $selectTopPanel.Dock = "Top"
+        $selectTopPanel.Dock = 'Top'
         $selectTopPanel.Height = 80
         $selectTopPanel.Padding = [System.Windows.Forms.Padding]::new(10, 10, 10, 10)
 
         # 中间面板（内容区）
         $selectCenterPanel = [System.Windows.Forms.Panel]::new()
-        $selectCenterPanel.Dock = "Fill"
+        $selectCenterPanel.Dock = 'Fill'
         $selectCenterPanel.Padding = [System.Windows.Forms.Padding]::new(10, 0, 10, 0)
 
         # 底部面板（操作区）
         $selectBottomPanel = [System.Windows.Forms.Panel]::new()
-        $selectBottomPanel.Dock = "Bottom"
+        $selectBottomPanel.Dock = 'Bottom'
         $selectBottomPanel.Height = 60
         $selectBottomPanel.Padding = [System.Windows.Forms.Padding]::new(10, 10, 10, 10)
 
@@ -911,21 +911,21 @@ try {
         # 提示信息
         $selectInfoLabel1 = [System.Windows.Forms.Label]::new()
         $selectInfoLabel1.Text = "$($ui.INFO_MultipleConfigSelect -f $jsonFilesCount)"
-        $selectInfoLabel1.Dock = "Bottom"
+        $selectInfoLabel1.Dock = 'Bottom'
         $selectInfoLabel1.Height = 28
         $selectInfoLabel1.AutoEllipsis = $true
         $selectTopPanel.Controls.Add($selectInfoLabel1)
         $selectInfoLabel2 = [System.Windows.Forms.Label]::new()
         $selectInfoLabel2.Text = $backupDirectory
-        $selectInfoLabel2.Dock = "Bottom"
+        $selectInfoLabel2.Dock = 'Bottom'
         $selectInfoLabel2.Height = 28
         $selectInfoLabel2.AutoEllipsis = $true
         $selectTopPanel.Controls.Add($selectInfoLabel2)
 
         # 列表框填充中间空间
         $selectListBox = [System.Windows.Forms.ListBox]::new()
-        $selectListBox.Dock = "Fill"
-        $selectListBox.SelectionMode = "One"
+        $selectListBox.Dock = 'Fill'
+        $selectListBox.SelectionMode = 'One'
         $selectListBox.IntegralHeight = $false
         foreach ($file in $jsonFiles) {
             $selectListBox.Items.Add((Split-Path -Leaf $file)) | Out-Null
@@ -938,13 +938,13 @@ try {
         $selectOkButton.Text = $ui.ConfirmButton
         $selectOkButton.Location = [System.Drawing.Point]::new(325, 12)
         $selectOkButton.Size = [System.Drawing.Size]::new(130, 36)
-        $selectOkButton.DialogResult = "OK"
+        $selectOkButton.DialogResult = 'OK'
         $selectBottomPanel.Controls.Add($selectOkButton)
         $selectForm.AcceptButton = $selectOkButton
 
         # 双击列表项等同于确认
         $selectListBox.Add_DoubleClick({
-            $selectForm.DialogResult = "OK"
+            $selectForm.DialogResult = 'OK'
             $selectForm.Close()
             $selectForm.Dispose()
         })
@@ -953,10 +953,10 @@ try {
         if ($selectForm.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK -and $selectListBox.SelectedIndex -ge 0) {
             $configFilePath = $jsonFiles[$selectListBox.SelectedIndex]
         } else {
-            ""
-            "[ Error ] Config file not selected"
-            ""
-            [System.Windows.Forms.MessageBox]::Show($ui.ERROR_ConfigNotSelected, $ui.FormTitle, "OK", "Error")
+            ''
+            '[ Error ] Config file not selected'
+            ''
+            [System.Windows.Forms.MessageBox]::Show($ui.ERROR_ConfigNotSelected, $ui.FormTitle, 'OK', 'Error')
             exit 1
         }
         $selectForm.Dispose()
@@ -964,10 +964,10 @@ try {
     "[ Debug ] configFilePath = $configFilePath"
 
     # 显示环境信息
-    Show-Log ($ui.INFO_SystemInfo -f $windowsVersion, $powerShellVersion) "Info"
-    Show-Log ($ui.MachineInfo -f $machineName, $userName) "Info"
-    Show-Log ($ui.INFO_BackupRootDir -f $backupDirectory) "Info"
-    Show-Log ($ui.ConfigSelected -f "[  $(Split-Path -Leaf $configFilePath)  ]") "Info"
+    Show-Log ($ui.INFO_SystemInfo -f $windowsVersion, $powerShellVersion) 'Info'
+    Show-Log ($ui.MachineInfo -f $machineName, $userName) 'Info'
+    Show-Log ($ui.INFO_BackupRootDir -f $backupDirectory) 'Info'
+    Show-Log ($ui.ConfigSelected -f "[  $(Split-Path -Leaf $configFilePath)  ]') 'Info"
 
     # 加载配置文件
     function Load-Config {
@@ -1029,7 +1029,7 @@ try {
 
             # 更新 UI 界面
             $configTextBox.Text = $FilePath
-            Show-Log ($ui.ConfigLoaded -f $config.Count) "Success"
+            Show-Log ($ui.ConfigLoaded -f $config.Count) 'Success'
 
             $dataGridView.SuspendLayout()
             try {
@@ -1044,7 +1044,7 @@ try {
             finally {
                 $dataGridView.ResumeLayout()
             }
-            Show-Log ($ui.GameListUpdated) "Info"
+            Show-Log ($ui.GameListUpdated) 'Info'
 
             if ($tabControl.TabPages.Contains($gameListTabPage) -eq $false) {
                 $tabControl.Controls.Add($gameListTabPage)
@@ -1058,10 +1058,10 @@ try {
             }
         } catch {
             Handle-Exception $_
-            Show-Log ($ui.ERROR_ConfigLoadFailed -f $_.Exception.Message) "Error"
-            $script:configFilePath = ""
+            Show-Log ($ui.ERROR_ConfigLoadFailed -f $_.Exception.Message) 'Error'
+            $script:configFilePath = ''
             $script:config = $null
-            $configTextBox.Text = ""
+            $configTextBox.Text = ''
             $dataGridView.Rows.Clear()
             $tabControl.Controls.Remove($gameListTabPage)
             $startButton.Enabled = $false
@@ -1089,7 +1089,7 @@ $browseButton.Add_Click({
     if ($fileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
         $script:configFilePath = $fileDialog.FileName
         $script:fileDialogInitialDirectory = $(Split-Path -Parent $fileDialog.FileName)
-        Show-Log ($ui.ConfigSelected -f "[  $(Split-Path -Leaf $configFilePath)  ]") "Info"
+        Show-Log ($ui.ConfigSelected -f "[  $(Split-Path -Leaf $configFilePath)  ]') 'Info"
         Load-Config -FilePath $configFilePath
     }
 })
@@ -1111,10 +1111,10 @@ $startButton.Add_Click({
     $progressBar.Visible = $true
     $progressBar.Value = 0
     $asyncProgressState['Value'] = 0
-    Show-Log $ui.BackupStarted "Progress"
+    Show-Log $ui.BackupStarted 'Progress'
 
     $backupPs = {
-        param($ui, $config, $machineName, $userName, $backupDirectory, $asyncShowLogQueue, $asyncProgressState)
+        param($Ui, $Config, $machineName, $userName, $backupDirectory, $asyncShowLogQueue, $asyncProgressState)
 
         # 外部函数在 Runspace 内不可见
         function Show-Log-Async {
@@ -1125,14 +1125,14 @@ $startButton.Add_Click({
         function Run-Git-Command {
             param([string]$Arguments, [string]$ErrorMessage)
 
-            Show-Log-Async ($ui.INFO_GitCommand + ": git $Arguments") 'Debug'
+            Show-Log-Async ($Ui.INFO_GitCommand + ": git $Arguments") 'Debug'
             $output = cmd /c "git $Arguments" 2>&1
             $exitCode = $LASTEXITCODE
             if ($exitCode -ne 0) {
-                throw ($ui.ERROR_GitCommandFailed -f $exitCode, $output)
+                throw ($Ui.ERROR_GitCommandFailed -f $exitCode, $output)
             }
             if ($output -and $output.Trim()) {
-                Show-Log-Async ($ui.INFO_GitOutput + ":`r`n" + $output) 'Debug'
+                Show-Log-Async ($Ui.INFO_GitOutput + ":`r`n" + $output) 'Debug'
             }
             return $output
         }
@@ -1140,22 +1140,22 @@ $startButton.Add_Click({
         # 切换到备份根目录（影响 git/robocopy 等外部程序）
         [System.IO.Directory]::SetCurrentDirectory($backupDirectory)
         Set-Location -LiteralPath $backupDirectory
-        Show-Log-Async ($ui.INFO_EnteringBackupDir -f $backupDirectory) 'Info'
+        Show-Log-Async ($Ui.INFO_EnteringBackupDir -f $backupDirectory) 'Info'
 
         # 检查 Git
         $gitExe = Get-Command git
         if (-not $gitExe) {
-            Show-Log-Async $ui.ERROR_GitMissing 'Error'
-            Show-Log-Async $ui.ERROR_GitDownload 'Error'
+            Show-Log-Async $Ui.ERROR_GitMissing 'Error'
+            Show-Log-Async $Ui.ERROR_GitDownload 'Error'
             return
         }
 
         # 使用已加载的配置数组
-        $totalGames = $config.Count
-        Show-Log-Async ($ui.INFO_GamesFound + ": " + $totalGames) 'Info'
+        $totalGames = $Config.Count
+        Show-Log-Async ($Ui.INFO_GamesFound + ': ' + $totalGames) 'Info'
 
         # 初始化 Git
-        if (-not (Test-Path ".git")) {
+        if (-not (Test-Path '.git')) {
             try {
                 $null = & git init 2>&1 | Out-String
                 $null = & git config --local core.autocrlf false 2>&1 | Out-String
@@ -1165,7 +1165,7 @@ $startButton.Add_Click({
                 $null = & git config --local i18n.logoutputencoding utf-8 2>&1 | Out-String
                 $null = & git config --local i18n.commitencoding utf-8 2>&1 | Out-String
 
-                Show-Log-Async $ui.SUCCESS_GitInitialized 'Success'
+                Show-Log-Async $Ui.SUCCESS_GitInitialized 'Success'
             }
             catch {
                 Show-Log-Async ("Failed to initialize Git repository: $_") 'Error'
@@ -1173,39 +1173,39 @@ $startButton.Add_Click({
         }
 
         $gameIndex = 0
-        foreach ($game in $config) {
+        foreach ($game in $Config) {
             $gameIndex++
             $name = $game.name
             $save = $game.save
             $ignore = $game.ignore
 
             # 显示当前处理的游戏
-            Show-Log-Async ($ui.PROGRESS_Processing + ": " + $gameIndex + " / " + $totalGames + " - '" + $name + "' @ '" + $save + "'") 'Progress'
+            Show-Log-Async ($Ui.PROGRESS_Processing + ': ' + $gameIndex + ' / ' + $totalGames + " - '" + $name + "' @ '" + $save + "'") 'Progress'
 
             # 替换环境变量
-            $saveExpanded = $save -replace "%USERPROFILE%", $env:USERPROFILE
-            $saveExpanded = $saveExpanded -replace "%PROGRAMDATA%", $env:PROGRAMDATA
-            $saveExpanded = $saveExpanded -replace "%PUBLIC%", $env:PUBLIC
+            $saveExpanded = $save -replace '%USERPROFILE%', $env:USERPROFILE
+            $saveExpanded = $saveExpanded -replace '%PROGRAMDATA%', $env:PROGRAMDATA
+            $saveExpanded = $saveExpanded -replace '%PUBLIC%', $env:PUBLIC
 
             # 构建忽略参数
             $ignoreArgs = @()
-            $ignoreArgs += "/XF"
-            $ignoreArgs += "SaveLocation.bat"
-            $ignoreArgs += "/XF"
-            $ignoreArgs += "存档位置.bat"
+            $ignoreArgs += '/XF'
+            $ignoreArgs += 'SaveLocation.bat'
+            $ignoreArgs += '/XF'
+            $ignoreArgs += '存档位置.bat'
 
             # 获取当前语言对应的 bat 文件名（用于创建文件）
-            $saveLocationBatName = $ui.SaveLocationBatName
+            $saveLocationBatName = $Ui.SaveLocationBatName
 
             if ($ignore) {
                 foreach ($item in $ignore) {
-                    $itemExpanded = $item -replace "%USERPROFILE%", $env:USERPROFILE
-                    $itemExpanded = $itemExpanded -replace "%PROGRAMDATA%", $env:PROGRAMDATA
-                    $itemExpanded = $itemExpanded -replace "%PUBLIC%", $env:PUBLIC
-                    Show-Log-Async ($ui.INFO_IgnoreItem + ": '" + $itemExpanded + "'") 'Debug'
-                    $ignoreArgs += "/XF"
+                    $itemExpanded = $item -replace '%USERPROFILE%', $env:USERPROFILE
+                    $itemExpanded = $itemExpanded -replace '%PROGRAMDATA%', $env:PROGRAMDATA
+                    $itemExpanded = $itemExpanded -replace '%PUBLIC%', $env:PUBLIC
+                    Show-Log-Async ($Ui.INFO_IgnoreItem + ": '" + $itemExpanded + "'") 'Debug'
+                    $ignoreArgs += '/XF'
                     $ignoreArgs += $itemExpanded
-                    $ignoreArgs += "/XD"
+                    $ignoreArgs += '/XD'
                     $ignoreArgs += $itemExpanded
                 }
             }
@@ -1215,14 +1215,14 @@ $startButton.Add_Click({
 
             # 获取本地文件修改时间
             $maxLocalTime = $null
-            $maxLocalTimeString = ""
+            $maxLocalTimeString = ''
             if (Test-Path $saveExpanded) {
                 try {
                     $files = Get-ChildItem -Recurse -Path $saveExpanded -File -ErrorAction SilentlyContinue
                     if ($files) {
                         $latestFile = $files | Sort-Object LastWriteTime -Descending | Select-Object -First 1
                         $maxLocalTime = $latestFile.LastWriteTime.Ticks
-                        $maxLocalTimeString = $latestFile.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss UTC")
+                        $maxLocalTimeString = $latestFile.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss UTC')
                     }
                 }
                 catch {}
@@ -1230,46 +1230,46 @@ $startButton.Add_Click({
 
             # 获取备份文件修改时间
             $maxBackupTime = $null
-            $maxBackupTimeString = ""
+            $maxBackupTimeString = ''
             if (Test-Path $backupDir) {
                 try {
                     $files = Get-ChildItem -Recurse -Path $backupDir -File -ErrorAction SilentlyContinue
                     if ($files) {
                         $latestFile = $files | Sort-Object LastWriteTime -Descending | Select-Object -First 1
                         $maxBackupTime = $latestFile.LastWriteTime.Ticks
-                        $maxBackupTimeString = $latestFile.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss UTC")
+                        $maxBackupTimeString = $latestFile.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss UTC')
                     }
                 }
                 catch {}
             }
 
-            Show-Log-Async ($ui.INFO_FileTimeComparison -f $maxLocalTimeString, $maxBackupTimeString) 'Info'
+            Show-Log-Async ($Ui.INFO_FileTimeComparison -f $maxLocalTimeString, $maxBackupTimeString) 'Info'
 
             # 创建备份目录
             if (-not (Test-Path $backupDir)) {
                 try {
-                    Show-Log-Async ($ui.CreateBackupDir -f $backupDir) 'Info'
+                    Show-Log-Async ($Ui.CreateBackupDir -f $backupDir) 'Info'
                     New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
                 }
                 catch {
                     $errorMsg = $_.Exception.Message
-                    Show-Log-Async ($ui.ERROR_CreateBackupDirFailed -f $backupDir) 'Error'
-                    Show-Log-Async ($ui.ERROR_ErrorDetails -f $errorMsg) 'Error'
+                    Show-Log-Async ($Ui.ERROR_CreateBackupDirFailed -f $backupDir) 'Error'
+                    Show-Log-Async ($Ui.ERROR_ErrorDetails -f $errorMsg) 'Error'
                     continue
                 }
             }
 
             # 进入备份目录
             Set-Location -LiteralPath $backupDir
-            Show-Log-Async ($ui.INFO_EnteringBackupDir -f (Get-Location).Path) 'Info'
+            Show-Log-Async ($Ui.INFO_EnteringBackupDir -f (Get-Location).Path) 'Info'
 
             # 判断备份策略
             if ($null -eq $maxLocalTime) {
                 if ($null -eq $maxBackupTime) {
-                    Show-Log-Async $ui.WARNING_BothMissing 'Warning'
+                    Show-Log-Async $Ui.WARNING_BothMissing 'Warning'
                 }
                 else {
-                    Show-Log-Async $ui.WARNING_LocalMissing 'Warning'
+                    Show-Log-Async $Ui.WARNING_LocalMissing 'Warning'
                     $sh = New-Object -ComObject Shell.Application
                     try {
                         $sh.Namespace(10).MoveHere($saveExpanded)
@@ -1279,19 +1279,19 @@ $startButton.Add_Click({
                     }
 
                     $robocopyCommand = "robocopy . `"$saveExpanded`" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
-                    Show-Log-Async ($ui.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
+                    Show-Log-Async ($Ui.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
 
                     $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
                     $robocopyExitCode = $LASTEXITCODE
 
                     # 记录 Robocopy 状态（包含返回码）
                     if ($robocopyExitCode -ge 8) {
-                        Show-Log-Async ($ui.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
+                        Show-Log-Async ($Ui.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
                     } else {
-                        Show-Log-Async ($ui.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
+                        Show-Log-Async ($Ui.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
                     }
 
-                    Show-Log-Async ($ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
+                    Show-Log-Async ($Ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
                 }
             }
             else {
@@ -1301,34 +1301,34 @@ $startButton.Add_Click({
                 # 使用绝对路径写入游戏子目录（.NET 当前目录是备份根目录，不会随 Set-Location 改变）
                 $saveLocationBatPath = Join-Path $backupDir $saveLocationBatName
                 [System.IO.File]::WriteAllText($saveLocationBatPath, $batContent, [System.Text.UTF8Encoding]::new($false))
-                (Get-Item $saveLocationBatPath).LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime
+                (Get-Item $saveLocationBatPath).LastWriteTime = [System.DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime
 
                 if ($null -eq $maxBackupTime) {
-                    Show-Log-Async $ui.INFO_BackupMissing 'Info'
+                    Show-Log-Async $Ui.INFO_BackupMissing 'Info'
 
                     $robocopyCommand = "robocopy `"$saveExpanded`" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
-                    Show-Log-Async ($ui.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
+                    Show-Log-Async ($Ui.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
 
                     $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
                     $robocopyExitCode = $LASTEXITCODE
 
                     # 记录 Robocopy 状态（包含返回码）
                     if ($robocopyExitCode -ge 8) {
-                        Show-Log-Async ($ui.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
+                        Show-Log-Async ($Ui.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
                     } else {
-                        Show-Log-Async ($ui.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
+                        Show-Log-Async ($Ui.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
                     }
 
-                    Show-Log-Async ($ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
+                    Show-Log-Async ($Ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
 
                     try {
-                        $null = Run-Git-Command -Arguments "add ." -ErrorMessage "Git add failed"
+                        $null = Run-Git-Command -Arguments 'add .' -ErrorMessage 'Git add failed'
 
                         $diffResult = & git diff --cached --quiet 2>&1
                         if ($LASTEXITCODE -ne 0) {
-                            $commitMsg = "Update - " + $name + " on " + $machineName + " by " + $userName
+                            $commitMsg = 'Update - ' + $name + ' on ' + $machineName + ' by ' + $userName
                             $null = Run-Git-Command -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed"
-                            Show-Log-Async $ui.SUCCESS_GitCommit 'Success'
+                            Show-Log-Async $Ui.SUCCESS_GitCommit 'Success'
                         }
                     }
                     catch {
@@ -1336,7 +1336,7 @@ $startButton.Add_Click({
                     }
                 }
                 elseif ($maxLocalTime -lt $maxBackupTime) {
-                    Show-Log-Async $ui.WARNING_LocalOlder 'Warning'
+                    Show-Log-Async $Ui.WARNING_LocalOlder 'Warning'
                     $sh = New-Object -ComObject Shell.Application
                     try {
                         $sh.Namespace(10).MoveHere($saveExpanded)
@@ -1346,46 +1346,46 @@ $startButton.Add_Click({
                     }
 
                     $robocopyCommand = "robocopy . `"$saveExpanded`" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
-                    Show-Log-Async ($ui.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
+                    Show-Log-Async ($Ui.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
 
                     $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
                     $robocopyExitCode = $LASTEXITCODE
 
                     # 记录 Robocopy 状态（包含返回码）
                     if ($robocopyExitCode -ge 8) {
-                        Show-Log-Async ($ui.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
+                        Show-Log-Async ($Ui.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
                     } else {
-                        Show-Log-Async ($ui.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
+                        Show-Log-Async ($Ui.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
                     }
 
-                    Show-Log-Async ($ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
+                    Show-Log-Async ($Ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
                 }
                 elseif ($maxLocalTime -gt $maxBackupTime) {
-                    Show-Log-Async $ui.INFO_LocalNewer 'Info'
+                    Show-Log-Async $Ui.INFO_LocalNewer 'Info'
 
                     $robocopyCommand = "robocopy `"$saveExpanded`" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
-                    Show-Log-Async ($ui.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
+                    Show-Log-Async ($Ui.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
 
                     $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
                     $robocopyExitCode = $LASTEXITCODE
 
                     # 记录 Robocopy 状态（包含返回码）
                     if ($robocopyExitCode -ge 8) {
-                        Show-Log-Async ($ui.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
+                        Show-Log-Async ($Ui.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
                     } else {
-                        Show-Log-Async ($ui.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
+                        Show-Log-Async ($Ui.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
                     }
 
-                    Show-Log-Async ($ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
+                    Show-Log-Async ($Ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
 
                     try {
-                        $null = Run-Git-Command -Arguments "add ." -ErrorMessage "Git add failed"
+                        $null = Run-Git-Command -Arguments 'add .' -ErrorMessage 'Git add failed'
 
                         $diffResult = & git diff --cached --quiet 2>&1
                         if ($LASTEXITCODE -ne 0) {
-                            $commitMsg = "Update - " + $name + " on " + $machineName + " by " + $userName
+                            $commitMsg = 'Update - ' + $name + ' on ' + $machineName + ' by ' + $userName
                             $null = Run-Git-Command -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed"
-                            Show-Log-Async $ui.SUCCESS_GitCommit 'Success'
+                            Show-Log-Async $Ui.SUCCESS_GitCommit 'Success'
                         }
                     }
                     catch {
@@ -1393,7 +1393,7 @@ $startButton.Add_Click({
                     }
                 }
                 else {
-                    Show-Log-Async $ui.INFO_SameTime 'Success'
+                    Show-Log-Async $Ui.INFO_SameTime 'Success'
                 }
             }
 
@@ -1402,21 +1402,21 @@ $startButton.Add_Click({
 
         # 恢复工作目录到备份根目录
         Set-Location -LiteralPath $backupDirectory
-        Show-Log-Async ($ui.INFO_EnteringBackupDir -f (Get-Location).Path) 'Info'
+        Show-Log-Async ($Ui.INFO_EnteringBackupDir -f (Get-Location).Path) 'Info'
 
         # 最终 Git 提交
-        Run-Git-Command -Arguments "add ." -ErrorMessage "Final Git add failed"
+        Run-Git-Command -Arguments 'add .' -ErrorMessage 'Final Git add failed'
         $diffResult = & git diff --cached --quiet 2>&1
         if ($LASTEXITCODE -ne 0) {
-            $commitMsg = "Update - on " + $machineName + " by " + $userName
+            $commitMsg = 'Update - on ' + $machineName + ' by ' + $userName
             Run-Git-Command -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Final Git commit failed"
-            Show-Log-Async $ui.SUCCESS_FinalCommit 'Success'
+            Show-Log-Async $Ui.SUCCESS_FinalCommit 'Success'
         }
 
         # Git clean 操作
         $cleanOutput = & git clean -df 2>&1 | Out-String
         if ($cleanOutput -and $cleanOutput.Trim()) {
-            Show-Log-Async ("Git clean output: " + $cleanOutput) 'Debug'
+            Show-Log-Async ('Git clean output: ' + $cleanOutput) 'Debug'
         }
 
         $asyncProgressState['Value'] = 100
@@ -1426,8 +1426,8 @@ $startButton.Add_Click({
     $script:backupPsInstance = [System.Management.Automation.PowerShell]::Create()
     $backupPsInstance.RunspacePool = $backupRunspacePool
     $backupPsInstance.AddScript($backupPs)
-    $backupPsInstance.AddParameter('ui', $ui)
-    $backupPsInstance.AddParameter('config', $config)
+    $backupPsInstance.AddParameter('Ui', $Ui)
+    $backupPsInstance.AddParameter('Config', $Config)
     $backupPsInstance.AddParameter('machineName', $machineName)
     $backupPsInstance.AddParameter('userName', $userName)
     $backupPsInstance.AddParameter('backupDirectory', $backupDirectory)
@@ -1436,7 +1436,7 @@ $startButton.Add_Click({
 
     # 开始异步执行
     $script:backupAsyncResult = $backupPsInstance.BeginInvoke()
-    Show-Log $ui.RunspaceStarted "Progress"
+    Show-Log $ui.RunspaceStarted 'Progress'
 
     # 轮询任务进度
     $script:backupResultTimer = [System.Windows.Forms.Timer]::new()
@@ -1467,9 +1467,9 @@ $startButton.Add_Click({
 $copyLogMenuItem.Add_Click({
     if ($logTextBox.Text.Length -gt 0) {
         [System.Windows.Forms.Clipboard]::SetText($logTextBox.Text)
-        Show-Log $ui.LogCopied "Success"
+        Show-Log $ui.LogCopied 'Success'
     } else {
-        Show-Log $ui.NoLog "Warning"
+        Show-Log $ui.NoLog 'Warning'
     }
 })
 
@@ -1498,7 +1498,7 @@ $contextMenu.Add_Opening({
     }
     catch {
         Handle-Exception $_
-        Show-Log ($ui.ERROR_OpenSaveLocationFailed -f $_.Exception.Message) "Error"
+        Show-Log ($ui.ERROR_OpenSaveLocationFailed -f $_.Exception.Message) 'Error'
     }
 })
 
@@ -1515,15 +1515,15 @@ $openLocationMenuItem.Add_Click({
         $realPath = $realPath -replace '%PROGRAMDATA%', $env:PROGRAMDATA
         $realPath = $realPath -replace '%PUBLIC%', $env:PUBLIC
         if (Test-Path $realPath) {
-            Start-Process "explorer.exe" -ArgumentList $realPath
-            Show-Log ($ui.OpeningSaveLocation -f $gameName, $realPath) "Info"
+            Start-Process 'explorer.exe' -ArgumentList $realPath
+            Show-Log ($ui.OpeningSaveLocation -f $gameName, $realPath) 'Info'
         } else {
-            Show-Log ($ui.SaveLocationNotExist -f $gameName, $realPath) "Error"
+            Show-Log ($ui.SaveLocationNotExist -f $gameName, $realPath) 'Error'
         }
     }
     catch {
         Handle-Exception $_
-        Show-Log ($ui.ERROR_OpenSaveLocationFailed -f $_.Exception.Message) "Error"
+        Show-Log ($ui.ERROR_OpenSaveLocationFailed -f $_.Exception.Message) 'Error'
     }
 })
 
