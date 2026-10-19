@@ -82,11 +82,11 @@ A simple file backup tool that can be used for game saves and other purposes.
 ```
 GameSaveBackup/
 ├── source/
-│   ├── 备份.bat           # 中文命令行版
-│   ├── Backup.bat         # 英文命令行版
-│   └── GUI.ps1            # 图形界面版
-├── self-check.bat         # 自检脚本
-├── build.bat              # 构建脚本
-├── LLM.md                 # 提示信息
-└── README.md              # 工程说明
+│   ├── 备份.bat              # 中文命令行版
+│   ├── Backup.bat            # 英文命令行版
+│   └── GameSaveBackup.ps1    # 图形界面版
+├── self-check.bat            # 自检脚本
+├── build.bat                 # 构建脚本
+├── LLM.md                    # 提示信息
+└── README.md                 # 工程说明
 ```
