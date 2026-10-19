@@ -11,7 +11,7 @@ A simple file backup tool that can be used for game saves and other purposes.
 以下文件，任选其一，下载运行即可：  
 命令行中文版：[`备份.bat`](https://github.com/MoonLord-LM/GameSaveBackup/blob/master/source/备份.bat)  
 命令行英文版：[`Backup.bat`](https://github.com/MoonLord-LM/GameSaveBackup/blob/master/source/Backup.bat)  
-图形界面版：[`GUI.ps1`](https://github.com/MoonLord-LM/GameSaveBackup/blob/master/source/GUI.ps1)  
+图形界面版：[`GameSaveBackup.ps1`](https://github.com/MoonLord-LM/GameSaveBackup/blob/master/source/GameSaveBackup.ps1)  
 
 ### 实现机制
 
