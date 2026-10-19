@@ -11,7 +11,8 @@ A simple file backup tool that can be used for game saves and other purposes.
 以下文件，任选其一，下载运行即可：  
 命令行中文版：[`备份.bat`](https://github.com/MoonLord-LM/GameSaveBackup/blob/master/source/备份.bat)  
 命令行英文版：[`Backup.bat`](https://github.com/MoonLord-LM/GameSaveBackup/blob/master/source/Backup.bat)  
-图形界面版：[`GameSaveBackup.ps1`](https://github.com/MoonLord-LM/GameSaveBackup/blob/master/source/GameSaveBackup.ps1)  
+图形界面 ps1 版：[`GameSaveBackup.ps1`](https://github.com/MoonLord-LM/GameSaveBackup/blob/master/source/GameSaveBackup.ps1)  
+图形界面 exe 版：[`GameSaveBackup.exe`](https://github.com/MoonLord-LM/GameSaveBackup/blob/master/build/GameSaveBackup.exe)  
 
 ### 实现机制
 
@@ -82,11 +83,13 @@ A simple file backup tool that can be used for game saves and other purposes.
 ```
 GameSaveBackup/
 ├── source/
-│   ├── 备份.bat              # 中文命令行版
-│   ├── Backup.bat            # 英文命令行版
-│   └── GameSaveBackup.ps1    # 图形界面版
-├── self-check.bat            # 自检脚本
-├── build.bat                 # 构建脚本
-├── LLM.md                    # 提示信息
-└── README.md                 # 工程说明
+│   ├── 备份.bat                 # 中文命令行版
+│   ├── Backup.bat               # 英文命令行版
+│   └── GameSaveBackup.ps1       # 图形界面 ps1 版
+├── build/
+│   ├── build.bat                # 构建脚本
+│   └── GameSaveBackup.exe       # 图形界面 exe 版
+├── self-check.bat               # 自检脚本
+├── LLM.md                       # 提示信息
+└── README.md                    # 工程说明
 ```

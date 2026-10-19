@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
   push:
     branches: [master]
-    paths: ['GameSaveBackup.ps1', 'build.bat', '.github/workflows/build.yml']
+    paths: ['source/GameSaveBackup.ps1', 'build/build.bat', '.github/workflows/build.yml']
   pull_request:
     branches: [master]
-    paths: ['GameSaveBackup.ps1', 'build.bat', '.github/workflows/build.yml']
+    paths: ['source/GameSaveBackup.ps1', 'build/build.bat', '.github/workflows/build.yml']
 
 permissions:
   contents: write
@@ -26,8 +26,10 @@ jobs:
       - name: Run build.bat
         shell: cmd
         run: |
-          if exist GameSaveBackup.exe del /f /q GameSaveBackup.exe
-          call build.bat GameSaveBackup.ps1 <nul
+          if exist 'build\GameSaveBackup.exe' ( del /f /q 'build\GameSaveBackup.exe' )
+          pushd 'build'
+          call 'build.bat' '..\source\GameSaveBackup.ps1' <nul
+          popd
 
       - name: Commit and push
         if: github.event_name != 'pull_request'
@@ -42,7 +44,7 @@ jobs:
           git add -A
           git diff --cached --quiet
           if ($LASTEXITCODE -ne 0) {
-            git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "auto-build [ GameSaveBackup.exe ]"
+            git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "auto-build by [ build.bat ]"
             git pull --rebase origin master
             git push origin HEAD
           } else {
