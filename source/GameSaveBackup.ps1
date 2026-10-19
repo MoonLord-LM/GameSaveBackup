@@ -119,7 +119,7 @@ try {
     try {
         $dpiResult = [Win32API]::SetProcessDpiAwarenessContext([DpiContext]::PER_MONITOR_AWARE_V2)
     } catch { }
-    if(-not $dpiResult) {
+    if (-not $dpiResult) {
         $dpiResult = [Win32API]::SetProcessDPIAware()
     }
 
@@ -180,9 +180,9 @@ try {
     $callDirectory = powershell -NoProfile -Command '(Get-Location).Path'
     $scriptDirectory = $PSScriptRoot
     $systemDirectory = [System.Environment]::SystemDirectory
-    $userDirectory = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::UserProfile)
+    $userDirectory = [System.Environment]::GetFolderPath([System.Environment.SpecialFolder]::UserProfile)
     $tempDirectory = [System.IO.Path]::GetTempPath()
-    $workingDirectory = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop)
+    $workingDirectory = [System.Environment]::GetFolderPath([System.Environment.SpecialFolder]::Desktop)
     foreach ($dir in @($currentDirectory, $callDirectory, $scriptDirectory)) {
         if ($dir) {
             if ($dir -ine $systemDirectory) {
@@ -656,7 +656,7 @@ try {
     # 中部: 标签页容器
     $tabControl = [System.Windows.Forms.TabControl]::new()
     $tabControl.Dock = 'Fill'
-    $tabControl.Padding = [System.Drawing.Point]::new(20, 3)
+    $tabControl.Padding = [System.Windows.Forms.Padding]::new(20, 3)
     $centerPanel.Controls.Add($tabControl)
 
     # 中部: 日志标签页
@@ -1193,16 +1193,18 @@ $startButton.Add_Click({
         }
 
         function Run-Git-Command {
-            param([string]$Arguments)
+            param([string[]]$Arguments)
 
-            Show-Log-Async ($Ui.INFO_GitCommand + ": git $Arguments") 'Debug'
-            $output = cmd /c "git $Arguments" 2>&1
+            $gitCommandLine = 'git ' + ($Arguments -join ' ')
+            Show-Log-Async ($Ui.INFO_GitCommand + ": $gitCommandLine") 'Debug'
+            $output = & git @Arguments 2>&1
             $exitCode = $LASTEXITCODE
             if ($exitCode -ne 0) {
-                throw ($Ui.ERROR_GitCommandFailed -f $exitCode, $output)
+                throw ($Ui.ERROR_GitCommandFailed -f $exitCode, ($output | Out-String))
             }
-            if ($output -and $output.Trim()) {
-                Show-Log-Async ($Ui.INFO_GitOutput + ":`r`n" + $output) 'Debug'
+            $outputString = $output | Out-String
+            if ($outputString.Trim()) {
+                Show-Log-Async ($Ui.INFO_GitOutput + ":`r`n" + $outputString) 'Debug'
             }
             return $output
         }
@@ -1237,6 +1239,60 @@ $startButton.Add_Click({
                 return ''
             }
             return [System.DateTime]::new($FileTime).ToString('yyyy-MM-dd HH:mm:ss')
+        }
+
+        # 执行 Robocopy 双向同步；恢复本地存档时，可先在目标侧移入回收站再写入
+        function Run-Robocopy {
+            param(
+                [string]$Source,
+                [string]$Destination,
+                [bool]$MoveDestinationToRecycleBin = $false,
+                [array]$IgnoreArgs = $null
+            )
+
+            if ($MoveDestinationToRecycleBin) {
+                $sh = New-Object -ComObject Shell.Application
+                try {
+                    $sh.Namespace(10).MoveHere($Destination)
+                }
+                finally {
+                    [System.Runtime.InteropServices.Marshal]::ReleaseComObject($sh) | Out-Null
+                }
+            }
+
+            $robocopyArgs = @('/MIR', '/COPY:DAT', '/DCOPY:T', '/NP', '/NS', '/NC', '/NFL', '/NDL', '/NJH')
+            $robocopyCommand = "robocopy `"$Source`" `"$Destination`" " + ($robocopyArgs + $IgnoreArgs -join ' ')
+            Show-Log-Async ($Ui.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
+
+            $result = & robocopy $Source $Destination @robocopyArgs $IgnoreArgs | Out-String
+            $robocopyExitCode = $LASTEXITCODE
+
+            if ($robocopyExitCode -ge 8) {
+                Show-Log-Async ($Ui.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
+            } else {
+                Show-Log-Async ($Ui.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
+            }
+
+            Show-Log-Async ($Ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
+        }
+
+        # 若暂存区存在变更，则提交 Git（按游戏名称生成提交信息）
+        function Commit-Git-Changes {
+            param([string]$CommitName)
+
+            try {
+                $null = Run-Git-Command -Arguments @('add', '.')
+
+                $null = & git diff --cached --quiet 2>&1
+                if ($LASTEXITCODE -ne 0) {
+                    $commitMsg = 'Update - ' + $CommitName + ' on ' + $MachineName + ' by ' + $UserName
+                    $null = Run-Git-Command -Arguments @('commit', '-m', $commitMsg)
+                    Show-Log-Async $Ui.SUCCESS_GitCommit 'Success'
+                }
+            }
+            catch {
+                Show-Log-Async ("Git operation failed: $_") 'Error'
+            }
         }
 
         # 切换到备份根目录（影响 git/robocopy 等外部程序）
@@ -1346,28 +1402,7 @@ $startButton.Add_Click({
                 }
                 else {
                     Show-Log-Async $Ui.WARNING_LocalMissing 'Warning'
-                    $sh = New-Object -ComObject Shell.Application
-                    try {
-                        $sh.Namespace(10).MoveHere($saveExpanded)
-                    }
-                    finally {
-                        [System.Runtime.InteropServices.Marshal]::ReleaseComObject($sh) | Out-Null
-                    }
-
-                    $robocopyCommand = "robocopy . `"$saveExpanded`" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
-                    Show-Log-Async ($Ui.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
-
-                    $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
-                    $robocopyExitCode = $LASTEXITCODE
-
-                    # 记录 Robocopy 状态（包含返回码）
-                    if ($robocopyExitCode -ge 8) {
-                        Show-Log-Async ($Ui.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
-                    } else {
-                        Show-Log-Async ($Ui.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
-                    }
-
-                    Show-Log-Async ($Ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
+                    Run-Robocopy -Source '.' -Destination $saveExpanded -MoveDestinationToRecycleBin $true -IgnoreArgs $ignoreArgs
                 }
             }
             else {
@@ -1381,92 +1416,17 @@ $startButton.Add_Click({
 
                 if ($null -eq $maxBackupTime) {
                     Show-Log-Async $Ui.INFO_BackupMissing 'Info'
-
-                    $robocopyCommand = "robocopy `"$saveExpanded`" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
-                    Show-Log-Async ($Ui.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
-
-                    $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
-                    $robocopyExitCode = $LASTEXITCODE
-
-                    # 记录 Robocopy 状态（包含返回码）
-                    if ($robocopyExitCode -ge 8) {
-                        Show-Log-Async ($Ui.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
-                    } else {
-                        Show-Log-Async ($Ui.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
-                    }
-
-                    Show-Log-Async ($Ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
-
-                    try {
-                        $null = Run-Git-Command -Arguments 'add .'
-
-                        $null = & git diff --cached --quiet 2>&1
-                        if ($LASTEXITCODE -ne 0) {
-                            $commitMsg = 'Update - ' + $name + ' on ' + $MachineName + ' by ' + $UserName
-                            $null = Run-Git-Command -Arguments "commit -m `"$commitMsg`""
-                            Show-Log-Async $Ui.SUCCESS_GitCommit 'Success'
-                        }
-                    }
-                    catch {
-                        Show-Log-Async ("Git operation failed: $_") 'Error'
-                    }
+                    Run-Robocopy -Source $saveExpanded -Destination '.' -IgnoreArgs $ignoreArgs
+                    Commit-Git-Changes -CommitName $name
                 }
                 elseif ($maxLocalTime -lt $maxBackupTime) {
                     Show-Log-Async $Ui.WARNING_LocalOlder 'Warning'
-                    $sh = New-Object -ComObject Shell.Application
-                    try {
-                        $sh.Namespace(10).MoveHere($saveExpanded)
-                    }
-                    finally {
-                        [System.Runtime.InteropServices.Marshal]::ReleaseComObject($sh) | Out-Null
-                    }
-
-                    $robocopyCommand = "robocopy . `"$saveExpanded`" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
-                    Show-Log-Async ($Ui.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
-
-                    $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
-                    $robocopyExitCode = $LASTEXITCODE
-
-                    # 记录 Robocopy 状态（包含返回码）
-                    if ($robocopyExitCode -ge 8) {
-                        Show-Log-Async ($Ui.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
-                    } else {
-                        Show-Log-Async ($Ui.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
-                    }
-
-                    Show-Log-Async ($Ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
+                    Run-Robocopy -Source '.' -Destination $saveExpanded -MoveDestinationToRecycleBin $true -IgnoreArgs $ignoreArgs
                 }
                 elseif ($maxLocalTime -gt $maxBackupTime) {
                     Show-Log-Async $Ui.INFO_LocalNewer 'Info'
-
-                    $robocopyCommand = "robocopy `"$saveExpanded`" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
-                    Show-Log-Async ($Ui.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
-
-                    $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
-                    $robocopyExitCode = $LASTEXITCODE
-
-                    # 记录 Robocopy 状态（包含返回码）
-                    if ($robocopyExitCode -ge 8) {
-                        Show-Log-Async ($Ui.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
-                    } else {
-                        Show-Log-Async ($Ui.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
-                    }
-
-                    Show-Log-Async ($Ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
-
-                    try {
-                        $null = Run-Git-Command -Arguments 'add .'
-
-                        $null = & git diff --cached --quiet 2>&1
-                        if ($LASTEXITCODE -ne 0) {
-                            $commitMsg = 'Update - ' + $name + ' on ' + $MachineName + ' by ' + $UserName
-                            $null = Run-Git-Command -Arguments "commit -m `"$commitMsg`""
-                            Show-Log-Async $Ui.SUCCESS_GitCommit 'Success'
-                        }
-                    }
-                    catch {
-                        Show-Log-Async ("Git operation failed: $_") 'Error'
-                    }
+                    Run-Robocopy -Source $saveExpanded -Destination '.' -IgnoreArgs $ignoreArgs
+                    Commit-Git-Changes -CommitName $name
                 }
                 else {
                     Show-Log-Async $Ui.INFO_SameTime 'Success'
@@ -1481,11 +1441,11 @@ $startButton.Add_Click({
         Show-Log-Async ($Ui.INFO_EnteringBackupDir -f $BackupDirectory) 'Info'
 
         # 最终 Git 提交
-        Run-Git-Command -Arguments 'add .'
+        Run-Git-Command -Arguments @('add', '.')
         $null = & git diff --cached --quiet 2>&1
         if ($LASTEXITCODE -ne 0) {
             $commitMsg = 'Update - on ' + $MachineName + ' by ' + $UserName
-            Run-Git-Command -Arguments "commit -m `"$commitMsg`""
+            Run-Git-Command -Arguments @('commit', '-m', $commitMsg)
             Show-Log-Async $Ui.SUCCESS_FinalCommit 'Success'
         }
 
