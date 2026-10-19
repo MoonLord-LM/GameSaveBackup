@@ -1294,103 +1294,104 @@ $startButton.Add_Click({
                     Show-Log-Async ($ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
                 }
             }
-            elseif ($null -eq $maxBackupTime) {
-                Show-Log-Async $ui.INFO_BackupMissing 'Info'
-                if (-not (Test-Path $saveLocationBatName)) {
-                    $batContent = "if not exist `"" + $saveExpanded + "`" mkdir `"" + $saveExpanded + "`"`r`n"
-                    $batContent += "`"explorer.exe`" `"" + $saveExpanded + "`""
-                    Set-Content -Path $saveLocationBatName -Value $batContent -Encoding UTF8
-                    (Get-Item $saveLocationBatName).LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime
-                }
-
-                $robocopyCommand = "robocopy `"$saveExpanded`" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
-                Show-Log-Async ($ui.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
-
-                $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
-                $robocopyExitCode = $LASTEXITCODE
-
-                # 记录 Robocopy 状态（包含返回码）
-                if ($robocopyExitCode -ge 8) {
-                    Show-Log-Async ($ui.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
-                } else {
-                    Show-Log-Async ($ui.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
-                }
-
-                Show-Log-Async ($ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
-
-                try {
-                    $null = Run-Git-Command -Arguments "add ." -ErrorMessage "Git add failed"
-
-                    $diffResult = & git diff --cached --quiet 2>&1
-                    if ($LASTEXITCODE -ne 0) {
-                        $commitMsg = "Update - " + $name + " on " + $machineName + " by " + $userName
-                        $null = Run-Git-Command -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed"
-                        Show-Log-Async $ui.SUCCESS_GitCommit 'Success'
-                    }
-                }
-                catch {
-                    Show-Log-Async ("Git operation failed: $_") 'Error'
-                }
-            }
-            elseif ($maxLocalTime -lt $maxBackupTime) {
-                Show-Log-Async $ui.WARNING_LocalOlder 'Warning'
-                $sh = New-Object -ComObject Shell.Application
-                try {
-                    $sh.Namespace(10).MoveHere($saveExpanded)
-                }
-                finally {
-                    [System.Runtime.Interopservices.Marshal]::ReleaseComObject($sh) | Out-Null
-                }
-
-                $robocopyCommand = "robocopy . `"$saveExpanded`" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
-                Show-Log-Async ($ui.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
-
-                $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
-                $robocopyExitCode = $LASTEXITCODE
-
-                # 记录 Robocopy 状态（包含返回码）
-                if ($robocopyExitCode -ge 8) {
-                    Show-Log-Async ($ui.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
-                } else {
-                    Show-Log-Async ($ui.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
-                }
-
-                Show-Log-Async ($ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
-            }
-            elseif ($maxLocalTime -gt $maxBackupTime) {
-                Show-Log-Async $ui.INFO_LocalNewer 'Info'
-
-                $robocopyCommand = "robocopy `"$saveExpanded`" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
-                Show-Log-Async ($ui.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
-
-                $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
-                $robocopyExitCode = $LASTEXITCODE
-
-                # 记录 Robocopy 状态（包含返回码）
-                if ($robocopyExitCode -ge 8) {
-                    Show-Log-Async ($ui.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
-                } else {
-                    Show-Log-Async ($ui.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
-                }
-
-                Show-Log-Async ($ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
-
-                try {
-                    $null = Run-Git-Command -Arguments "add ." -ErrorMessage "Git add failed"
-
-                    $diffResult = & git diff --cached --quiet 2>&1
-                    if ($LASTEXITCODE -ne 0) {
-                        $commitMsg = "Update - " + $name + " on " + $machineName + " by " + $userName
-                        $null = Run-Git-Command -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed"
-                        Show-Log-Async $ui.SUCCESS_GitCommit 'Success'
-                    }
-                }
-                catch {
-                    Show-Log-Async ("Git operation failed: $_") 'Error'
-                }
-            }
             else {
-                Show-Log-Async $ui.INFO_SameTime 'Success'
+                $batContent = "if not exist `"" + $saveExpanded + "`" mkdir `"" + $saveExpanded + "`"`r`n"
+                $batContent += "`"explorer.exe`" `"" + $saveExpanded + "`""
+                Set-Content -Path $saveLocationBatName -Value $batContent -Encoding UTF8
+                (Get-Item $saveLocationBatName).LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime
+
+                if ($null -eq $maxBackupTime) {
+                    Show-Log-Async $ui.INFO_BackupMissing 'Info'
+
+                    $robocopyCommand = "robocopy `"$saveExpanded`" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
+                    Show-Log-Async ($ui.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
+
+                    $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
+                    $robocopyExitCode = $LASTEXITCODE
+
+                    # 记录 Robocopy 状态（包含返回码）
+                    if ($robocopyExitCode -ge 8) {
+                        Show-Log-Async ($ui.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
+                    } else {
+                        Show-Log-Async ($ui.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
+                    }
+
+                    Show-Log-Async ($ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
+
+                    try {
+                        $null = Run-Git-Command -Arguments "add ." -ErrorMessage "Git add failed"
+
+                        $diffResult = & git diff --cached --quiet 2>&1
+                        if ($LASTEXITCODE -ne 0) {
+                            $commitMsg = "Update - " + $name + " on " + $machineName + " by " + $userName
+                            $null = Run-Git-Command -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed"
+                            Show-Log-Async $ui.SUCCESS_GitCommit 'Success'
+                        }
+                    }
+                    catch {
+                        Show-Log-Async ("Git operation failed: $_") 'Error'
+                    }
+                }
+                elseif ($maxLocalTime -lt $maxBackupTime) {
+                    Show-Log-Async $ui.WARNING_LocalOlder 'Warning'
+                    $sh = New-Object -ComObject Shell.Application
+                    try {
+                        $sh.Namespace(10).MoveHere($saveExpanded)
+                    }
+                    finally {
+                        [System.Runtime.Interopservices.Marshal]::ReleaseComObject($sh) | Out-Null
+                    }
+
+                    $robocopyCommand = "robocopy . `"$saveExpanded`" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
+                    Show-Log-Async ($ui.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
+
+                    $result = & robocopy . $saveExpanded /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
+                    $robocopyExitCode = $LASTEXITCODE
+
+                    # 记录 Robocopy 状态（包含返回码）
+                    if ($robocopyExitCode -ge 8) {
+                        Show-Log-Async ($ui.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
+                    } else {
+                        Show-Log-Async ($ui.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
+                    }
+
+                    Show-Log-Async ($ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
+                }
+                elseif ($maxLocalTime -gt $maxBackupTime) {
+                    Show-Log-Async $ui.INFO_LocalNewer 'Info'
+
+                    $robocopyCommand = "robocopy `"$saveExpanded`" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH"
+                    Show-Log-Async ($ui.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
+
+                    $result = & robocopy $saveExpanded . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH $ignoreArgs | Out-String
+                    $robocopyExitCode = $LASTEXITCODE
+
+                    # 记录 Robocopy 状态（包含返回码）
+                    if ($robocopyExitCode -ge 8) {
+                        Show-Log-Async ($ui.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
+                    } else {
+                        Show-Log-Async ($ui.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
+                    }
+
+                    Show-Log-Async ($ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
+
+                    try {
+                        $null = Run-Git-Command -Arguments "add ." -ErrorMessage "Git add failed"
+
+                        $diffResult = & git diff --cached --quiet 2>&1
+                        if ($LASTEXITCODE -ne 0) {
+                            $commitMsg = "Update - " + $name + " on " + $machineName + " by " + $userName
+                            $null = Run-Git-Command -Arguments "commit -m `"$commitMsg`"" -ErrorMessage "Git commit failed"
+                            Show-Log-Async $ui.SUCCESS_GitCommit 'Success'
+                        }
+                    }
+                    catch {
+                        Show-Log-Async ("Git operation failed: $_") 'Error'
+                    }
+                }
+                else {
+                    Show-Log-Async $ui.INFO_SameTime 'Success'
+                }
             }
 
             $asyncProgressState['Value'] = [int](($gameIndex / $totalGames) * 90)
