@@ -80,6 +80,7 @@ for /l %%i in (1, 1, !length!) do (
 
     set "save=!save:%%USERPROFILE%%=%USERPROFILE%!"
     set "save=!save:%%PROGRAMDATA%%=%PROGRAMDATA%!"
+    set "save=!save:%%PUBLIC%%=%PUBLIC%!"
     echo Processing %%i / !length! :  "!name!" at "!save!"
 
     set "ignore_args=/XF ""SaveLocation.bat"" /XF ""存档位置.bat"""
@@ -87,6 +88,7 @@ for /l %%i in (1, 1, !length!) do (
         set "item=%%k"
         set "item=!item:%%USERPROFILE%%=%USERPROFILE%!"
         set "item=!item:%%PROGRAMDATA%%=%PROGRAMDATA%!"
+        set "item=!item:%%PUBLIC%%=%PUBLIC%!"
         echo ignore item: "!item!"
         set "ignore_args=!ignore_args! /XF ""!item!"" /XD ""!item!"""
     )
@@ -246,6 +248,10 @@ exit /b
   {
     "name": "Rise of the Tomb Raider",
     "save": "%USERPROFILE%\\Documents\\CPY_SAVES\\CPY\\391220"
+  },
+  {
+    "name": "Shadow of the Tomb Raider",
+    "save": "%PUBLIC%\\Documents\\Steam\\CODEX\\750920"
   },
   {
     "name": "Clair Obscur Expedition 33",

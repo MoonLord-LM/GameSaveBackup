@@ -416,6 +416,10 @@ try {
         "save": "%USERPROFILE%\\Documents\\CPY_SAVES\\CPY\\391220"
     },
     {
+        "name": "古墓丽影11：暗影",
+        "save": "%PUBLIC%\\Documents\\Steam\\CODEX\\750920"
+    },
+    {
         "name": "光与影：33 号远征队",
         "save": "%USERPROFILE%\\AppData\\Local\\Sandfall\\Saved"
     },
@@ -505,6 +509,10 @@ try {
     {
         "name": "Rise of the Tomb Raider",
         "save": "%USERPROFILE%\\Documents\\CPY_SAVES\\CPY\\391220"
+    },
+    {
+        "name": "Shadow of the Tomb Raider",
+        "save": "%PUBLIC%\\Documents\\Steam\\CODEX\\750920"
     },
     {
         "name": "Clair Obscur Expedition 33",
@@ -1177,6 +1185,7 @@ $startButton.Add_Click({
             # 替换环境变量
             $saveExpanded = $save -replace "%USERPROFILE%", $env:USERPROFILE
             $saveExpanded = $saveExpanded -replace "%PROGRAMDATA%", $env:PROGRAMDATA
+            $saveExpanded = $saveExpanded -replace "%PUBLIC%", $env:PUBLIC
 
             # 构建忽略参数
             $ignoreArgs = @()
@@ -1192,6 +1201,7 @@ $startButton.Add_Click({
                 foreach ($item in $ignore) {
                     $itemExpanded = $item -replace "%USERPROFILE%", $env:USERPROFILE
                     $itemExpanded = $itemExpanded -replace "%PROGRAMDATA%", $env:PROGRAMDATA
+                    $itemExpanded = $itemExpanded -replace "%PUBLIC%", $env:PUBLIC
                     Show-Log-Async ($ui.INFO_IgnoreItem + ": '" + $itemExpanded + "'") 'Debug'
                     $ignoreArgs += "/XF"
                     $ignoreArgs += $itemExpanded
@@ -1476,6 +1486,7 @@ $contextMenu.Add_Opening({
         $savePath = $selectedRow.Cells[2].Value
         $realPath = $savePath -replace '%USERPROFILE%', $env:USERPROFILE
         $realPath = $realPath -replace '%PROGRAMDATA%', $env:PROGRAMDATA
+        $realPath = $realPath -replace '%PUBLIC%', $env:PUBLIC
         if (Test-Path $realPath) {
             $openLocationMenuItem.Enabled = $true
             $openLocationMenuItem.Text = $ui.OpenSaveLocation
@@ -1498,6 +1509,7 @@ $openLocationMenuItem.Add_Click({
         $savePath = $selectedRow.Cells[2].Value
         $realPath = $savePath -replace '%USERPROFILE%', $env:USERPROFILE
         $realPath = $realPath -replace '%PROGRAMDATA%', $env:PROGRAMDATA
+        $realPath = $realPath -replace '%PUBLIC%', $env:PUBLIC
         if (Test-Path $realPath) {
             Start-Process "explorer.exe" -ArgumentList $realPath
             Show-Log ($ui.OpeningSaveLocation -f $gameName, $realPath) "Info"

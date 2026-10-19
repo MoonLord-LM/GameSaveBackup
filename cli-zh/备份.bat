@@ -80,6 +80,7 @@ for /l %%i in (1, 1, !length!) do (
 
     set "save=!save:%%USERPROFILE%%=%USERPROFILE%!"
     set "save=!save:%%PROGRAMDATA%%=%PROGRAMDATA%!"
+    set "save=!save:%%PUBLIC%%=%PUBLIC%!"
     echo 处理 %%i / !length! :  "!name!" 位于 "!save!"
 
     set "ignore_args=/XF ""SaveLocation.bat"" /XF ""存档位置.bat"""
@@ -87,6 +88,7 @@ for /l %%i in (1, 1, !length!) do (
         set "item=%%k"
         set "item=!item:%%USERPROFILE%%=%USERPROFILE%!"
         set "item=!item:%%PROGRAMDATA%%=%PROGRAMDATA%!"
+        set "item=!item:%%PUBLIC%%=%PUBLIC%!"
         echo 忽略项: "!item!"
         set "ignore_args=!ignore_args! /XF ""!item!"" /XD ""!item!"""
     )
@@ -246,6 +248,10 @@ exit /b
   {
     "name": "古墓丽影10：崛起",
     "save": "%USERPROFILE%\\Documents\\CPY_SAVES\\CPY\\391220"
+  },
+  {
+    "name": "古墓丽影11：暗影",
+    "save": "%PUBLIC%\\Documents\\Steam\\CODEX\\750920"
   },
   {
     "name": "光与影：33号远征队",
