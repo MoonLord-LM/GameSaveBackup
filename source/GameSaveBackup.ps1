@@ -967,7 +967,7 @@ try {
     Show-Log ($ui.INFO_SystemInfo -f $windowsVersion, $powerShellVersion) 'Info'
     Show-Log ($ui.MachineInfo -f $machineName, $userName) 'Info'
     Show-Log ($ui.INFO_BackupRootDir -f $backupDirectory) 'Info'
-    Show-Log ($ui.ConfigSelected -f "[  $(Split-Path -Leaf $configFilePath)  ]') 'Info"
+    Show-Log ($ui.ConfigSelected -f "[  $(Split-Path -Leaf $configFilePath)  ]") 'Info'
 
     # 加载配置文件
     function Load-Config {
@@ -1089,7 +1089,7 @@ $browseButton.Add_Click({
     if ($fileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
         $script:configFilePath = $fileDialog.FileName
         $script:fileDialogInitialDirectory = $(Split-Path -Parent $fileDialog.FileName)
-        Show-Log ($ui.ConfigSelected -f "[  $(Split-Path -Leaf $configFilePath)  ]') 'Info"
+        Show-Log ($ui.ConfigSelected -f "[  $(Split-Path -Leaf $configFilePath)  ]") 'Info'
         Load-Config -FilePath $configFilePath
     }
 })
