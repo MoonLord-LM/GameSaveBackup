@@ -26,7 +26,7 @@ A simple Git-based file backup tool for backing up, restoring and synchronizing 
 ### 配置文件
 
 配置文件路径：程序文件夹下的 `Backup/配置.json` 或者 `Backup/config.json`  
-当文件不存在时，程序会使用内嵌的默认配置，并自动创建该文件  
+当文件不存在时，程序会使用内嵌的默认配置，并自动创建配置文件  
 
 格式示例如下：  
 
