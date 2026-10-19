@@ -31,6 +31,6 @@ Git 提交信息统一使用英文，不需要区分中英文版本
 # 编码规范
 
 本工程的 Batch 和 PowerShell 编码规范，参考 [MyBatch](https://github.com/MoonLord-LM/MyBatch) 工程  
-需要严格遵守 [MyBatch 工程的编码规范部分](https://github.com/MoonLord-LM/MyBatch/blob/master/LLM.md#%E7%BC%96%E7%A0%81%E8%A7%84%E8%8C%83)  
+需要严格遵守 MyBatch 工程的 [编码规范](https://github.com/MoonLord-LM/MyBatch/blob/master/LLM.md#%E7%BC%96%E7%A0%81%E8%A7%84%E8%8C%83)  
 
 
