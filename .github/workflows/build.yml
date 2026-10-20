@@ -2,7 +2,7 @@ name: build
 
 on:
   schedule:
-    - cron: '57 22 * * *'
+    - cron: '57 21 * * *'
       timezone: 'Asia/Shanghai'
   workflow_dispatch:
   push:
