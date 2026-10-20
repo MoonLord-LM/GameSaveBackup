@@ -1,6 +1,9 @@
 name: build
 
 on:
+  schedule:
+    - cron: '57 22 * * *'
+      timezone: 'Asia/Shanghai'
   workflow_dispatch:
   push:
     branches: [master]
