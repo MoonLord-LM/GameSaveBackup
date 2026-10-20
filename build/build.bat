@@ -74,6 +74,39 @@ for %%v in (18 2022) do (
 
 
 
+REM ============================================================
+REM 调试与一致性分析（服务器产物不一致排查）
+REM   GSB_DEBUG=0         关闭调试（恢复正常速度）
+REM   GSB_ECHO=1          同时开启命令回显（最详细）
+REM   GSB_REFERENCE=路径  指定参考 exe，做二进制比对
+REM 每次运行生成日志 %temp%\MyBatch\build_*.log
+REM 以及 %temp%\MyBatch\debug\run_*.txt（含全部哈希/环境/比对结果），
+REM 把不同服务器/不同次运行的日志拿到本地用文本对比即可定位差异。
+REM ============================================================
+set "DEBUG=1"
+if defined GSB_DEBUG ( set "DEBUG=!GSB_DEBUG!" )
+set "log_file=%temp%\MyBatch\build_!script_name!.log"
+if not exist "%temp%\MyBatch" ( mkdir "%temp%\MyBatch" >nul 2>&1 )
+set "debug_dir=%temp%\MyBatch\debug"
+if not exist "!debug_dir!" ( mkdir "!debug_dir!" >nul 2>&1 )
+set "manifest_file=!debug_dir!\run_!script_name!_!random!.txt"
+if "!DEBUG!"=="1" (
+    call :log "============================================================"
+    call :log "build.bat 启动（服务器产物不一致排查）"
+    call :log "时间：!date! !time!"
+    call :log "脚本：!script_path!"
+    call :log "工作目录：!cd!"
+    call :log "临时目录 TEMP：!temp!"
+    call :log "7-Zip：!seven_zip!"
+    call :log "7-Zip SFX：!seven_zip_sfx!"
+    call :log "C# Roslyn：!csharp_roslyn_compiler!"
+    call :log "DEBUG=!DEBUG!"
+    call :log "--- 环境信息快照（本地与服务器对比，定位差异来源）---"
+    call :env_dump
+    call :log "------------------------------------------------------------"
+)
+if "!DEBUG!"=="1" if defined GSB_ECHO ( echo on )
+
 set "input_file=!param1_path!"
 
 :input_file
@@ -133,6 +166,7 @@ for %%i in ("!input_file!") do (
         exit /b 1
     )
     echo 原始大小：!file_size! 字节
+    set "input_size=!file_size!"
     echo.
 
     REM 计算文件内容的 SHA512 哈希值
@@ -209,6 +243,29 @@ for %%i in ("!input_file!") do (
         exit /b 1
     )
 
+    call :log "[gzip] 压缩完成，开始一致性检测"
+    call :hash_file "!temp_gzip!"
+    call :log "[gzip] 主压缩包 SHA256：!hf_hash!"
+    call :peek "!temp_gzip!" 12
+    call :log "[gzip] 文件头前12字节(含mtime/OS字段，跨运行若变化说明压缩含时间戳)：!pk_hex!"
+    if "!DEBUG!"=="1" (
+        set "temp_gzip_repeat=!temp_dir!\archive_repeat.gz"
+        if exist "!temp_gzip_repeat!" ( del /f /q "!temp_gzip_repeat!" )
+        if "!seven_zip!"=="" (
+            powershell -NoProfile -Command "[System.Console]::OutputEncoding=[System.Text.Encoding]::UTF8; Add-Type -AssemblyName System.IO.Compression; $rawBytes=[System.IO.File]::ReadAllBytes($env:input_file); $memStream=New-Object System.IO.MemoryStream; $mode=[System.IO.Compression.CompressionMode]::Compress; $gzipStream=New-Object System.IO.Compression.GzipStream($memStream,$mode); $gzipStream.Write($rawBytes,0,$rawBytes.Length); $gzipStream.Close(); $bytes=$memStream.ToArray(); $memStream.Close(); [System.IO.File]::WriteAllBytes($env:temp_gzip_repeat,$bytes);"
+        ) else (
+            "!seven_zip!" a -tgzip -mx=9 -mmt=on -mtc=off -mtm=off -mta=off -si"!file_name_ext!" "!temp_gzip_repeat!" < "!input_file!" >nul
+        )
+        if !errorlevel! neq 0 (
+            call :log "[gzip] 重复压缩失败"
+        ) else (
+            call :hash_file "!temp_gzip_repeat!"
+            call :log "[gzip] 重复压缩 SHA256：!hf_hash!"
+            call :bin_cmp "!temp_gzip!" "!temp_gzip_repeat!"
+            call :log "[gzip] 重复压缩二进制比对：!bc_result!"
+        )
+    )
+
 
 
     REM 方式二：压缩为 cab 格式
@@ -230,6 +287,23 @@ for %%i in ("!input_file!") do (
         echo.
         pause
         exit /b 1
+    )
+
+    call :log "[cab] 压缩完成，开始一致性检测"
+    call :hash_file "!temp_cab!"
+    call :log "[cab] 主压缩包 SHA256：!hf_hash!"
+    if "!DEBUG!"=="1" (
+        set "temp_cab_repeat=!temp_dir!\archive_repeat.cab"
+        if exist "!temp_cab_repeat!" ( del /f /q "!temp_cab_repeat!" )
+        makecab /D CompressionType=LZX /D CompressionMemory=21 "!input_file!" "!temp_cab_repeat!" >nul
+        if !errorlevel! neq 0 (
+            call :log "[cab] 重复压缩失败"
+        ) else (
+            call :hash_file "!temp_cab_repeat!"
+            call :log "[cab] 重复压缩 SHA256：!hf_hash!"
+            call :bin_cmp "!temp_cab!" "!temp_cab_repeat!"
+            call :log "[cab] 重复压缩二进制比对：!bc_result!"
+        )
     )
 
 
@@ -281,6 +355,24 @@ for %%i in ("!input_file!") do (
             exit /b 1
         )
         if exist "!temp_7z!" ( del /f /q "!temp_7z!" )
+        call :log "[7z] 压缩完成，开始一致性检测"
+        call :hash_file "!temp_7z_exe!"
+        call :log "[7z] 自解压exe SHA256：!hf_hash!"
+        if "!DEBUG!"=="1" (
+            set "temp_7z_repeat=!temp_dir!\archive_repeat.7z"
+            if exist "!temp_7z_repeat!" ( del /f /q "!temp_7z_repeat!" )
+            "!seven_zip!" a -t7z -mx=9 -m0=LZMA2 -md=2048m -mfb=256 -ms=off -mmt=on -mtc=off -mtm=off -mta=off -sccUTF-8 -scsUTF-8 -y "!temp_7z_repeat!" "!input_file!" >nul
+            set "temp_7z_exe_repeat=!temp_dir!\archive_repeat.sfx.exe"
+            copy /b /y "!seven_zip_sfx!" + "!temp_7z_repeat!" "!temp_7z_exe_repeat!" >nul
+            if !errorlevel! neq 0 (
+                call :log "[7z] 重复压缩失败"
+            ) else (
+                call :hash_file "!temp_7z_repeat!"
+                call :log "[7z] 重复压缩(7z数据) SHA256：!hf_hash!"
+                call :bin_cmp "!temp_7z_exe!" "!temp_7z_exe_repeat!"
+                call :log "[7z] 重复自解压exe 二进制比对：!bc_result!"
+            )
+        )
     )
 
 
@@ -361,6 +453,9 @@ for %%i in ("!input_file!") do (
     echo.
     echo 选择压缩方式：!method!，压缩包大小：!smallest_size! 字节
     echo.
+    call :log "选择压缩方式：!method!，压缩包大小：!smallest_size! 字节，资源文件：!resource_file!"
+    call :hash_file "!resource_file!"
+    call :log "所选资源文件 SHA256：!hf_hash!"
 
     REM 提取内嵌的 C# 代码
     set "temp_cs=!temp_dir!\program.cs"
@@ -410,6 +505,10 @@ for %%i in ("!input_file!") do (
         pause
         exit /b 1
     )
+
+    call :log "[cs] 内嵌C#代码提取完成"
+    call :hash_file "!temp_cs!"
+    call :log "[cs] C#代码 SHA256：!hf_hash!"
 
     REM 自动生成图标：以源文件名的首字，绘制蓝色圆形 + 白色首字的 ico 文件
     set "icon_char=!base_name:~0,1!"
@@ -468,6 +567,12 @@ for %%i in ("!input_file!") do (
         pause
         exit /b 1
     )
+
+    call :log "[ico] 图标生成完成"
+    call :hash_file "!temp_ico!"
+    call :log "[ico] 图标 ICO SHA256：!hf_hash!  (若本地与服务器不同，说明字体/渲染差异导致图标不一致)"
+    call :peek "!temp_ico!" 32
+    call :log "[ico] 图标文件头：!pk_hex!"
 
     REM 临时文件写入完成后，把时间统一刷新为 UNIX 0 时间戳（1970-01-01 00:00:00 UTC），保证生成一致性
     powershell -NoProfile -Command ^
@@ -558,16 +663,53 @@ for %%i in ("!input_file!") do (
         exit /b 1
     )
 
+    set "file_size=-1"
+    for /f %%s in ('powershell -NoProfile -Command "try { ([System.IO.FileInfo]($env:output_file)).Length } catch { -1 }"') do set "file_size=%%s"
+    echo 最终大小：!file_size! 字节
+
+    if "!DEBUG!"=="1" (
+        call :log "============================================================"
+        call :log "一致性分析汇总"
+        call :log "输入文件：!input_file!"
+        call :log "输入大小：!input_size! 字节  输入SHA512：!file_sha512!"
+        call :log "最终大小：!file_size! 字节"
+        call :log "压缩方式：!method!  压缩包大小：!smallest_size!"
+        call :hash_file "!resource_file!"
+        call :log "资源文件 SHA256：!hf_hash!"
+        call :hash_file "!temp_ico!"
+        call :log "图标 ICO SHA256：!hf_hash!"
+        call :hash_file "!temp_cs!"
+        call :log "C# 代码 SHA256：!hf_hash!"
+        call :hash_file "!output_file!"
+        call :log "最终 EXE SHA256：!hf_hash!"
+        call :log "--- 内嵌资源名（确认是否被 /pathmap 归一化，否则将包含本机临时路径）---"
+        for /f "delims=" %%r in ('
+            powershell -NoProfile -Command "$asm=[System.Reflection.Assembly]::ReflectionOnlyLoadFrom($env:output_file); $asm.GetManifestResourceNames() | ForEach-Object { Write-Output $_ }"
+        ') do call :log "    内嵌资源：%%r"
+        if defined GSB_REFERENCE (
+            if exist "!GSB_REFERENCE!" (
+                call :bin_cmp "!output_file!" "!GSB_REFERENCE!"
+                call :log "与参考产物二进制比对：!bc_result!"
+            ) else (
+                call :log "参考产物不存在：!GSB_REFERENCE!"
+            )
+        ) else (
+            call :log "提示：设置 GSB_REFERENCE=参考exe路径 可进行二进制比对"
+        )
+        call :log "============================================================"
+    )
+
     if exist "!temp_gzip!" ( del /f /q "!temp_gzip!" )
     if exist "!temp_cab!" ( del /f /q "!temp_cab!" )
     if exist "!temp_7z!" ( del /f /q "!temp_7z!" )
     if exist "!temp_7z_exe!" ( del /f /q "!temp_7z_exe!" )
     if exist "!temp_cs!" ( del /f /q "!temp_cs!" )
     if exist "!temp_ico!" ( del /f /q "!temp_ico!" )
-
-    set "file_size=-1"
-    for /f %%s in ('powershell -NoProfile -Command "try { ([System.IO.FileInfo]($env:output_file)).Length } catch { -1 }"') do set "file_size=%%s"
-    echo 最终大小：!file_size! 字节
+    if exist "!temp_dir!\archive_repeat.gz" ( del /f /q "!temp_dir!\archive_repeat.gz" )
+    if exist "!temp_dir!\archive_repeat.cab" ( del /f /q "!temp_dir!\archive_repeat.cab" )
+    if exist "!temp_dir!\archive_repeat.7z" ( del /f /q "!temp_dir!\archive_repeat.7z" )
+    if exist "!temp_dir!\archive_repeat.sfx.exe" ( del /f /q "!temp_dir!\archive_repeat.sfx.exe" )
+    if exist "%temp%\MyBatch\envdump.txt" ( del /f /q "%temp%\MyBatch\envdump.txt" )
 
     endlocal
     endlocal
@@ -579,7 +721,58 @@ echo.
 pause
 exit /b
 
+REM ============================================================
+REM 以下为调试 / 一致性分析子程序（主流程已在上方 exit /b 退出，不会执行到这里）
+REM 启用：默认开启；GSB_DEBUG=0 关闭；GSB_REFERENCE=参考exe 路径 做二进制比对
+REM ============================================================
 
+:log
+set "log_msg=%~1"
+if not defined log_msg set "log_msg= "
+echo(!log_msg!
+echo(!log_msg!>> "!log_file!"
+if defined MANIFEST_FILE ( echo(!log_msg!>> "!MANIFEST_FILE!" )
+goto :eof
+
+:hash_file
+set "hf_path=%~1"
+set "hf_algo=%~2"
+if "!hf_algo!"=="" set "hf_algo=SHA256"
+set "hf_hash=ERROR"
+for /f "delims=" %%h in ('
+    powershell -NoProfile -Command "[System.Console]::OutputEncoding=[System.Text.Encoding]::UTF8; try { $a=[System.Security.Cryptography.HashAlgorithm]::Create($env:hf_algo); $b=[System.IO.File]::ReadAllBytes($env:hf_path); Write-Output ([System.BitConverter]::ToString($a.ComputeHash($b)).Replace('-','').ToLowerInvariant()); } catch { Write-Output 'ERROR' }"
+') do set "hf_hash=%%h"
+goto :eof
+
+:bin_cmp
+set "bc_a=%~1"
+set "bc_b=%~2"
+set "bc_result=ERROR"
+for /f "delims=" %%r in ('
+    powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllBytes($env:bc_a); $b=[System.IO.File]::ReadAllBytes($env:bc_b); if($a.Length -ne $b.Length){ Write-Output ('SIZE_DIFF a='+$a.Length+' b='+$b.Length); exit } $found=-1; for($i=0;$i -lt $a.Length;$i++){ if($a[$i]-ne$b[$i]){ $found=$i; break } } if($found -lt 0){ Write-Output 'IDENTICAL' } else { $s=[Math]::Max(0,$found-8); $e=[Math]::Min($a.Length,$found+24); $sb=New-Object System.Text.StringBuilder; for($i=$s;$i -lt $e;$i++){ [void]$sb.Append(('{0:X2} ' -f $a[$i])); if($i -eq $found){ [void]$sb.Append('^ ') } }; Write-Output ('DIFF_AT '+$found+' len='+$a.Length+': '+$sb.ToString()) }"
+') do set "bc_result=%%r"
+goto :eof
+
+:peek
+set "pk_path=%~1"
+set "pk_n=%~2"
+if "!pk_n!"=="" set "pk_n=16"
+set "pk_hex=ERROR"
+for /f "delims=" %%p in ('
+    powershell -NoProfile -Command "$b=[System.IO.File]::ReadAllBytes($env:pk_path); if($b.Length -gt [int]$env:pk_n){ $b=$b[0..([int]$env:pk_n-1)] }; Write-Output (($b | ForEach-Object { '{0:X2}' -f $_ }) -join ' ')"
+') do set "pk_hex=%%p"
+goto :eof
+
+:log_file
+set "lf_path=%~1"
+for /f "usebackq delims=" %%l in ("!lf_path!") do call :log "%%l"
+goto :eof
+
+:env_dump
+set "ed_tmp=%temp%\MyBatch\envdump.txt"
+powershell -NoProfile -Command "$out=New-Object System.Collections.ArrayList; $os=[System.Environment]::OSVersion; $bld=(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue).CurrentBuildNumber; [void]$out.Add('OS: '+$os.VersionString+' Build='+$bld); $psv=$PSVersionTable; [void]$out.Add('PowerShell: '+$psv.PSVersion.ToString()+' CLR='+$psv.CLRVersion.ToString()); [void]$out.Add('Culture: '+(Get-Culture).Name+' UICulture: '+(Get-UICulture).Name); [void]$out.Add('User: '+[System.Security.Principal.WindowsIdentity]::GetCurrent().Name); [void]$out.Add('Machine: '+[System.Environment]::MachineName); [void]$out.Add('TEMP: '+$env:TEMP); [void]$out.Add('ARCH: '+$env:PROCESSOR_ARCHITECTURE); try { $ff=[System.Drawing.FontFamily]::new('Microsoft YaHei'); [void]$out.Add('Font Microsoft YaHei: OK ('+$ff.Name+')'); } catch { [void]$out.Add('Font Microsoft YaHei: MISSING (回退字体可能导致图标不一致)') }; try { [void]$out.Add('.NET Runtime: '+[System.Environment]::Version.ToString()) } catch {} if($env:csharp_roslyn_compiler -and (Test-Path $env:csharp_roslyn_compiler)){ $vi=(Get-Item $env:csharp_roslyn_compiler).VersionInfo; [void]$out.Add('C# Roslyn: '+$env:csharp_roslyn_compiler+' v'+$vi.FileVersion) } else { [void]$out.Add('C# Roslyn: 未找到(将用 CodeDom，不保证一致性)') }; if($env:seven_zip -and (Test-Path $env:seven_zip)){ $vi=(Get-Item $env:seven_zip).VersionInfo; [void]$out.Add('7-Zip: '+$env:seven_zip+' v'+$vi.FileVersion) } else { [void]$out.Add('7-Zip: 未找到') }; $out | Out-File -Encoding UTF8 $env:ed_tmp"
+call :log_file "!ed_tmp!"
+goto :eof
 
 -----BEGIN CSHARP CODE-----
 using System;
