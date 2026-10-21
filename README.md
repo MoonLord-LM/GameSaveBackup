@@ -63,18 +63,18 @@ A simple Git-based file backup tool for backing up, restoring and synchronizing 
 | 最后纪元 | `%USERPROFILE%\AppData\LocalLow\Eleventh Hour Games\Last Epoch` |
 | 虐杀原形 | `%USERPROFILE%\Documents\Prototype` |
 | 尼尔：机械纪元 | `%USERPROFILE%\Documents\My Games\NieR_Automata` |
-| 真三国无双 8：帝国 | `%USERPROFILE%\Documents\KoeiTecmo\Dynasty Warriors 9 Empires` |
-| 无双大蛇 3 | `%USERPROFILE%\Documents\KoeiTecmo\WARRIORS OROCHI 4` |
-| 真三国无双 5 | `%USERPROFILE%\Documents\KOEI\Shin Sangokumusou 5` |
+| 真三国无双8：帝国 | `%USERPROFILE%\Documents\KoeiTecmo\Dynasty Warriors 9 Empires` |
+| 无双大蛇3 | `%USERPROFILE%\Documents\KoeiTecmo\WARRIORS OROCHI 4` |
+| 真三国无双5 | `%USERPROFILE%\Documents\KOEI\Shin Sangokumusou 5` |
 | 亿万僵尸 | `%USERPROFILE%\Documents\My Games\They Are Billions` |
 | 星球基地 | `%USERPROFILE%\Documents\Planetbase` |
 | 缺氧 | `%USERPROFILE%\Documents\Klei\OxygenNotIncluded` |
 | 饥荒联机版 | `%USERPROFILE%\Documents\Klei\DoNotStarveTogether` |
-| 博德之门 3 | `%USERPROFILE%\AppData\Local\Larian Studios\Baldur's Gate 3` |
-| 三国志 8：重制版 | `%USERPROFILE%\Documents\KoeiTecmo\SAN8R` |
+| 博德之门3 | `%USERPROFILE%\AppData\Local\Larian Studios\Baldur's Gate 3` |
+| 三国志8：重制版 | `%USERPROFILE%\Documents\KoeiTecmo\SAN8R` |
 | 古墓丽影 10：崛起 | `%USERPROFILE%\Documents\CPY_SAVES\CPY\391220` |
 | 古墓丽影 11：暗影 | `%USERPROFILE%\Documents\Shadow of the Tomb Raider` |
-| 光与影：33 号远征队 | `%USERPROFILE%\AppData\Local\Sandfall\Saved` |
+| 光与影：33号远征队 | `%USERPROFILE%\AppData\Local\Sandfall\Saved` |
 | 对马岛之魂 | `%USERPROFILE%\Documents\Ghost of Tsushima DIRECTOR'S CUT` |
 | 纪念碑谷 | `%USERPROFILE%\AppData\LocalLow\ustwo games\Monument Valley` |
 | 虫虫大作战 | `%PROGRAMDATA%\AlderGames\BugBits` |
