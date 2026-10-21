@@ -399,15 +399,15 @@ try {
         "save": "%USERPROFILE%\\Documents\\My Games\\NieR_Automata"
     },
     {
-        "name": "真三国无双 8：帝国",
+        "name": "真三国无双8：帝国",
         "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\Dynasty Warriors 9 Empires"
     },
     {
-        "name": "无双大蛇 3",
+        "name": "无双大蛇3",
         "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\WARRIORS OROCHI 4"
     },
     {
-        "name": "真三国无双 5",
+        "name": "真三国无双5",
         "save": "%USERPROFILE%\\Documents\\KOEI\\Shin Sangokumusou 5"
     },
     {
@@ -430,11 +430,11 @@ try {
         "save": "%USERPROFILE%\\Documents\\Klei\\DoNotStarveTogether"
     },
     {
-        "name": "博德之门 3",
+        "name": "博德之门3",
         "save": "%USERPROFILE%\\AppData\\Local\\Larian Studios\\Baldur's Gate 3"
     },
     {
-        "name": "三国志 8：重制版",
+        "name": "三国志8：重制版",
         "save": "%USERPROFILE%\\Documents\\KoeiTecmo\\SAN8R"
     },
     {
@@ -446,7 +446,7 @@ try {
         "save": "%USERPROFILE%\\Documents\\Shadow of the Tomb Raider"
     },
     {
-        "name": "光与影：33 号远征队",
+        "name": "光与影：33号远征队",
         "save": "%USERPROFILE%\\AppData\\Local\\Sandfall\\Saved"
     },
     {
