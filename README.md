@@ -72,8 +72,8 @@ A simple Git-based file backup tool for backing up, restoring and synchronizing 
 | 饥荒联机版 | `%USERPROFILE%\Documents\Klei\DoNotStarveTogether` |
 | 博德之门3 | `%USERPROFILE%\AppData\Local\Larian Studios\Baldur's Gate 3` |
 | 三国志8：重制版 | `%USERPROFILE%\Documents\KoeiTecmo\SAN8R` |
-| 古墓丽影 10：崛起 | `%USERPROFILE%\Documents\CPY_SAVES\CPY\391220` |
-| 古墓丽影 11：暗影 | `%USERPROFILE%\Documents\Shadow of the Tomb Raider` |
+| 古墓丽影10：崛起 | `%USERPROFILE%\Documents\CPY_SAVES\CPY\391220` |
+| 古墓丽影11：暗影 | `%USERPROFILE%\Documents\Shadow of the Tomb Raider` |
 | 光与影：33号远征队 | `%USERPROFILE%\AppData\Local\Sandfall\Saved` |
 | 对马岛之魂 | `%USERPROFILE%\Documents\Ghost of Tsushima DIRECTOR'S CUT` |
 | 纪念碑谷 | `%USERPROFILE%\AppData\LocalLow\ustwo games\Monument Valley` |
