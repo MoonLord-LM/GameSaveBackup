@@ -28,11 +28,11 @@ cd /d "!backup_dir!" || (
     exit /b 1
 )
 
-REM Check git component availability
+REM Check Git component
 "git.exe" --version >nul 2>&1
 if !errorlevel! neq 0 (
-    echo Error: Missing git.exe component
-    echo Please download from https://git-scm.com/install/windows
+    echo Error: Missing Git component & REM
+    echo Please download and install from https://git-scm.com/install/windows & REM
     "explorer.exe" "https://git-scm.com/install/windows"
     echo.
     pause

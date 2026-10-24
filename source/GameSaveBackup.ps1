@@ -245,8 +245,8 @@ try {
             SaveLocationBatName = '存档位置.bat'
             CreateBackupDir = '创建备份目录: {0}'
             ERROR_OpenSaveLocationFailed = '打开存档位置失败: {0}'
-            ERROR_GitMissing = '错误：缺少 git.exe 组件'
-            ERROR_GitDownload = '请从 https://git-scm.com/install/windows 下载'
+            ERROR_GitMissing = '错误：缺少 Git 组件'
+            ERROR_GitDownload = '请从 https://git-scm.com/install/windows 下载，并完成安装'
             ERROR_ConfigNotFound = '错误：选定的配置文件不存在'
             ERROR_ConfigNotSelected = '未选择配置文件'
             INFO_GitCommand = 'Git 命令'
@@ -321,8 +321,8 @@ try {
             SaveLocationBatName = 'SaveLocation.bat'
             CreateBackupDir = 'Creating backup directory: {0}'
             ERROR_OpenSaveLocationFailed = 'Failed to open save location: {0}'
-            ERROR_GitMissing = 'Error: git.exe component is missing'
-            ERROR_GitDownload = 'Please download from https://git-scm.com/install/windows'
+            ERROR_GitMissing = 'Error: Missing Git component'
+            ERROR_GitDownload = 'Please download and install from https://git-scm.com/install/windows'
             ERROR_ConfigNotFound = 'Error: Selected config file does not exist'
             ERROR_ConfigNotSelected = 'Config file not selected'
             INFO_GitCommand = 'Git command'
@@ -1300,8 +1300,8 @@ $startButton.Add_Click({
         Set-Location -LiteralPath $BackupDirectory
         Show-Log-Async ($Ui.INFO_EnteringBackupDir -f $BackupDirectory) 'Info'
 
-        # 检查 Git
-        $gitExe = Get-Command git -ErrorAction SilentlyContinue
+        # 检查 Git 组件
+        $gitExe = Get-Command git.exe -ErrorAction SilentlyContinue
         if (-not $gitExe) {
             Show-Log-Async $Ui.ERROR_GitMissing 'Error'
             Show-Log-Async $Ui.ERROR_GitDownload 'Error'

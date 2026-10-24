@@ -28,11 +28,11 @@ cd /d "!backup_dir!" || (
     exit /b 1
 )
 
-REM 检查 git 组件是否可用
+REM 检查 Git 组件
 "git.exe" --version >nul 2>&1
 if !errorlevel! neq 0 (
-    echo 错误: 缺少 git.exe 组件
-    echo 请从 https://git-scm.com/install/windows 下载
+    echo 错误：缺少 Git 组件 & REM
+    echo 请从 https://git-scm.com/install/windows 下载，并完成安装 & REM
     "explorer.exe" "https://git-scm.com/install/windows"
     echo.
     pause
