@@ -252,6 +252,7 @@ try {
             INFO_GitCommand = 'Git 命令'
             INFO_RobocopyCommand = 'Robocopy 命令'
             ERROR_GitCommandFailed = 'Git 命令执行失败，错误码：{0}，输出信息：{1}'
+            ERROR_RobocopyTaskFailed = 'Robocopy 执行失败，错误码：{0}，终止备份任务'
             INFO_GamesFound = '找到游戏配置数量'
             INFO_MultipleConfigSelect = '当前位置存在 {0} 个配置文件，请选择'
             ERROR_ConfigLoadFailed = '配置文件加载失败: {0}'
@@ -329,6 +330,7 @@ try {
             INFO_GitCommand = 'Git command'
             INFO_RobocopyCommand = 'Robocopy command'
             ERROR_GitCommandFailed = 'Git command execution failed, error code: {0}, output: {1}'
+            ERROR_RobocopyTaskFailed = 'Robocopy execution failed, error code: {0}, backup task aborted'
             INFO_GamesFound = 'game(s) found in configuration'
             INFO_MultipleConfigSelect = 'Location: {0} config files found, please select'
             ERROR_ConfigLoadFailed = 'Config file load failed: {0}'
@@ -1259,7 +1261,7 @@ $startButton.Add_Click({
                 }
             }
 
-            $robocopyArgs = @('/MIR', '/COPY:DAT', '/DCOPY:T', '/NP', '/NS', '/NC', '/NFL', '/NDL', '/NJH')
+            $robocopyArgs = @('/MIR', '/COPY:DAT', '/DCOPY:T', '/R:10', '/W:3', '/NP', '/NS', '/NC', '/NFL', '/NDL', '/NJH')
             $robocopyCommand = "robocopy `"$Source`" `"$Destination`" " + ($robocopyArgs + $IgnoreArgs -join ' ')
             Show-Log-Async ($Ui.INFO_RobocopyCommand + ": $robocopyCommand") 'Debug'
 
@@ -1267,11 +1269,12 @@ $startButton.Add_Click({
             $robocopyExitCode = $LASTEXITCODE
 
             if ($robocopyExitCode -ge 8) {
-                Show-Log-Async ($Ui.INFO_RobocopyFailed -f $robocopyExitCode) 'Debug'
-            } else {
-                Show-Log-Async ($Ui.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
+                Show-Log-Async ($Ui.INFO_RobocopyFailed -f $robocopyExitCode) 'Error'
+                Show-Log-Async ($Ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
+                throw ($Ui.ERROR_RobocopyTaskFailed -f $robocopyExitCode)
             }
 
+            Show-Log-Async ($Ui.INFO_RobocopySuccess -f $robocopyExitCode) 'Debug'
             Show-Log-Async ($Ui.INFO_RobocopyReturn + ":`r`n" + $result) 'Debug'
         }
 
@@ -1420,7 +1423,8 @@ $startButton.Add_Click({
                 }
             }
             else {
-                $batContent = "if not exist `"" + $saveExpanded + "`" mkdir `"" + $saveExpanded + "`"`r`n"
+                $batContent = "chcp 65001 >nul`r`n"
+                $batContent += "if not exist `"" + $saveExpanded + "`" mkdir `"" + $saveExpanded + "`"`r`n"
                 $batContent += "`"explorer.exe`" `"" + $saveExpanded + "`""
                 # 使用无 BOM 的 UTF-8 写入，避免 cmd 运行 bat 时首行出现乱码
                 # 使用绝对路径写入游戏子目录（.NET 当前目录是备份根目录，不会随 Set-Location 改变）

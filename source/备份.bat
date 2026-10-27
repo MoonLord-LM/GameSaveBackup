@@ -96,19 +96,13 @@ echo.
 REM 遍历配置中的每一项，按修改时间自动备份 / 还原
 for /l %%i in (1, 1, !length!) do (
     for /f "tokens=*" %%j in ('powershell -NoProfile -Command "(Get-Content -Raw -Encoding UTF8 -Path \""!config!\"" | ConvertFrom-Json)[%%i - 1].name"') do set "name=%%j"
-    for /f "tokens=*" %%j in ('powershell -NoProfile -Command "(Get-Content -Raw -Encoding UTF8 -Path \""!config!\"" | ConvertFrom-Json)[%%i - 1].save"') do set "save=%%j"
 
-    set "save=!save:%%USERPROFILE%%=%USERPROFILE%!"
-    set "save=!save:%%PROGRAMDATA%%=%PROGRAMDATA%!"
-    set "save=!save:%%PUBLIC%%=%PUBLIC%!"
+    for /f "tokens=*" %%j in ('powershell -NoProfile -Command "[System.Console]::OutputEncoding=[System.Text.Encoding]::UTF8; [Environment]::ExpandEnvironmentVariables((Get-Content -Raw -Encoding UTF8 -Path \""!config!\"" | ConvertFrom-Json)[%%i - 1].save)"') do set "save=%%j"
     echo 处理 %%i / !length! :  "!name!" 位于 "!save!"
 
     set "ignore_args=/XF ""SaveLocation.bat"" /XF ""存档位置.bat"""
-    for /f "delims=" %%k in ('powershell -NoProfile -Command "$item = (Get-Content -Raw -Encoding UTF8 -Path \""!config!\"" | ConvertFrom-Json)[%%i - 1].ignore; if ($item) { $item } else { }"') do (
+    for /f "delims=" %%k in ('powershell -NoProfile -Command "[System.Console]::OutputEncoding=[System.Text.Encoding]::UTF8; $items = (Get-Content -Raw -Encoding UTF8 -Path \""!config!\"" | ConvertFrom-Json)[%%i - 1].ignore; if ($items) { $items | ForEach-Object { [Environment]::ExpandEnvironmentVariables($_) } } else { }"') do (
         set "item=%%k"
-        set "item=!item:%%USERPROFILE%%=%USERPROFILE%!"
-        set "item=!item:%%PROGRAMDATA%%=%PROGRAMDATA%!"
-        set "item=!item:%%PUBLIC%%=%PUBLIC%!"
         echo 忽略项: "!item!"
         set "ignore_args=!ignore_args! /XF ""!item!"" /XD ""!item!"""
     )
@@ -147,21 +141,29 @@ for /l %%i in (1, 1, !length!) do (
         ) else (
             echo 本地存档文件缺失，使用备份文件恢复
             powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
-            robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
+            robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /R:10 /W:3 /NP /NS /NC /NFL /NDL /NJH !ignore_args!
             if !errorlevel! geq 8 (
                 echo 错误: 还原失败
+                echo.
+                pause
+                exit /b 1
             )
         )
     ) else (
-        echo if not exist "!save!" mkdir "!save!" > "存档位置.bat"
+        REM 首行的 chcp 65001 保证中文路径不被 cmd 按默认代码页解析
+        echo chcp 65001 ^>nul > "存档位置.bat"
+        echo if not exist "!save!" mkdir "!save!" >> "存档位置.bat"
         echo "explorer.exe" "!save!" >> "存档位置.bat"
         powershell -NoProfile -Command "(Get-Item '存档位置.bat').LastWriteTime = [DateTimeOffset]::FromUnixTimeSeconds(0).UtcDateTime"
 
         if "!max_backup_time!"=="" (
             echo 备份文件缺失，进行备份
-            robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
+            robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /R:10 /W:3 /NP /NS /NC /NFL /NDL /NJH !ignore_args!
             if !errorlevel! geq 8 (
                 echo 错误: 备份失败
+                echo.
+                pause
+                exit /b 1
             ) else (
                 git add .
                 git diff --cached --quiet || git commit -m "Update - !name! on !machine_name! by !user_name!"
@@ -172,15 +174,21 @@ for /l %%i in (1, 1, !length!) do (
             if "!decision!"=="older" (
                 echo 本地存档文件修改时间较旧，删除到回收站，并使用备份文件更新
                 powershell -NoProfile -Command "$sh = New-Object -ComObject Shell.Application; $sh.Namespace(10).MoveHere(\""!save!\"")"
-                robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
+                robocopy . "!save!" /MIR /COPY:DAT /DCOPY:T /R:10 /W:3 /NP /NS /NC /NFL /NDL /NJH !ignore_args!
                 if !errorlevel! geq 8 (
                     echo 错误: 还原失败
+                    echo.
+                    pause
+                    exit /b 1
                 )
             ) else if "!decision!"=="newer" (
                 echo 本地存档文件修改时间较新，进行备份
-                robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /NP /NS /NC /NFL /NDL /NJH !ignore_args!
+                robocopy "!save!" . /MIR /COPY:DAT /DCOPY:T /R:10 /W:3 /NP /NS /NC /NFL /NDL /NJH !ignore_args!
                 if !errorlevel! geq 8 (
                     echo 错误: 备份失败
+                    echo.
+                    pause
+                    exit /b 1
                 ) else (
                     git add .
                     git diff --cached --quiet || git commit -m "Update - !name! on !machine_name! by !user_name!"
