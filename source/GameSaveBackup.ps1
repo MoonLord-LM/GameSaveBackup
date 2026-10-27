@@ -270,6 +270,7 @@ try {
             ERROR_ConfigItemInvalidIgnore = "第 {0} 个配置项的 'ignore' 属性必须是数组格式"
             ERROR_ConfigItemInvalidIgnoreElement = "第 {0} 个配置项的 'ignore' 数组中包含空元素或非字符串元素"
             ERROR_CreateBackupDirFailed = '创建备份目录失败: {0}'
+            ERROR_GetFileTimeFailed = '获取文件修改时间失败: {0}'
             ERROR_ErrorDetails = '错误详情: {0}'
             INFO_FileTimeComparison = '本地文件修改时间:[{0}] 备份文件修改时间:[{1}]'
             WARNING_BothMissing = '本地存档文件与备份文件都不存在，跳过操作'
@@ -346,6 +347,7 @@ try {
             ERROR_ConfigItemInvalidIgnore = "Item {0} 'ignore' property must be an array format"
             ERROR_ConfigItemInvalidIgnoreElement = "Item {0} 'ignore' array contains empty or non-string elements"
             ERROR_CreateBackupDirFailed = 'Failed to create backup directory: {0}'
+            ERROR_GetFileTimeFailed = 'Failed to get file modification time: {0}'
             ERROR_ErrorDetails = 'Error details: {0}'
             INFO_FileTimeComparison = 'Local file time:[{0}] Backup file time:[{1}]'
             WARNING_BothMissing = 'Both local save and backup files are missing, skipping'
@@ -1209,25 +1211,22 @@ $startButton.Add_Click({
             return $output
         }
 
-        # 获取指定目录下所有文件的最新修改时间，使用 .NET 方法遍历，避免使用 Get-ChildItem 污染语言信息
+        # 获取指定目录下所有文件的最新修改时间
         function Get-Max-File-Time {
             param([string]$DirectoryPath)
 
             $maxTicks = $null
-            try {
-                if ([System.IO.Directory]::Exists($DirectoryPath)) {
-                    foreach ($filePath in [System.IO.Directory]::GetFiles($DirectoryPath, '*', [System.IO.SearchOption]::AllDirectories)) {
-                        $fileTicks = [System.IO.File]::GetLastWriteTime($filePath).Ticks
-                        if ($null -eq $maxTicks -or $fileTicks -gt $maxTicks) {
-                            $maxTicks = $fileTicks
-                        }
+            if ([System.IO.Directory]::Exists($DirectoryPath)) {
+                foreach ($filePath in [System.IO.Directory]::GetFiles($DirectoryPath, '*', [System.IO.SearchOption]::AllDirectories)) {
+                    $fileTicks = [System.IO.File]::GetLastWriteTime($filePath).Ticks
+                    if ($null -eq $maxTicks -or $fileTicks -gt $maxTicks) {
+                        $maxTicks = $fileTicks
                     }
                 }
-                elseif ([System.IO.File]::Exists($DirectoryPath)) {
-                    $maxTicks = [System.IO.File]::GetLastWriteTime($DirectoryPath).Ticks
-                }
             }
-            catch { }
+            elseif ([System.IO.File]::Exists($DirectoryPath)) {
+                $maxTicks = [System.IO.File]::GetLastWriteTime($DirectoryPath).Ticks
+            }
             return $maxTicks
         }
 
@@ -1368,11 +1367,26 @@ $startButton.Add_Click({
             $backupDir = Join-Path $BackupDirectory $name
 
             # 获取本地文件修改时间
-            $maxLocalTime = Get-Max-File-Time -DirectoryPath $saveExpanded
+            # 遍历失败时无法判断备份方向，跳过该游戏
+            try {
+                $maxLocalTime = Get-Max-File-Time -DirectoryPath $saveExpanded
+            }
+            catch {
+                Show-Log-Async ($Ui.ERROR_GetFileTimeFailed -f $saveExpanded) 'Error'
+                Show-Log-Async ($Ui.ERROR_ErrorDetails -f $_.Exception.Message) 'Error'
+                continue
+            }
             $maxLocalTimeString = Format-File-Time -FileTime $maxLocalTime
 
             # 获取备份文件修改时间
-            $maxBackupTime = Get-Max-File-Time -DirectoryPath $backupDir
+            try {
+                $maxBackupTime = Get-Max-File-Time -DirectoryPath $backupDir
+            }
+            catch {
+                Show-Log-Async ($Ui.ERROR_GetFileTimeFailed -f $backupDir) 'Error'
+                Show-Log-Async ($Ui.ERROR_ErrorDetails -f $_.Exception.Message) 'Error'
+                continue
+            }
             $maxBackupTimeString = Format-File-Time -FileTime $maxBackupTime
 
             Show-Log-Async ($Ui.INFO_FileTimeComparison -f $maxLocalTimeString, $maxBackupTimeString) 'Info'
