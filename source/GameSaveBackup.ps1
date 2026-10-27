@@ -8,8 +8,8 @@
 #     每个游戏的备份目录，通过 Git 进行版本管理，保留历史存档记录
 #
 # 目录说明：
-#     配置文件：\备份\配置.json，首次运行自动创建内嵌默认配置，英文环境使用 \备份\config.json
-#     备份目录：\备份\[游戏名称]，游戏子目录下自动生成 [存档位置.bat]，用于快速打开本地存档目录
+#     配置文件：\Backup\配置.json，首次运行自动创建内嵌默认配置，英文环境使用 \Backup\config.json
+#     备份目录：\Backup\[游戏名称]，游戏子目录下自动生成 [存档位置.bat]，用于快速打开本地存档目录
 #
 # 配置文件说明：
 #     name 游戏名称（唯一，作为备份子目录的名称）
@@ -291,7 +291,7 @@ try {
             SUCCESS_GitInitialized = 'Git 仓库已初始化并配置'
             INFO_SystemInfo = '系统版本: [ {0} ]  PowerShell 版本: [ {1} ]'
             ConfigFileName = '配置.json'
-            BackupDirName = '备份'
+            BackupDirName = 'Backup'
         }
         'en-US' = @{
             FormTitle = 'Game Save Backup Tool'
